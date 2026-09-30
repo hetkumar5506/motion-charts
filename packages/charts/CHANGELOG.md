@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.5
+
+### Fixed & Enhanced
+- **Vite & Client Bundler Dev Warnings**: Completely removed `typeof process !== "undefined"` guards in favor of a try/catch `process.env.NODE_ENV !== "production"` pattern. Bundlers like Vite now statically replace `process.env.NODE_ENV` with `"development"` without getting blocked by a missing global `process` object in the browser.
+- **Dynamic Tooltip Measurement & Clamping**: Chart tooltips now dynamically measure their rendered bounding box (`getBoundingClientRect`) and clamp seamlessly against viewport edges for custom or multi-line content.
+- **Portaled Tooltip Isolation**: Tooltips render into `document.body` via `createPortal`, isolating `position: fixed` from CSS `transform` / `filter` containing blocks created by animated ancestor elements (e.g. Framer Motion cards).
+- **Touch Device Dismissal**: Added outside-touch dismissal for mobile screens where `pointerleave` does not fire after a tap, preventing tooltips from lingering indefinitely.
+- **Optional Gapped Line Semantics (`connectNulls`)**: Added `connectNulls` prop (default `true`) to `LineChart` and `MultiLineChart`. When set to `false`, lines and areas break cleanly with visual gaps across `null` / `NaN` data points.
+- **Zero-Line Axis Baseline Support (`zeroLine`)**: Added `zeroLine?: boolean` option to `AxisOptions` (`xAxis` / `yAxis`), allowing `BarChart` to anchor the horizontal baseline line directly at `y=0` when displaying mixed positive and negative data.
+- **Documentation & Testing**: Added comprehensive regression tests for `connectNulls`, `zeroLine`, and bundler `isDev` behavior. Updated documentation on parameter defaults and layout behavior.
+
 ## 0.1.4
 
 ### Fixed & Enhanced

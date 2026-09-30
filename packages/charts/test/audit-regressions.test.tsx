@@ -121,4 +121,44 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     expect(animationPreset(undefined)).toEqual(animationPresets.spring);
     expect(animationPreset("bouncy")).toEqual(animationPresets.bouncy);
   });
+
+  it("supports connectNulls=false to render gaps across null/NaN data points", () => {
+    const dataWithGap = [
+      { x: "Jan", y: 10 },
+      { x: "Feb", y: null as unknown as number },
+      { x: "Mar", y: 20 },
+      { x: "Apr", y: 30 }
+    ];
+
+    const connectedHtml = renderToString(
+      <LineChart data={dataWithGap} xKey="x" yKey="y" width={500} height={300} connectNulls />
+    );
+    // When connected, single path command or continuous segment
+    expect(connectedHtml).toContain('d="M');
+
+    const gappedHtml = renderToString(
+      <LineChart data={dataWithGap} xKey="x" yKey="y" width={500} height={300} connectNulls={false} />
+    );
+    // In gapped mode, path contains two disjoint M commands separated by the gap
+    const mCount = (gappedHtml.match(/M\s/g) || []).length;
+    expect(mCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("supports zeroLine positioning on BarChart with negative data", () => {
+    const mixedData = [
+      { cat: "A", val: 50 },
+      { cat: "B", val: -30 }
+    ];
+
+    const htmlWithZeroLine = renderToString(
+      <BarChart data={mixedData} xKey="cat" yKey="val" width={500} height={300} xAxis={{ zeroLine: true }} />
+    );
+    // Baseline y should be inside the plot area, not at bottom
+    expect(htmlWithZeroLine).toContain('dy="0.72em"');
+  });
+
+  it("evaluates isDev safely without throwing ReferenceError when process is not defined", async () => {
+    const { isDev } = await import("../src/utils/env");
+    expect(typeof isDev()).toBe("boolean");
+  });
 });

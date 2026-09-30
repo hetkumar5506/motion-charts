@@ -289,7 +289,7 @@ Reduced-motion users are respected automatically.
 
 ## Tooltips
 
-All chart components support a `tooltip` render prop or `tooltip={false}`. Tooltips render with smooth viewport boundary detection and accessible `aria-describedby` links on active shapes.
+All chart components support a `tooltip` render prop or `tooltip={false}`. Tooltips render with dynamic measurement, viewport boundary clamping, portal rendering to `document.body` (to avoid CSS transform/filter containing-block clipping from parent cards or Framer Motion animations), and outside-touch dismissal for mobile screens. Active shapes are connected to live tooltips with `aria-describedby`.
 
 ```tsx
 <BarChart
@@ -310,6 +310,8 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 
 ## Tuning & defaults
 
+- `connectNulls` (boolean, default `true`): In `LineChart` and `MultiLineChart`, controls whether `null`/`NaN` data points are bridged or rendered with distinct visual gaps in line and area paths.
+- `zeroLine` (boolean, default `false`): In `BarChart`, set `xAxis={{ zeroLine: true }}` or `yAxis={{ zeroLine: true }}` to anchor the horizontal axis baseline line at `y=0` when displaying negative data.
 - `barPadding` is clamped to `[0, 0.8]` (default `0.22`).
 - `innerRadiusRatio` in `DonutChart` is clamped to `[0, 0.9]` (default `0.62`).
 - `Date` objects passed to `xKey` or `labelKey` automatically format via `toLocaleDateString()`.

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { isDev } from "../utils/env";
 
 export type ResponsiveChartSize = {
   width: number;
@@ -38,9 +39,7 @@ export function ResponsiveChart({
     }
 
     if (typeof ResizeObserver === "undefined") {
-      const isDev = typeof (globalThis as Record<string, unknown>).process !== "undefined" &&
-        ((globalThis as Record<string, unknown>).process as { env?: Record<string, string> })?.env?.NODE_ENV !== "production";
-      if (isDev) {
+      if (isDev()) {
         console.warn("[ResponsiveChart] ResizeObserver is not available in this environment. Falling back to static fallbackWidth.");
       }
       return;

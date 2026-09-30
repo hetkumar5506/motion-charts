@@ -6,8 +6,38 @@ export type ArcSlice = {
   percent: number;
 };
 
-export function linePath(points: readonly Point[], curve: "linear" | "smooth" = "smooth"): string {
-  const validPoints = points.filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+export function linePath(
+  points: readonly (Point | null | undefined)[],
+  curve: "linear" | "smooth" = "smooth",
+  connectNulls = true
+): string {
+  if (connectNulls) {
+    const validPoints = points.filter((p): p is Point => !!p && Number.isFinite(p.x) && Number.isFinite(p.y));
+    return buildContinuousLinePath(validPoints, curve);
+  }
+
+  // Split into contiguous non-null segments
+  const segments: Point[][] = [];
+  let currentSegment: Point[] = [];
+
+  for (const p of points) {
+    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+      currentSegment.push(p);
+    } else {
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment);
+        currentSegment = [];
+      }
+    }
+  }
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment);
+  }
+
+  return segments.map((seg) => buildContinuousLinePath(seg, curve)).filter(Boolean).join(" ");
+}
+
+function buildContinuousLinePath(validPoints: readonly Point[], curve: "linear" | "smooth" = "smooth"): string {
   if (validPoints.length === 0) return "";
   const first = validPoints[0];
   if (!first) return "";
@@ -27,13 +57,51 @@ export function linePath(points: readonly Point[], curve: "linear" | "smooth" = 
   return commands.join(" ");
 }
 
-export function areaPath(points: readonly Point[], baselineY: number, curve: "linear" | "smooth" = "smooth"): string {
-  const validPoints = points.filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
-  if (validPoints.length === 0 || !Number.isFinite(baselineY)) return "";
-  const first = validPoints[0];
-  const last = validPoints[validPoints.length - 1];
-  if (!first || !last) return "";
-  return `${linePath(validPoints, curve)} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`;
+export function areaPath(
+  points: readonly (Point | null | undefined)[],
+  baselineY: number,
+  curve: "linear" | "smooth" = "smooth",
+  connectNulls = true
+): string {
+  if (!Number.isFinite(baselineY)) return "";
+
+  if (connectNulls) {
+    const validPoints = points.filter((p): p is Point => !!p && Number.isFinite(p.x) && Number.isFinite(p.y));
+    if (validPoints.length === 0) return "";
+    const first = validPoints[0];
+    const last = validPoints[validPoints.length - 1];
+    if (!first || !last) return "";
+    return `${buildContinuousLinePath(validPoints, curve)} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`;
+  }
+
+  // Split into contiguous non-null segments
+  const segments: Point[][] = [];
+  let currentSegment: Point[] = [];
+
+  for (const p of points) {
+    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+      currentSegment.push(p);
+    } else {
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment);
+        currentSegment = [];
+      }
+    }
+  }
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment);
+  }
+
+  return segments
+    .map((seg) => {
+      if (seg.length === 0) return "";
+      const first = seg[0];
+      const last = seg[seg.length - 1];
+      if (!first || !last) return "";
+      return `${buildContinuousLinePath(seg, curve)} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`;
+    })
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function pieSlices(values: readonly number[], padAngle = 0): readonly ArcSlice[] {

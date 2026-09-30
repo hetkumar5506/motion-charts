@@ -19,6 +19,8 @@ export type AxisOptions = {
   tickCount?: number;
   formatter?: (value: number | string) => string;
   includeZero?: boolean;
+  /** When true, renders the zero line / axis line at y=0 rather than at the bottom of the chart. */
+  zeroLine?: boolean;
 };
 
 export type MotionOptions = {

@@ -61,17 +61,46 @@ export function ChartSurface({
 
 function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; style?: CSSProperties; tooltipId?: string }) {
   const [mounted, setMounted] = useState(false);
+  const tooltipRef = useState<{ current: HTMLDivElement | null }>({ current: null })[0];
+  const [measuredSize, setMeasuredSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // On touch devices, pointerleave often does not fire. Add an outside tap handler to dismiss lingering tooltip.
+  useEffect(() => {
+    if (!tooltip) return;
+    const handleOutsideTouch = (event: TouchEvent | MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest?.("[role='graphics-symbol']") && !target?.closest?.("[role='tooltip']")) {
+        // If tapped outside active symbols and tooltip, hide
+        if (tooltipRef.current) {
+          tooltipRef.current.style.display = "none";
+        }
+      }
+    };
+    window.addEventListener("touchstart", handleOutsideTouch, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", handleOutsideTouch);
+    };
+  }, [tooltip]);
+
+  useEffect(() => {
+    if (tooltipRef.current) {
+      const rect = tooltipRef.current.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setMeasuredSize({ width: rect.width, height: rect.height });
+      }
+    }
+  }, [tooltip?.content]);
+
   if (!tooltip) return null;
 
   // Viewport clamping & position logic:
-  // Smoothly clamp within viewport bounds without sudden teleports
-  const tooltipWidth = 280;
-  const tooltipHeight = 70;
+  // Measure actual element bounds when available with sane initial fallback
+  const tooltipWidth = measuredSize?.width ?? 280;
+  const tooltipHeight = measuredSize?.height ?? 70;
   const offset = 14;
 
   let left = tooltip.x + offset;
@@ -82,7 +111,7 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
     const vpHeight = window.innerHeight;
 
     // Smoothly constrain left within [12, vpWidth - tooltipWidth - 12]
-    // If cursor is near right edge, smoothly place to the left of cursor
+    // If cursor is near right edge, place to the left of cursor
     if (left + tooltipWidth > vpWidth - 12) {
       const leftAlternative = tooltip.x - tooltipWidth - offset;
       left = leftAlternative >= 12 ? leftAlternative : Math.max(12, vpWidth - tooltipWidth - 12);
@@ -90,7 +119,7 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
       left = Math.max(12, left);
     }
 
-    // Smoothly clamp vertical bounds
+    // Clamp vertical bounds to keep fully inside viewport
     if (top + tooltipHeight > vpHeight - 12) {
       top = Math.max(12, vpHeight - tooltipHeight - 12);
     }
@@ -102,6 +131,12 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
   const tooltipElement = (
     <AnimatePresence>
       <motion.div
+        ref={(el) => {
+          tooltipRef.current = el;
+          if (el && (!measuredSize || measuredSize.width !== el.offsetWidth || measuredSize.height !== el.offsetHeight)) {
+            setMeasuredSize({ width: el.offsetWidth, height: el.offsetHeight });
+          }
+        }}
         id={tooltipId || tooltip.id}
         role="tooltip"
         initial={{ opacity: 0, y: 4, scale: 0.96 }}
@@ -131,7 +166,8 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
     </AnimatePresence>
   );
 
-  // Safely feature-detect createPortal so non-DOM reconcilers don't crash
+  // By portaling to document.body, fixed positioning is relative to viewport and avoids
+  // CSS transform/filter containing blocks created by ancestor elements (such as Framer Motion parents)
   const portalFn = (ReactDOM as unknown as { createPortal?: typeof ReactDOM.createPortal }).createPortal;
   if (mounted && typeof document !== "undefined" && document.body && typeof portalFn === "function") {
     return portalFn(tooltipElement, document.body);

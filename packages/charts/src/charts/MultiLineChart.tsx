@@ -5,7 +5,7 @@ import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
 import { InlineLegend } from "../components/Legend";
 import type { Accessor, AxisOptions, CommonChartProps, TooltipRenderContext } from "../types";
-import { labelOf, numberOf } from "../utils/accessors";
+import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
@@ -38,6 +38,8 @@ export type MultiLineChartProps<TDatum extends object> = Omit<CommonChartProps<T
   showPoints?: boolean;
   showArea?: boolean;
   curve?: "linear" | "smooth";
+  /** When true (default), bridges missing/null/NaN data points. When false, renders gaps in the lines/areas. */
+  connectNulls?: boolean;
   onDatumClick?: (context: MultiLineTooltipContext<TDatum>) => void;
 };
 
@@ -67,6 +69,7 @@ export function MultiLineChart<TDatum extends object>({
   showPoints = true,
   showArea = false,
   curve = "smooth",
+  connectNulls = true,
   onDatumClick
 }: MultiLineChartProps<TDatum>) {
   const gradientBaseId = useId().replace(/:/g, "");
@@ -126,22 +129,28 @@ export function MultiLineChart<TDatum extends object>({
           const value = numberOf(datum, index, item.yKey);
           return { datum, index, label, value, color: item.color, seriesId: item.id, seriesLabel: item.label };
         });
-        const points = rows.map((row) => ({
-          x: xScale.center(row.label, row.index),
-          y: yScale.scale(row.value)
-        }));
-        const baselinePoints = points.map((p) => ({ x: p.x, y: baseline }));
+        const points: (Point | null)[] = rows.map((row) => {
+          if (!connectNulls) {
+            const raw = rawNumberOf(row.datum, row.index, item.yKey);
+            if (raw === null) return null;
+          }
+          return {
+            x: xScale.center(row.label, row.index),
+            y: yScale.scale(row.value)
+          };
+        });
+        const baselinePoints: (Point | null)[] = points.map((p) => (p ? { x: p.x, y: baseline } : null));
         return {
           ...item,
           rows,
           points,
-          path: linePath(points, curve),
-          initialPath: linePath(baselinePoints, curve),
-          fillPath: areaPath(points, baseline, curve),
-          initialFillPath: areaPath(baselinePoints, baseline, curve)
+          path: linePath(points, curve, connectNulls),
+          initialPath: linePath(baselinePoints, curve, connectNulls),
+          fillPath: areaPath(points, baseline, curve, connectNulls),
+          initialFillPath: areaPath(baselinePoints, baseline, curve, connectNulls)
         };
       }),
-    [baseline, curve, data, labels, preparedSeries, xScale, yScale]
+    [baseline, connectNulls, curve, data, labels, preparedSeries, xScale, yScale]
   );
 
   const [hoveredPoint, setHoveredPoint] = useState<{ seriesId: string; index: number } | null>(null);

@@ -189,7 +189,7 @@ export function BarChart<TDatum extends object>({
       {xAxis?.show === false ? null : (
         <AxisBottom
           scale={xScale}
-          y={bounds.top + bounds.innerHeight}
+          y={(xAxis?.zeroLine || yAxis?.zeroLine) && Number.isFinite(baseline) ? baseline : bounds.top + bounds.innerHeight}
           formatter={(value) => xAxis?.formatter?.(value) ?? value}
           style={chartTheme}
           tickCount={xAxis?.tickCount}

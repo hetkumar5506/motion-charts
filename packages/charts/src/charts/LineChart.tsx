@@ -4,7 +4,7 @@ import { AxisBottom, AxisLeft, GridRows } from "../components/Axis";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
 import type { Accessor, AxisOptions, CommonChartProps, TooltipRenderContext } from "../types";
-import { labelOf, numberOf } from "../utils/accessors";
+import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { resolveChartTheme } from "../themes";
@@ -22,6 +22,8 @@ export type LineChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   showPoints?: boolean;
   curve?: "linear" | "smooth";
   strokeWidth?: number;
+  /** When true (default), bridges missing/null/NaN data points. When false, renders gaps in the line/area. */
+  connectNulls?: boolean;
   onDatumClick?: (context: TooltipRenderContext<TDatum>) => void;
 };
 
@@ -51,6 +53,7 @@ export function LineChart<TDatum extends object>({
   showPoints = true,
   curve = "smooth",
   strokeWidth = 3,
+  connectNulls = true,
   onDatumClick
 }: LineChartProps<TDatum>) {
   const gradientId = useId().replace(/:/g, "");
@@ -96,20 +99,29 @@ export function LineChart<TDatum extends object>({
     [bounds.innerHeight, bounds.top, includeZero, rows, yAxis?.tickCount]
   );
 
-  const points: Point[] = useMemo(
+  const points: (Point | null)[] = useMemo(
     () =>
-      rows.map((row) => ({
-        x: xScale.center(row.label, row.index),
-        y: yScale.scale(row.value)
-      })),
-    [rows, xScale, yScale]
+      rows.map((row) => {
+        if (!connectNulls) {
+          const raw = rawNumberOf(row.datum, row.index, yKey);
+          if (raw === null) return null;
+        }
+        return {
+          x: xScale.center(row.label, row.index),
+          y: yScale.scale(row.value)
+        };
+      }),
+    [connectNulls, rows, xScale, yKey, yScale]
   );
   const baseline = yScale.scale(0);
-  const baselinePoints: Point[] = useMemo(() => points.map((p) => ({ x: p.x, y: baseline })), [baseline, points]);
-  const path = useMemo(() => linePath(points, curve), [curve, points]);
-  const initialPath = useMemo(() => linePath(baselinePoints, curve), [baselinePoints, curve]);
-  const fillPath = useMemo(() => areaPath(points, baseline, curve), [baseline, curve, points]);
-  const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve), [baseline, baselinePoints, curve]);
+  const baselinePoints: (Point | null)[] = useMemo(
+    () => points.map((p) => (p ? { x: p.x, y: baseline } : null)),
+    [baseline, points]
+  );
+  const path = useMemo(() => linePath(points, curve, connectNulls), [connectNulls, curve, points]);
+  const initialPath = useMemo(() => linePath(baselinePoints, curve, connectNulls), [baselinePoints, connectNulls, curve]);
+  const fillPath = useMemo(() => areaPath(points, baseline, curve, connectNulls), [baseline, connectNulls, curve, points]);
+  const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve, connectNulls), [baseline, baselinePoints, connectNulls, curve]);
   const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 

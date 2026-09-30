@@ -11,7 +11,7 @@ function warnDev(message: string, value: unknown, index: number): void {
   }
 }
 
-export function numberOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, number>): number {
+export function rawNumberOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, number>): number | null {
   const value = valueOf(datum, index, accessor);
   const isInvalid =
     value == null ||
@@ -23,9 +23,14 @@ export function numberOf<TDatum>(datum: TDatum, index: number, accessor: Accesso
       value,
       index
     );
-    return 0;
+    return null;
   }
   return typeof value === "number" ? value : Number(value);
+}
+
+export function numberOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, number>): number {
+  const raw = rawNumberOf(datum, index, accessor);
+  return raw ?? 0;
 }
 
 export function labelOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, unknown>): string {
