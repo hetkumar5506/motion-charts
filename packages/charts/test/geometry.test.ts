@@ -21,4 +21,17 @@ describe("geometry", () => {
   it("creates an svg arc path", () => {
     expect(arcPath(50, 50, 20, 40, -Math.PI / 2, 0)).toContain("A 40 40");
   });
+
+  it("handles full circle 360 degree pie and donut arcs without degenerate geometry", () => {
+    const fullPie = arcPath(50, 50, 0, 40, -Math.PI / 2, Math.PI * 1.5);
+    expect(fullPie).toContain("A 40 40");
+    expect(fullPie).toContain("Z");
+    expect(fullPie).not.toContain("NaN");
+
+    const fullDonut = arcPath(50, 50, 20, 40, -Math.PI / 2, Math.PI * 1.5);
+    expect(fullDonut).toContain("A 40 40");
+    expect(fullDonut).toContain("A 20 20");
+    expect(fullDonut).toContain("Z");
+    expect(fullDonut).not.toContain("NaN");
+  });
 });

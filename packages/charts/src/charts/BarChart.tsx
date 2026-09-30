@@ -142,7 +142,7 @@ export function BarChart<TDatum extends object>({
 
       <g>
         {rows.map((row) => {
-          const x = xScale.position(row.label);
+          const x = xScale.position(row.label, row.index);
           const scaled = yScale.scale(row.value);
           const y = Math.min(scaled, baseline);
           const barHeight = Math.abs(baseline - scaled);
@@ -156,8 +156,8 @@ export function BarChart<TDatum extends object>({
                 width={xScale.bandwidth}
                 rx={Math.min(barRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
                 fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
-                initial={shouldInitial ? { y: baseline, height: 0, opacity: 0 } : false}
-                animate={{ y, height: barHeight, opacity: 1 }}
+                initial={shouldInitial ? { x, y: baseline, height: 0, opacity: 0 } : false}
+                animate={{ x, y, height: barHeight, opacity: 1 }}
                 whileHover={{ opacity: 0.92, scaleY: 1.015 }}
                 transition={chartTransition(animation, reducedMotion, row.index)}
                 role="img"

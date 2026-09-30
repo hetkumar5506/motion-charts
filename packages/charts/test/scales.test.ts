@@ -30,4 +30,12 @@ describe("scales", () => {
     expect(scale.center("a")).toBe(25);
     expect(scale.center("b")).toBe(75);
   });
+
+  it("handles duplicate labels with index fallback", () => {
+    const duplicateScale = createCategoryScale(["Mon", "Mon", "Tue"], [0, 90], 0);
+    expect(duplicateScale.labels).toHaveLength(3);
+    expect(duplicateScale.center("Mon", 0)).toBe(15);
+    expect(duplicateScale.center("Mon", 1)).toBe(45);
+    expect(duplicateScale.center("Tue", 2)).toBe(75);
+  });
 });

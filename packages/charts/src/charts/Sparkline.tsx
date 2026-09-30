@@ -181,10 +181,11 @@ export function Sparkline<TDatum extends object>({
       })() : null}
       {rows.map((row, index) => {
         const point = points[index];
-        if (!point) return null;
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
         const visible = showPoints || index === rows.length - 1;
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
+        const initialY = Number.isFinite(baseline) ? baseline : point.y;
         return (
           <motion.circle
             key={`${row.label}-${row.index}`}
@@ -194,7 +195,7 @@ export function Sparkline<TDatum extends object>({
             fill={visible ? color : "transparent"}
             stroke={visible ? "white" : "transparent"}
             strokeWidth={visible ? 2 : 0}
-            initial={shouldInitial ? { cy: baseline, scale: 0, opacity: 0 } : false}
+            initial={shouldInitial ? { cx: point.x, cy: initialY, scale: 0, opacity: 0 } : false}
             animate={{ cx: point.x, cy: point.y, scale: 1, opacity: 1 }}
             whileHover={{ scale: 1.35 }}
             transition={chartTransition(animation, reducedMotion, index)}

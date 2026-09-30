@@ -10,8 +10,8 @@ export type CategoryScale = {
   range: [number, number];
   bandwidth: number;
   step: number;
-  position: (label: string) => number;
-  center: (label: string) => number;
+  position: (label: string, index?: number) => number;
+  center: (label: string, index?: number) => number;
 };
 
 export function extent(values: readonly number[], includeZero = true): [number, number] {
@@ -70,23 +70,38 @@ export function createLinearScale(domain: [number, number], range: [number, numb
 }
 
 export function createCategoryScale(labels: readonly string[], range: [number, number], padding = 0.2): CategoryScale {
-  const uniqueLabels = [...new Set(labels)];
+  const hasDuplicates = new Set(labels).size !== labels.length;
+  // If there are duplicate labels (e.g. repeated date strings or multi-series points),
+  // preserve sequential items so indices don't collapse to the first occurrence
+  const displayLabels = hasDuplicates ? [...labels] : [...new Set(labels)];
   const [start, end] = range;
   const width = Math.max(0, end - start);
-  const count = Math.max(1, uniqueLabels.length);
+  const count = Math.max(1, displayLabels.length);
   const safePadding = Math.min(0.8, Math.max(0, padding));
   const step = width / count;
   const bandwidth = step * (1 - safePadding);
   const inset = (step - bandwidth) / 2;
-  const indexByLabel = new Map(uniqueLabels.map((label, index) => [label, index]));
+  const indexByLabel = new Map<string, number>();
+  displayLabels.forEach((label, idx) => {
+    if (!indexByLabel.has(label)) {
+      indexByLabel.set(label, idx);
+    }
+  });
+
+  const resolveIndex = (label: string, index?: number): number => {
+    if (typeof index === "number" && index >= 0 && index < count) {
+      return index;
+    }
+    return indexByLabel.get(label) ?? 0;
+  };
 
   return {
-    labels: uniqueLabels,
+    labels: displayLabels,
     range,
     bandwidth,
     step,
-    position: (label) => start + (indexByLabel.get(label) ?? 0) * step + inset,
-    center: (label) => start + (indexByLabel.get(label) ?? 0) * step + step / 2
+    position: (label, index) => start + resolveIndex(label, index) * step + inset,
+    center: (label, index) => start + resolveIndex(label, index) * step + step / 2
   };
 }
 

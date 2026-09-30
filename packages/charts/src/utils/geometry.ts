@@ -55,6 +55,33 @@ export function pieSlices(values: readonly number[], padAngle = 0): readonly Arc
 }
 
 export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius: number, startAngle: number, endAngle: number): string {
+  if (outerRadius <= 0 || !Number.isFinite(cx) || !Number.isFinite(cy)) return "";
+
+  const angleDelta = Math.abs(endAngle - startAngle);
+  const isFullCircle = angleDelta >= Math.PI * 2 - 0.001;
+
+  if (isFullCircle) {
+    if (innerRadius <= 0) {
+      // Full pie / solid circle: two half-circle arcs
+      return [
+        `M ${cx} ${cy - outerRadius}`,
+        `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy + outerRadius}`,
+        `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy - outerRadius}`,
+        "Z"
+      ].join(" ");
+    }
+    // Full donut ring: outer circle clockwise, inner circle counter-clockwise
+    return [
+      `M ${cx} ${cy - outerRadius}`,
+      `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy + outerRadius}`,
+      `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy - outerRadius}`,
+      `M ${cx} ${cy - innerRadius}`,
+      `A ${innerRadius} ${innerRadius} 0 1 0 ${cx} ${cy + innerRadius}`,
+      `A ${innerRadius} ${innerRadius} 0 1 0 ${cx} ${cy - innerRadius}`,
+      "Z"
+    ].join(" ");
+  }
+
   const safeEnd = Math.min(endAngle, startAngle + Math.PI * 2 - 0.0001);
   const outerStart = polar(cx, cy, outerRadius, startAngle);
   const outerEnd = polar(cx, cy, outerRadius, safeEnd);

@@ -80,7 +80,10 @@ export function LineChart<TDatum extends object>({
   const labels = rows.map((row) => row.label);
   const xScale = createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], 0);
   const yScale = createLinearScale(extent(rows.map((row) => row.value), true), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5);
-  const points: Point[] = rows.map((row) => ({ x: xScale.center(row.label), y: yScale.scale(row.value) }));
+  const points: Point[] = rows.map((row) => ({
+    x: xScale.center(row.label, row.index),
+    y: yScale.scale(row.value)
+  }));
   const baseline = yScale.scale(0);
   const baselinePoints: Point[] = points.map((p) => ({ x: p.x, y: baseline }));
   const path = linePath(points, curve);
@@ -118,7 +121,10 @@ export function LineChart<TDatum extends object>({
     setTooltipState(null);
   }
 
-  const hoveredX = hoveredIndex !== null && labels[hoveredIndex] !== undefined ? xScale.center(labels[hoveredIndex]!) : null;
+  const hoveredX =
+    hoveredIndex !== null && labels[hoveredIndex] !== undefined
+      ? xScale.center(labels[hoveredIndex]!, hoveredIndex)
+      : null;
 
   return (
     <ChartSurface
@@ -193,10 +199,11 @@ export function LineChart<TDatum extends object>({
       ) : null}
       {rows.map((row, index) => {
         const point = points[index];
-        if (!point) return null;
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
         const isHovered = hoveredIndex === index;
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
+        const initialY = Number.isFinite(baseline) ? baseline : point.y;
         return (
           <motion.circle
             key={`${row.label}-${row.index}`}
@@ -206,7 +213,7 @@ export function LineChart<TDatum extends object>({
             fill={showPoints || isHovered ? color : "transparent"}
             stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
             strokeWidth={showPoints || isHovered ? 2.5 : 0}
-            initial={shouldInitial ? { cy: baseline, r: 0, opacity: 0 } : false}
+            initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
             animate={{ cx: point.x, cy: point.y, r: isHovered ? 6.5 : (showPoints ? 4.5 : 7.5), opacity: 1 }}
             whileHover={{ r: 7.5, strokeWidth: 3 }}
             transition={chartTransition(animation, reducedMotion, index)}

@@ -106,7 +106,10 @@ export function MultiLineChart<TDatum extends object>({
       const value = numberOf(datum, index, item.yKey);
       return { datum, index, label, value, color: item.color, seriesId: item.id, seriesLabel: item.label };
     });
-    const points = rows.map((row) => ({ x: xScale.center(row.label), y: yScale.scale(row.value) }));
+    const points = rows.map((row) => ({
+      x: xScale.center(row.label, row.index),
+      y: yScale.scale(row.value)
+    }));
     const baselinePoints = points.map((p) => ({ x: p.x, y: baseline }));
     return {
       ...item,
@@ -158,7 +161,10 @@ export function MultiLineChart<TDatum extends object>({
 
   const legendItems = preparedSeries.map((item) => ({ label: item.label, color: item.color }));
   const hasData = data.length > 0 && preparedSeries.length > 0;
-  const hoveredX = hoveredIndex !== null && labels[hoveredIndex] !== undefined ? xScale.center(labels[hoveredIndex]!) : null;
+  const hoveredX =
+    hoveredIndex !== null && labels[hoveredIndex] !== undefined
+      ? xScale.center(labels[hoveredIndex]!, hoveredIndex)
+      : null;
 
   return (
     <div className={className} style={style}>
@@ -236,7 +242,7 @@ export function MultiLineChart<TDatum extends object>({
             ) : null}
             {item.rows.map((row, index) => {
               const point = item.points[index];
-              if (!point) return null;
+              if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
               const isHovered = hoveredIndex === index;
               const context = {
                 datum: row.datum,
@@ -248,6 +254,7 @@ export function MultiLineChart<TDatum extends object>({
                 seriesLabel: row.seriesLabel
               };
               const aria = joinLabels([row.seriesLabel, row.label, valueFormatter(row.value)]);
+              const initialY = Number.isFinite(baseline) ? baseline : point.y;
               return (
                 <motion.circle
                   key={`${item.id}-${row.label}-${row.index}`}
@@ -257,7 +264,7 @@ export function MultiLineChart<TDatum extends object>({
                   fill={showPoints || isHovered ? item.color : "transparent"}
                   stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
                   strokeWidth={showPoints || isHovered ? 2.5 : 0}
-                  initial={shouldInitial ? { cy: baseline, r: 0, opacity: 0 } : false}
+                  initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
                   animate={{
                     cx: point.x,
                     cy: point.y,

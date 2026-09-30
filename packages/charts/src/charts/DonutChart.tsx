@@ -122,7 +122,7 @@ export function DonutChart<TDatum extends object>({
                 d={path}
                 fill={sliceVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
                 initial={shouldInitial ? { opacity: 0, scale: 0.86 } : false}
-                animate={{ opacity: 1, scale: 1, d: path }}
+                animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ scale: 1.035, opacity: 0.95 }}
                 transition={chartTransition(animation, reducedMotion, index)}
                 role="img"
