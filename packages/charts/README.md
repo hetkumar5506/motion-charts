@@ -1,5 +1,8 @@
 # @motion-charts/core
 
+[![npm version](https://img.shields.io/npm/v/@motion-charts/core.svg?color=2563eb&label=@motion-charts/core)](https://www.npmjs.com/package/@motion-charts/core)
+[![license](https://img.shields.io/npm/l/@motion-charts/core.svg?color=0d9488)](https://github.com/motion-charts)
+
 Animation-first React charts powered by SVG and Framer Motion.
 
 `@motion-charts/core` is built for dashboards that should feel like polished product UI: ecommerce analytics, POS reports, SaaS admin panels, inventory dashboards, landing-page stats, and internal tools.
@@ -9,6 +12,8 @@ Animation-first React charts powered by SVG and Framer Motion.
 ```bash
 npm install @motion-charts/core framer-motion
 ```
+
+Live on npm: **[npmjs.com/package/@motion-charts/core](https://www.npmjs.com/package/@motion-charts/core)**
 
 `react`, `react-dom`, and `framer-motion` are peer dependencies so your app owns the runtime.
 

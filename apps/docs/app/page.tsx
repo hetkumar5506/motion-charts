@@ -97,6 +97,15 @@ export default function Page() {
                 npm install @motion-charts/core framer-motion
               </div>
               <a
+                href="https://www.npmjs.com/package/@motion-charts/core"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                npm v0.1.0 Live
+              </a>
+              <a
                 href="#playground"
                 className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >

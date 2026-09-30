@@ -1,11 +1,20 @@
 # Motion Charts
 
-Animation-first React charts built with SVG and Framer Motion.
+[![npm version](https://img.shields.io/npm/v/@motion-charts/core.svg?color=2563eb&label=@motion-charts/core)](https://www.npmjs.com/package/@motion-charts/core)
+[![license](https://img.shields.io/npm/l/@motion-charts/core.svg?color=0d9488)](https://github.com/motion-charts)
+
+Animation-first React charts built with SVG and Framer Motion. Engineered for dashboards, fintech telemetry, ecommerce analytics, and SaaS admin panels.
+
+Available on npm: **[npmjs.com/package/@motion-charts/core](https://www.npmjs.com/package/@motion-charts/core)**
+
+```bash
+npm install @motion-charts/core framer-motion
+```
 
 This repository contains:
 
-- `packages/charts` — the publishable package: `@motion-charts/core`
-- `apps/docs` — a Next.js documentation/demo site
+- `packages/charts` — the published package: `@motion-charts/core`
+- `apps/docs` — the Next.js documentation and live interactive showcase
 
 ## Quick start
 
