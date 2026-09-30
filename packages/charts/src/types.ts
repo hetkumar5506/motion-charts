@@ -18,6 +18,7 @@ export type AxisOptions = {
   show?: boolean;
   tickCount?: number;
   formatter?: (value: number | string) => string;
+  includeZero?: boolean;
 };
 
 export type MotionOptions = {

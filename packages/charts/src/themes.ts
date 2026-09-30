@@ -41,9 +41,12 @@ export type ChartTheme = {
   tooltipStyle: CSSProperties;
 };
 
-export type ChartThemeInput = keyof typeof chartThemes | Partial<ChartTheme> & {
-  palette?: ChartPaletteName | readonly string[];
-};
+export type ChartThemeInput =
+  | keyof typeof chartThemes
+  | (Partial<ChartTheme> & {
+      base?: keyof typeof chartThemes;
+      palette?: ChartPaletteName | readonly string[];
+    });
 
 const fontFamily = 'Plus Jakarta Sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
@@ -101,16 +104,25 @@ export const chartThemes = {
 export type ChartThemeName = keyof typeof chartThemes;
 
 export function resolveChartTheme(input?: ChartThemeInput, colorsOverride?: readonly string[]): ChartTheme {
-  const base = typeof input === "string" ? chartThemes[input] : chartThemes.aurora;
+  const isString = typeof input === "string";
+  const namedBase = isString ? chartThemes[input] : (typeof input === "object" && input?.base ? chartThemes[input.base] : undefined);
+  const base = namedBase ?? chartThemes.aurora;
   const overrides = typeof input === "object" && input ? input : {};
   const palette = "palette" in overrides ? overrides.palette : undefined;
-  const colors = colorsOverride?.length ? colorsOverride : paletteColors(palette) ?? overrides.colors ?? base.colors;
+  // Precedence: explicit colorsOverride -> theme.colors -> theme.palette -> base.colors
+  const colors = colorsOverride?.length
+    ? colorsOverride
+    : overrides.colors?.length
+      ? overrides.colors
+      : paletteColors(palette) ?? base.colors;
+
+  const { base: _base, palette: _palette, tooltipStyle: overrideTooltipStyle, ...restOverrides } = overrides;
 
   return {
     ...base,
-    ...overrides,
+    ...restOverrides,
     colors,
-    tooltipStyle: { ...base.tooltipStyle, ...overrides.tooltipStyle }
+    tooltipStyle: { ...base.tooltipStyle, ...overrideTooltipStyle }
   };
 }
 

@@ -29,6 +29,7 @@ export function DonutChart<TDatum extends object>({
   valueKey,
   width = 520,
   height = 360,
+  margin,
   className,
   style,
   colors,
@@ -61,14 +62,22 @@ export function DonutChart<TDatum extends object>({
       }),
     [chartTheme.colors, data, labelKey, valueKey]
   );
-  const total = rows.reduce((sum, row) => sum + row.value, 0);
-  const slices = pieSlices(
-    rows.map((row) => row.value),
-    padAngle
+  const total = useMemo(() => rows.reduce((sum, row) => sum + row.value, 0), [rows]);
+  const slices = useMemo(
+    () => pieSlices(rows.map((row) => row.value), padAngle),
+    [padAngle, rows]
   );
-  const cx = width / 2;
-  const cy = height / 2;
-  const outerRadius = Math.max(20, Math.min(width, height) / 2 - 22);
+
+  const padLeft = margin?.left ?? 0;
+  const padRight = margin?.right ?? 0;
+  const padTop = margin?.top ?? 0;
+  const padBottom = margin?.bottom ?? 0;
+  const innerW = Math.max(20, width - padLeft - padRight);
+  const innerH = Math.max(20, height - padTop - padBottom);
+
+  const cx = padLeft + innerW / 2;
+  const cy = padTop + innerH / 2;
+  const outerRadius = Math.max(20, Math.min(innerW, innerH) / 2 - 22);
   const innerRadius = outerRadius * Math.min(0.9, Math.max(0, innerRadiusRatio));
   const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
@@ -88,10 +97,17 @@ export function DonutChart<TDatum extends object>({
 
   function showTooltip(event: PointerEvent<SVGPathElement>, row: (typeof rows)[number], percent: number) {
     if (!tooltipEnabled) return;
-    setTooltipState({ x: event.clientX, y: event.clientY, content: tooltipContent(row, percent) });
+    const clientX = Math.round(event.clientX);
+    const clientY = Math.round(event.clientY);
+    setTooltipState((prev) => {
+      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3) {
+        return prev;
+      }
+      return { x: clientX, y: clientY, content: tooltipContent(row, percent) };
+    });
   }
 
-  const legendItems = rows.map((row) => ({ label: row.label, color: row.color }));
+  const legendItems = useMemo(() => rows.map((row) => ({ label: row.label, color: row.color })), [rows]);
 
   return (
     <div className={className} style={style}>
@@ -125,9 +141,10 @@ export function DonutChart<TDatum extends object>({
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ scale: 1.035, opacity: 0.95 }}
                 transition={chartTransition(animation, reducedMotion, index)}
-                role="img"
+                role="graphics-symbol"
+                aria-roledescription="slice"
                 aria-label={aria}
-                tabIndex={0}
+                tabIndex={index === 0 ? 0 : -1}
                 onPointerEnter={(event) => showTooltip(event, row, slice.percent)}
                 onPointerMove={(event) => showTooltip(event, row, slice.percent)}
                 onPointerLeave={() => setTooltipState(null)}

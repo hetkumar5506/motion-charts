@@ -1,7 +1,7 @@
 # @motion-charts/core
 
 [![npm version](https://img.shields.io/npm/v/@motion-charts/core.svg?color=2563eb&label=@motion-charts/core)](https://www.npmjs.com/package/@motion-charts/core)
-[![license](https://img.shields.io/npm/l/@motion-charts/core.svg?color=0d9488)](https://github.com/motion-charts)
+[![license](https://img.shields.io/npm/l/@motion-charts/core.svg?color=0d9488)](https://github.com/hetkumar5506/motion-charts/blob/main/LICENSE)
 
 Animation-first React charts powered by SVG and Framer Motion.
 

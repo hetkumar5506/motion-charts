@@ -31,7 +31,20 @@ export function ResponsiveChart({
 
   useEffect(() => {
     const element = ref.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
+    if (!element) return;
+
+    if (element.clientWidth > 0) {
+      setWidth(element.clientWidth);
+    }
+
+    if (typeof ResizeObserver === "undefined") {
+      const isDev = typeof (globalThis as Record<string, unknown>).process !== "undefined" &&
+        ((globalThis as Record<string, unknown>).process as { env?: Record<string, string> })?.env?.NODE_ENV !== "production";
+      if (isDev) {
+        console.warn("[ResponsiveChart] ResizeObserver is not available in this environment. Falling back to static fallbackWidth.");
+      }
+      return;
+    }
 
     const observer = new ResizeObserver(([entry]) => {
       const nextWidth = Math.round(entry?.contentRect.width ?? fallbackWidth);

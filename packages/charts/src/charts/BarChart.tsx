@@ -56,14 +56,16 @@ export function BarChart<TDatum extends object>({
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
-  const bounds = {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  const bounds = useMemo(() => ({
     ...defaultMargin,
     ...margin,
     width,
     height,
     innerWidth: Math.max(1, width - (margin?.left ?? defaultMargin.left) - (margin?.right ?? defaultMargin.right)),
     innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
-  };
+  }), [height, margin, width]);
 
   const rows = useMemo(
     () =>
@@ -76,9 +78,16 @@ export function BarChart<TDatum extends object>({
     [chartTheme.colors, data, xKey, yKey]
   );
 
-  const labels = rows.map((row) => row.label);
-  const xScale = createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], barPadding);
-  const yScale = createLinearScale(extent(rows.map((row) => row.value), true), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5);
+  const labels = useMemo(() => rows.map((row) => row.label), [rows]);
+  const xScale = useMemo(
+    () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], barPadding),
+    [bounds.innerWidth, bounds.left, labels, barPadding]
+  );
+  const includeZero = yAxis?.includeZero ?? true;
+  const yScale = useMemo(
+    () => createLinearScale(extent(rows.map((row) => row.value), includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
+    [bounds.innerHeight, bounds.top, includeZero, rows, yAxis?.tickCount]
+  );
   const baseline = yScale.scale(0);
   const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
@@ -90,9 +99,9 @@ export function BarChart<TDatum extends object>({
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: row.color, display: "inline-block" }} />
-          <span style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{row.label}</span>
+          <span style={{ color: chartTheme.mutedTextColor, fontSize: 11, fontWeight: 500 }}>{row.label}</span>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", paddingLeft: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: chartTheme.textColor, paddingLeft: 14 }}>
           {valueFormatter(row.value)}
         </div>
       </div>
@@ -101,7 +110,20 @@ export function BarChart<TDatum extends object>({
 
   function showTooltip(event: PointerEvent<SVGRectElement>, row: (typeof rows)[number]) {
     if (!tooltipEnabled) return;
-    setTooltipState({ x: event.clientX, y: event.clientY, content: tooltipContent(row) });
+    const clientX = Math.round(event.clientX);
+    const clientY = Math.round(event.clientY);
+    setHoveredIndex(row.index);
+    setTooltipState((prev) => {
+      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3 && hoveredIndex === row.index) {
+        return prev;
+      }
+      return { x: clientX, y: clientY, content: tooltipContent(row) };
+    });
+  }
+
+  function hideTooltip() {
+    setHoveredIndex(null);
+    setTooltipState(null);
   }
 
   return (
@@ -141,41 +163,43 @@ export function BarChart<TDatum extends object>({
       )}
 
       <g>
-        {rows.map((row) => {
+        {rows.map((row, index) => {
           const x = xScale.position(row.label, row.index);
           const scaled = yScale.scale(row.value);
           const y = Math.min(scaled, baseline);
           const barHeight = Math.abs(baseline - scaled);
           const aria = joinLabels([row.label, valueFormatter(row.value)]);
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
+          const isHovered = hoveredIndex === index;
 
           return (
             <g key={`${row.label}-${row.index}`}>
               <motion.rect
                 x={x}
+                y={y}
                 width={xScale.bandwidth}
+                height={barHeight}
                 rx={Math.min(barRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
                 fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
-                initial={shouldInitial ? { x, y: baseline, height: 0, opacity: 0 } : false}
-                animate={{ x, y, height: barHeight, opacity: 1 }}
-                whileHover={{ opacity: 0.92, scaleY: 1.015 }}
+                initial={shouldInitial ? { y: baseline, height: 0, opacity: 0 } : false}
+                animate={{ y, height: barHeight, opacity: isHovered ? 0.92 : 1 }}
                 transition={chartTransition(animation, reducedMotion, row.index)}
-                role="img"
+                role="graphics-symbol"
+                aria-roledescription="bar"
                 aria-label={aria}
-                tabIndex={0}
+                tabIndex={index === 0 ? 0 : -1}
                 onPointerEnter={(event) => showTooltip(event, row)}
                 onPointerMove={(event) => showTooltip(event, row)}
-                onPointerLeave={() => setTooltipState(null)}
+                onPointerLeave={hideTooltip}
                 onFocus={(event) => {
                   const rect = event.currentTarget.getBoundingClientRect();
+                  setHoveredIndex(row.index);
                   setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row) });
                 }}
-                onBlur={() => setTooltipState(null)}
+                onBlur={hideTooltip}
                 onClick={() => onDatumClick?.(context)}
                 style={{
-                  cursor: onDatumClick ? "pointer" : "default",
-                  transformOrigin: `${x + xScale.bandwidth / 2}px ${baseline}px`,
-                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.06))"
+                  cursor: onDatumClick ? "pointer" : "default"
                 }}
               >
                 <title>{aria}</title>

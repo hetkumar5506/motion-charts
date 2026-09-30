@@ -7,7 +7,19 @@ export function valueOf<TDatum, TValue>(datum: TDatum, index: number, accessor: 
 export function numberOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, number>): number {
   const value = valueOf(datum, index, accessor);
   const number = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(number) ? number : 0;
+  if (!Number.isFinite(number)) {
+    const isDev = typeof (globalThis as Record<string, unknown>).process !== "undefined" &&
+      ((globalThis as Record<string, unknown>).process as { env?: Record<string, string> })?.env?.NODE_ENV !== "production";
+    if (isDev) {
+      console.warn(
+        `[@motion-charts/core] Received non-finite numerical value at index ${index}:`,
+        value,
+        "Coercing to 0."
+      );
+    }
+    return 0;
+  }
+  return number;
 }
 
 export function labelOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, string | number>): string {

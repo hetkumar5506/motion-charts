@@ -7,6 +7,6 @@ export { MultiLineChart, type LineSeries, type MultiLineChartProps, type MultiLi
 export { Sparkline, type SparklineProps } from "./charts/Sparkline";
 export { ResponsiveChart, type ResponsiveChartProps, type ResponsiveChartSize } from "./components/ResponsiveChart";
 export type { Accessor, AxisOptions, ChartDatum, ChartMargin, CommonChartProps, MotionOptions, TooltipRenderContext, TooltipRenderer } from "./types";
-export { animationPresets, type AnimationPresetName } from "./utils/animationPresets";
+export { animationPreset, animationPresets, type AnimationPresetName } from "./utils/animationPresets";
 export { defaultColors } from "./utils/color";
 export { chartPalettes, chartThemes, paletteColors, resolveChartTheme, type ChartPaletteName, type ChartTheme, type ChartThemeInput, type ChartThemeName } from "./themes";

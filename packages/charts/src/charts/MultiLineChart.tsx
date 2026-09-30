@@ -73,14 +73,14 @@ export function MultiLineChart<TDatum extends object>({
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
-  const bounds = {
+  const bounds = useMemo(() => ({
     ...defaultMargin,
     ...margin,
     width,
     height,
     innerWidth: Math.max(1, width - (margin?.left ?? defaultMargin.left) - (margin?.right ?? defaultMargin.right)),
     innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
-  };
+  }), [height, margin, width]);
 
   const labels = useMemo(() => data.map((datum, index) => labelOf(datum, index, xKey)), [data, xKey]);
   const preparedSeries = useMemo(
@@ -93,34 +93,49 @@ export function MultiLineChart<TDatum extends object>({
       })),
     [chartTheme.colors, series]
   );
-  const allValues = preparedSeries.flatMap((item) => data.map((datum, index) => numberOf(datum, index, item.yKey)));
-  const xScale = createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], 0);
-  const yScale = createLinearScale(extent(allValues, true), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5);
+  const allValues = useMemo(
+    () => preparedSeries.flatMap((item) => data.map((datum, index) => numberOf(datum, index, item.yKey))),
+    [data, preparedSeries]
+  );
+  const xScale = useMemo(
+    () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], 0),
+    [bounds.innerWidth, bounds.left, labels]
+  );
+  // Default line charts to includeZero: false so variations are visible
+  const includeZero = yAxis?.includeZero ?? false;
+  const yScale = useMemo(
+    () => createLinearScale(extent(allValues, includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
+    [allValues, bounds.innerHeight, bounds.top, includeZero, yAxis?.tickCount]
+  );
   const baseline = yScale.scale(0);
   const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
-  const renderedSeries = preparedSeries.map((item) => {
-    const rows = data.map((datum, index) => {
-      const label = labels[index] ?? String(index + 1);
-      const value = numberOf(datum, index, item.yKey);
-      return { datum, index, label, value, color: item.color, seriesId: item.id, seriesLabel: item.label };
-    });
-    const points = rows.map((row) => ({
-      x: xScale.center(row.label, row.index),
-      y: yScale.scale(row.value)
-    }));
-    const baselinePoints = points.map((p) => ({ x: p.x, y: baseline }));
-    return {
-      ...item,
-      rows,
-      points,
-      path: linePath(points, curve),
-      initialPath: linePath(baselinePoints, curve),
-      fillPath: areaPath(points, baseline, curve),
-      initialFillPath: areaPath(baselinePoints, baseline, curve)
-    };
-  });
+  const renderedSeries = useMemo(
+    () =>
+      preparedSeries.map((item) => {
+        const rows = data.map((datum, index) => {
+          const label = labels[index] ?? String(index + 1);
+          const value = numberOf(datum, index, item.yKey);
+          return { datum, index, label, value, color: item.color, seriesId: item.id, seriesLabel: item.label };
+        });
+        const points = rows.map((row) => ({
+          x: xScale.center(row.label, row.index),
+          y: yScale.scale(row.value)
+        }));
+        const baselinePoints = points.map((p) => ({ x: p.x, y: baseline }));
+        return {
+          ...item,
+          rows,
+          points,
+          path: linePath(points, curve),
+          initialPath: linePath(baselinePoints, curve),
+          fillPath: areaPath(points, baseline, curve),
+          initialFillPath: areaPath(baselinePoints, baseline, curve)
+        };
+      }),
+    [baseline, curve, data, labels, preparedSeries, xScale, yScale]
+  );
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -137,11 +152,11 @@ export function MultiLineChart<TDatum extends object>({
     if (typeof tooltip === "function") return tooltip(context);
     return (
       <span style={{ display: "grid", gap: 3 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: chartTheme.mutedTextColor, textTransform: "uppercase", letterSpacing: "0.04em" }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: row.color }} />
           {row.seriesLabel}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: chartTheme.textColor }}>
           {row.label} · <span style={{ color: row.color }}>{valueFormatter(row.value)}</span>
         </span>
       </span>
@@ -150,8 +165,15 @@ export function MultiLineChart<TDatum extends object>({
 
   function showTooltip(event: PointerEvent<SVGCircleElement>, row: (typeof renderedSeries)[number]["rows"][number]) {
     if (!tooltipEnabled) return;
+    const clientX = Math.round(event.clientX);
+    const clientY = Math.round(event.clientY);
     setHoveredIndex(row.index);
-    setTooltipState({ x: event.clientX, y: event.clientY, content: tooltipContent(row) });
+    setTooltipState((prev) => {
+      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3 && hoveredIndex === row.index) {
+        return prev;
+      }
+      return { x: clientX, y: clientY, content: tooltipContent(row) };
+    });
   }
 
   function hideTooltip() {
@@ -159,7 +181,7 @@ export function MultiLineChart<TDatum extends object>({
     setTooltipState(null);
   }
 
-  const legendItems = preparedSeries.map((item) => ({ label: item.label, color: item.color }));
+  const legendItems = useMemo(() => preparedSeries.map((item) => ({ label: item.label, color: item.color })), [preparedSeries]);
   const hasData = data.length > 0 && preparedSeries.length > 0;
   const hoveredX =
     hoveredIndex !== null && labels[hoveredIndex] !== undefined
@@ -273,9 +295,10 @@ export function MultiLineChart<TDatum extends object>({
                   }}
                   whileHover={{ r: 7.5, strokeWidth: 3 }}
                   transition={chartTransition(animation, reducedMotion, index + seriesIndex)}
-                  role="img"
+                  role="graphics-symbol"
+                  aria-roledescription="data point"
                   aria-label={aria}
-                  tabIndex={0}
+                  tabIndex={index === 0 && seriesIndex === 0 ? 0 : -1}
                   style={{
                     cursor: onDatumClick ? "pointer" : "default",
                     filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))"

@@ -39,17 +39,33 @@ export function pieSlices(values: readonly number[], padAngle = 0): readonly Arc
   const total = positive.reduce((sum, value) => sum + value, 0);
   if (total <= 0) return [];
 
+  const nonZeroCount = positive.filter(Boolean).length;
+  // If only 1 slice, no padding needed/allowed
+  if (nonZeroCount <= 1) {
+    let cursor = -Math.PI / 2;
+    return positive.map((value) => {
+      if (value === 0) return { startAngle: cursor, endAngle: cursor, value, percent: 0 };
+      const startAngle = cursor;
+      const endAngle = cursor + Math.PI * 2;
+      cursor = endAngle;
+      return { startAngle, endAngle, value, percent: 1 };
+    });
+  }
+
   const safePad = Math.max(0, padAngle);
-  const totalPad = Math.min(safePad * positive.filter(Boolean).length, Math.PI * 1.5);
+  const totalPad = Math.min(safePad * nonZeroCount, Math.PI * 1.5);
+  const effectivePad = totalPad / nonZeroCount;
   const available = Math.PI * 2 - totalPad;
   let cursor = -Math.PI / 2;
 
   return positive.map((value) => {
     if (value === 0) return { startAngle: cursor, endAngle: cursor, value, percent: 0 };
     const angle = (value / total) * available;
-    const startAngle = cursor + safePad / 2;
-    const endAngle = cursor + angle - safePad / 2;
-    cursor += angle + safePad;
+    // Guard against pad exceeding slice width to prevent inverted slices
+    const pad = Math.min(effectivePad, angle * 0.8);
+    const startAngle = cursor + pad / 2;
+    const endAngle = cursor + angle + effectivePad - pad / 2;
+    cursor += angle + effectivePad;
     return { startAngle, endAngle, value, percent: value / total };
   });
 }
@@ -70,11 +86,12 @@ export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius
         "Z"
       ].join(" ");
     }
-    // Full donut ring: outer circle clockwise, inner circle counter-clockwise
+    // Full donut ring: outer circle clockwise (explicitly closed with Z), inner circle counter-clockwise (closed with Z)
     return [
       `M ${cx} ${cy - outerRadius}`,
       `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy + outerRadius}`,
       `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy - outerRadius}`,
+      "Z",
       `M ${cx} ${cy - innerRadius}`,
       `A ${innerRadius} ${innerRadius} 0 1 0 ${cx} ${cy + innerRadius}`,
       `A ${innerRadius} ${innerRadius} 0 1 0 ${cx} ${cy - innerRadius}`,

@@ -30,6 +30,7 @@ export function Sparkline<TDatum extends object>({
   xKey,
   width = 320,
   height = 96,
+  margin,
   className,
   style,
   colors,
@@ -63,17 +64,26 @@ export function Sparkline<TDatum extends object>({
       }),
     [color, data, xKey, yKey]
   );
-  const padLeft = padding;
-  const padRight = showEndValue ? Math.max(padding, 46) : padding;
-  const yScale = createLinearScale(extent(rows.map((row) => row.value), false), [height - padding, padding], 4);
+  const padLeft = margin?.left ?? padding;
+  const padRight = margin?.right ?? (showEndValue ? Math.max(padding, 46) : padding);
+  const padTop = margin?.top ?? padding;
+  const padBottom = margin?.bottom ?? padding;
+
+  const yScale = useMemo(
+    () => createLinearScale(extent(rows.map((row) => row.value), false), [height - padBottom, padTop], 4),
+    [height, padBottom, padTop, rows]
+  );
   const xStep = rows.length <= 1 ? 0 : (width - padLeft - padRight) / (rows.length - 1);
-  const points: Point[] = rows.map((row, index) => ({ x: padLeft + xStep * index, y: yScale.scale(row.value) }));
-  const baseline = height - padding;
-  const baselinePoints: Point[] = points.map((p) => ({ x: p.x, y: baseline }));
-  const path = linePath(points, curve);
-  const initialPath = linePath(baselinePoints, curve);
-  const fillPath = areaPath(points, baseline, curve);
-  const initialFillPath = areaPath(baselinePoints, baseline, curve);
+  const points: Point[] = useMemo(
+    () => rows.map((row, index) => ({ x: padLeft + xStep * index, y: yScale.scale(row.value) })),
+    [padLeft, rows, xStep, yScale]
+  );
+  const baseline = height - padBottom;
+  const baselinePoints: Point[] = useMemo(() => points.map((p) => ({ x: p.x, y: baseline })), [baseline, points]);
+  const path = useMemo(() => linePath(points, curve), [curve, points]);
+  const initialPath = useMemo(() => linePath(baselinePoints, curve), [baselinePoints, curve]);
+  const fillPath = useMemo(() => areaPath(points, baseline, curve), [baseline, curve, points]);
+  const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve), [baseline, baselinePoints, curve]);
   const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
   const lastRow = rows[rows.length - 1];
@@ -92,7 +102,14 @@ export function Sparkline<TDatum extends object>({
 
   function showTooltip(event: PointerEvent<SVGCircleElement>, row: (typeof rows)[number]) {
     if (!tooltipEnabled) return;
-    setTooltipState({ x: event.clientX, y: event.clientY, content: tooltipContent(row) });
+    const clientX = Math.round(event.clientX);
+    const clientY = Math.round(event.clientY);
+    setTooltipState((prev) => {
+      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3) {
+        return prev;
+      }
+      return { x: clientX, y: clientY, content: tooltipContent(row) };
+    });
   }
 
   return (
@@ -199,9 +216,10 @@ export function Sparkline<TDatum extends object>({
             animate={{ cx: point.x, cy: point.y, scale: 1, opacity: 1 }}
             whileHover={{ scale: 1.35 }}
             transition={chartTransition(animation, reducedMotion, index)}
-            role="img"
+            role="graphics-symbol"
+            aria-roledescription="data point"
             aria-label={aria}
-            tabIndex={0}
+            tabIndex={index === rows.length - 1 ? 0 : -1}
             onPointerEnter={(event) => showTooltip(event, row)}
             onPointerMove={(event) => showTooltip(event, row)}
             onPointerLeave={() => setTooltipState(null)}

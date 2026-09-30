@@ -18,7 +18,19 @@ describe("themes and presets", () => {
     expect(theme.textColor).toBe("#111");
   });
 
-  it("exports motion presets", () => {
+  it("supports extending a named theme via base", () => {
+    const extended = resolveChartTheme({ base: "midnight", gridColor: "#f00" });
+    expect(extended.textColor).toBe("#f8fafc");
+    expect(extended.gridColor).toBe("#f00");
+    expect(extended.axisColor).toBe(chartThemes.midnight.axisColor);
+  });
+
+  it("respects colors over palette in theme override", () => {
+    const theme = resolveChartTheme({ colors: ["#111"], palette: "cyber" });
+    expect(theme.colors).toEqual(["#111"]);
+  });
+
+  it("exports motion presets and animationPreset resolver", () => {
     expect(animationPresets.bouncy.type).toBe("spring");
     expect(animationPresets.calm.type).toBe("tween");
   });

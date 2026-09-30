@@ -21,7 +21,8 @@ export function extent(values: readonly number[], includeZero = true): [number, 
   const max = Math.max(...finite);
   if (!includeZero && min !== max) return [min, max];
   if (min === max) {
-    const pad = Math.abs(min || 1) * 0.1;
+    if (min === 0) return includeZero ? [0, 1] : [-1, 1];
+    const pad = Math.abs(min) * 0.1;
     return includeZero ? [Math.min(0, min - pad), Math.max(0, max + pad)] : [min - pad, max + pad];
   }
   return [Math.min(includeZero ? 0 : min, min), Math.max(includeZero ? 0 : max, max)];

@@ -9,9 +9,14 @@ describe("scales", () => {
 
   it("handles empty or flat data", () => {
     expect(extent([])).toEqual([0, 1]);
+    expect(extent([0, 0], true)).toEqual([0, 1]);
     const flat = extent([5, 5]);
     expect(flat[0]).toBeLessThan(5);
     expect(flat[1]).toBeGreaterThan(5);
+    // Non-zero line charts
+    const nonZero = extent([1000, 1010, 1005], false);
+    expect(nonZero[0]).toBe(1000);
+    expect(nonZero[1]).toBe(1010);
   });
 
   it("returns readable ticks", () => {

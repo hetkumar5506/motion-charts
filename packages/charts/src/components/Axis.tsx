@@ -80,8 +80,8 @@ export function AxisBottom({
   return (
     <g aria-hidden="true">
       <line x1={scale.range[0]} x2={scale.range[1]} y1={y} y2={y} stroke={merged.axisColor} />
-      {scale.labels.map((label) => (
-        <g key={label} transform={`translate(${scale.center(label)} ${y})`}>
+      {scale.labels.map((label, i) => (
+        <g key={`${label}-${i}`} transform={`translate(${scale.center(label, i)} ${y})`}>
           <line x1={0} x2={0} y1={0} y2={4} stroke={merged.axisColor} />
           <text
             x={0}

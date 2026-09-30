@@ -1,6 +1,6 @@
 {
   "name": "@motion-charts/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Animation-first React SVG charts powered by Framer Motion.",
   "homepage": "https://github.com/hetkumar5506/motion-charts#readme",
   "repository": {
@@ -18,10 +18,17 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      },
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -37,7 +44,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly && node scripts/postbuild.mjs",
     "prepublishOnly": "npm run typecheck && npm run test && npm run build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"

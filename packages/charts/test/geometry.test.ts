@@ -18,6 +18,15 @@ describe("geometry", () => {
     expect(slices[1]?.percent).toBeCloseTo(0.75);
   });
 
+  it("handles high padAngle without slice inversion or >2pi overshoot", () => {
+    const slices = pieSlices([10, 20, 30], 1.2);
+    for (const slice of slices) {
+      expect(slice.endAngle).toBeGreaterThanOrEqual(slice.startAngle);
+    }
+    const last = slices[slices.length - 1];
+    expect(last?.endAngle).toBeLessThanOrEqual(Math.PI * 1.5 + 0.1);
+  });
+
   it("creates an svg arc path", () => {
     expect(arcPath(50, 50, 20, 40, -Math.PI / 2, 0)).toContain("A 40 40");
   });

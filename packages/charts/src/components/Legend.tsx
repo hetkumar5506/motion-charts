@@ -2,7 +2,8 @@ export function InlineLegend({ items, color = "#475569" }: { items: readonly { l
   if (items.length === 0) return null;
   return (
     <div
-      aria-hidden="true"
+      role="list"
+      aria-label="Chart legend"
       style={{
         display: "flex",
         flexWrap: "wrap",
@@ -15,9 +16,10 @@ export function InlineLegend({ items, color = "#475569" }: { items: readonly { l
         letterSpacing: "0.01em"
       }}
     >
-      {items.map((item) => (
+      {items.map((item, index) => (
         <span
-          key={item.label}
+          key={`${item.label}-${index}`}
+          role="listitem"
           style={{
             display: "inline-flex",
             alignItems: "center",
