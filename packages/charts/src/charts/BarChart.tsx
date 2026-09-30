@@ -247,14 +247,16 @@ export function BarChart<TDatum extends object>({
               {showValues ? (() => {
                 const isPositive = row.value >= 0;
                 const fitInside = barHeight >= 28;
-                const textY = fitInside
+                const rawTextY = fitInside
                   ? (isPositive ? y + 15 : y + barHeight - 8)
                   : (isPositive ? Math.max(bounds.top + 10, y - 8) : y + barHeight + 14);
+                const textY = Math.round(rawTextY * 100) / 100;
+                const textX = Math.round((x + xScale.bandwidth / 2) * 100) / 100;
                 const textColor = fitInside ? "#ffffff" : chartTheme.textColor;
 
                 return (
                   <motion.text
-                    x={x + xScale.bandwidth / 2}
+                    x={textX}
                     y={textY}
                     textAnchor="middle"
                     fill={textColor}

@@ -195,8 +195,10 @@ export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius
 }
 
 export function polar(cx: number, cy: number, radius: number, angle: number): Point {
+  const x = cx + radius * Math.cos(angle);
+  const y = cy + radius * Math.sin(angle);
   return {
-    x: cx + radius * Math.cos(angle),
-    y: cy + radius * Math.sin(angle)
+    x: Math.round(x * 100) / 100,
+    y: Math.round(y * 100) / 100
   };
 }

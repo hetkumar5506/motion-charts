@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6
+
+### Fixed
+- **Sub-Pixel Hydration Discrepancy**: Standardized polar coordinate rounding in `DonutChart` label positions and `BarChart` value labels to two fixed decimal places. Prevents floating-point precision mismatches between Node.js V8 server rendering and browser JavaScript engines (e.g. `311.1123833667782` vs `"311.11238336677815"`).
+
 ## 0.1.5
 
 ### Fixed & Enhanced
