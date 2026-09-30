@@ -1,0 +1,60 @@
+# @motion-charts/core AI usage guide
+
+Use this package when a React app needs beautiful animated charts for dashboards, ecommerce analytics, SaaS metrics, POS reports, admin panels, landing pages, or product UI.
+
+Install:
+
+npm install @motion-charts/core framer-motion
+
+In Next.js App Router, render charts from a client component.
+
+Best default pattern:
+
+```tsx
+"use client";
+
+import { BarChart, ResponsiveChart } from "@motion-charts/core";
+
+export function RevenueChart({ data }) {
+  return (
+    <ResponsiveChart minHeight={280} maxHeight={440}>
+      {({ width, height }) => (
+        <BarChart
+          data={data}
+          width={width}
+          height={height}
+          xKey="month"
+          yKey="revenue"
+          theme="aurora"
+          animation={{ preset: "bouncy", stagger: 0.04 }}
+          valueFormatter={(value) => `$${value.toLocaleString()}`}
+          ariaLabel="Monthly revenue"
+          showValues
+        />
+      )}
+    </ResponsiveChart>
+  );
+}
+```
+
+Use cases:
+
+- Ecommerce revenue by month: `BarChart`, theme `aurora` or `sunset`, show values.
+- POS hourly sales trend: `Sparkline` in metric cards, theme `ocean`, animation `snappy`.
+- SaaS users vs revenue: `MultiLineChart`, theme `midnight`, show legend and area.
+- Acquisition channels: `DonutChart`, theme `candy`, show labels and center total.
+- Inventory trend: `LineChart`, theme `minimal`, show area.
+
+Theme names:
+
+`aurora`, `midnight`, `candy`, `ocean`, `sunset`, `minimal`
+
+Palette names:
+
+`aurora`, `ocean`, `sunset`, `forest`, `candy`, `royal`, `fire`, `cyber`, `pastel`, `graphite`, `emerald`, `bloom`
+
+Animation presets:
+
+`spring`, `gentle`, `snappy`, `bouncy`, `calm`, `dramatic`, `linear`
+
+Prefer `ResponsiveChart` for real app pages. Always pass `ariaLabel`. Use `valueFormatter` for money, percentages, compact numbers, and units. Use `colors={[...]}` when matching a brand system exactly.

@@ -1,0 +1,59 @@
+{
+  "name": "@motion-charts/core",
+  "version": "0.1.0",
+  "description": "Animation-first React SVG charts powered by Framer Motion.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "llms.txt"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "framer-motion": ">=10 <13",
+    "react": ">=18 <20",
+    "react-dom": ">=18 <20"
+  },
+  "devDependencies": {
+    "framer-motion": "^12.23.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "keywords": [
+    "react",
+    "charts",
+    "dashboard",
+    "svg",
+    "framer-motion",
+    "animation",
+    "dataviz",
+    "ecommerce",
+    "analytics",
+    "typescript"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "motion-charts-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Animation-first React chart library workspace.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspace docs",
+    "test": "npm run test --workspace @motion-charts/core",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "audit:ponytail": "node ./scripts/ponytail-audit.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^4.1.11"
+  }
+}
