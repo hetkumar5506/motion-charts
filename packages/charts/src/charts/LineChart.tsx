@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AxisBottom, AxisLeft, GridRows } from "../components/Axis";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
@@ -54,9 +54,16 @@ export function LineChart<TDatum extends object>({
   onDatumClick
 }: LineChartProps<TDatum>) {
   const gradientId = useId().replace(/:/g, "");
+  const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const bounds = useMemo(() => ({
     ...defaultMargin,
     ...margin,
@@ -103,7 +110,7 @@ export function LineChart<TDatum extends object>({
   const initialPath = useMemo(() => linePath(baselinePoints, curve), [baselinePoints, curve]);
   const fillPath = useMemo(() => areaPath(points, baseline, curve), [baseline, curve, points]);
   const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve), [baseline, baselinePoints, curve]);
-  const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
+  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -123,22 +130,40 @@ export function LineChart<TDatum extends object>({
     );
   }
 
-  function showTooltip(event: PointerEvent<SVGCircleElement>, row: (typeof rows)[number]) {
+  function handlePointerMove(event: PointerEvent<SVGCircleElement>, row: (typeof rows)[number]) {
     if (!tooltipEnabled) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
-    setHoveredIndex(row.index);
-    setTooltipState((prev) => {
-      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3 && hoveredIndex === row.index) {
-        return prev;
-      }
-      return { x: clientX, y: clientY, content: tooltipContent(row) };
-    });
+    if (hoveredIndex !== row.index) {
+      setHoveredIndex(row.index);
+      setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
+    }
   }
 
   function hideTooltip() {
     setHoveredIndex(null);
     setTooltipState(null);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, index: number) {
+    const count = rows.length;
+    if (count <= 1) return;
+    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
+      : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
+      : event.key === "Home" ? -index
+      : event.key === "End" ? count - 1 - index : 0;
+
+    if (!delta) return;
+    event.preventDefault();
+    const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
+    setActiveIndex(nextIndex);
+    const nextRow = rows[nextIndex];
+    if (nextRow) {
+      setHoveredIndex(nextIndex);
+    }
+    const svg = event.currentTarget.closest("svg");
+    const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
+    targets?.[nextIndex]?.focus();
   }
 
   const hoveredX =
@@ -156,6 +181,7 @@ export function LineChart<TDatum extends object>({
       ariaDescription={ariaDescription}
       tooltip={tooltipState}
       tooltipStyle={chartTheme.tooltipStyle}
+      tooltipId={tooltipId}
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -221,6 +247,7 @@ export function LineChart<TDatum extends object>({
         const point = points[index];
         if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
         const isHovered = hoveredIndex === index;
+        const isFocused = activeIndex === index;
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         const initialY = Number.isFinite(baseline) ? baseline : point.y;
@@ -240,20 +267,25 @@ export function LineChart<TDatum extends object>({
             role="graphics-symbol"
             aria-roledescription="data point"
             aria-label={aria}
-            tabIndex={index === 0 ? 0 : -1}
+            aria-describedby={isHovered || isFocused ? tooltipId : undefined}
+            tabIndex={index === activeIndex ? 0 : -1}
             style={{
               cursor: onDatumClick ? "pointer" : "default",
-              filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))"
+              filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
+              outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
+              outlineOffset: 3
             }}
-            onPointerEnter={(event) => showTooltip(event, row)}
-            onPointerMove={(event) => showTooltip(event, row)}
+            onPointerEnter={(event) => handlePointerMove(event, row)}
+            onPointerMove={(event) => handlePointerMove(event, row)}
             onPointerLeave={hideTooltip}
             onFocus={(event) => {
-              const rect = event.currentTarget.getBoundingClientRect();
+              setActiveIndex(index);
               setHoveredIndex(row.index);
-              setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row) });
+              const rect = event.currentTarget.getBoundingClientRect();
+              setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
             }}
             onBlur={hideTooltip}
+            onKeyDown={(event) => handleKeyDown(event, index)}
             onClick={() => onDatumClick?.(context)}
           >
             <title>{aria}</title>

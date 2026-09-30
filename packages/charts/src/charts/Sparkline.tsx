@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
@@ -51,9 +51,18 @@ export function Sparkline<TDatum extends object>({
   onDatumClick
 }: SparklineProps<TDatum>) {
   const gradientId = useId().replace(/:/g, "");
+  const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const color = colorAt(chartTheme.colors, colorIndex);
   const rows = useMemo(
     () =>
@@ -84,7 +93,7 @@ export function Sparkline<TDatum extends object>({
   const initialPath = useMemo(() => linePath(baselinePoints, curve), [baselinePoints, curve]);
   const fillPath = useMemo(() => areaPath(points, baseline, curve), [baseline, curve, points]);
   const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve), [baseline, baselinePoints, curve]);
-  const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
+  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
   const lastRow = rows[rows.length - 1];
   const lastPoint = points[points.length - 1];
@@ -100,16 +109,40 @@ export function Sparkline<TDatum extends object>({
     );
   }
 
-  function showTooltip(event: PointerEvent<SVGCircleElement>, row: (typeof rows)[number]) {
+  function handlePointerMove(event: PointerEvent<SVGCircleElement>, row: (typeof rows)[number]) {
     if (!tooltipEnabled) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
-    setTooltipState((prev) => {
-      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3) {
-        return prev;
-      }
-      return { x: clientX, y: clientY, content: tooltipContent(row) };
-    });
+    if (hoveredIndex !== row.index) {
+      setHoveredIndex(row.index);
+      setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
+    }
+  }
+
+  function hideTooltip() {
+    setHoveredIndex(null);
+    setTooltipState(null);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, index: number) {
+    const count = rows.length;
+    if (count <= 1) return;
+    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
+      : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
+      : event.key === "Home" ? -index
+      : event.key === "End" ? count - 1 - index : 0;
+
+    if (!delta) return;
+    event.preventDefault();
+    const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
+    setActiveIndex(nextIndex);
+    const nextRow = rows[nextIndex];
+    if (nextRow) {
+      setHoveredIndex(nextIndex);
+    }
+    const svg = event.currentTarget.closest("svg");
+    const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
+    targets?.[nextIndex]?.focus();
   }
 
   return (
@@ -122,6 +155,7 @@ export function Sparkline<TDatum extends object>({
       ariaDescription={ariaDescription}
       tooltip={tooltipState}
       tooltipStyle={chartTheme.tooltipStyle}
+      tooltipId={tooltipId}
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -158,7 +192,6 @@ export function Sparkline<TDatum extends object>({
         const text = valueFormatter(lastRow.value);
         const pillWidth = Math.max(34, text.length * 7.5 + 10);
         const pillHeight = 20;
-        // Position pill to the right of the dot in the reserved right margin, with a 6px gap
         const pillX = Math.min(width - pillWidth - 2, lastPoint.x + 8);
         const pillY = Math.max(2, Math.min(height - pillHeight - 2, lastPoint.y - pillHeight / 2));
 
@@ -203,6 +236,8 @@ export function Sparkline<TDatum extends object>({
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
         const initialY = Number.isFinite(baseline) ? baseline : point.y;
+        const isHovered = hoveredIndex === index;
+        const isFocused = activeIndex === index;
         return (
           <motion.circle
             key={`${row.label}-${row.index}`}
@@ -219,17 +254,26 @@ export function Sparkline<TDatum extends object>({
             role="graphics-symbol"
             aria-roledescription="data point"
             aria-label={aria}
-            tabIndex={index === rows.length - 1 ? 0 : -1}
-            onPointerEnter={(event) => showTooltip(event, row)}
-            onPointerMove={(event) => showTooltip(event, row)}
-            onPointerLeave={() => setTooltipState(null)}
+            aria-describedby={isHovered || isFocused ? tooltipId : undefined}
+            tabIndex={index === activeIndex ? 0 : -1}
+            onPointerEnter={(event) => handlePointerMove(event, row)}
+            onPointerMove={(event) => handlePointerMove(event, row)}
+            onPointerLeave={hideTooltip}
             onFocus={(event) => {
+              setActiveIndex(index);
+              setHoveredIndex(row.index);
               const rect = event.currentTarget.getBoundingClientRect();
-              setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row) });
+              setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
             }}
-            onBlur={() => setTooltipState(null)}
+            onBlur={hideTooltip}
+            onKeyDown={(event) => handleKeyDown(event, index)}
             onClick={() => onDatumClick?.(context)}
-            style={{ cursor: onDatumClick ? "pointer" : "default", transformOrigin: `${point.x}px ${point.y}px` }}
+            style={{
+              cursor: onDatumClick ? "pointer" : "default",
+              transformOrigin: `${point.x}px ${point.y}px`,
+              outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
+              outlineOffset: 3
+            }}
           >
             <title>{aria}</title>
           </motion.circle>

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
@@ -49,9 +49,18 @@ export function DonutChart<TDatum extends object>({
   onDatumClick
 }: DonutChartProps<TDatum>) {
   const gradientBaseId = useId().replace(/:/g, "");
+  const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const rows = useMemo(
     () =>
       data.map((datum, index) => {
@@ -79,7 +88,7 @@ export function DonutChart<TDatum extends object>({
   const cy = padTop + innerH / 2;
   const outerRadius = Math.max(20, Math.min(innerW, innerH) / 2 - 22);
   const innerRadius = outerRadius * Math.min(0.9, Math.max(0, innerRadiusRatio));
-  const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
+  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
   function tooltipContent(row: (typeof rows)[number], percent: number): ReactNode {
@@ -95,23 +104,55 @@ export function DonutChart<TDatum extends object>({
     );
   }
 
-  function showTooltip(event: PointerEvent<SVGPathElement>, row: (typeof rows)[number], percent: number) {
+  function handlePointerMove(event: PointerEvent<SVGPathElement>, row: (typeof rows)[number], percent: number) {
     if (!tooltipEnabled) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
-    setTooltipState((prev) => {
-      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3) {
-        return prev;
-      }
-      return { x: clientX, y: clientY, content: tooltipContent(row, percent) };
-    });
+    if (hoveredIndex !== row.index) {
+      setHoveredIndex(row.index);
+      setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row, percent), id: tooltipId });
+    }
+  }
+
+  function hideTooltip() {
+    setHoveredIndex(null);
+    setTooltipState(null);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<SVGPathElement>, index: number) {
+    const count = slices.length;
+    if (count <= 1) return;
+    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
+      : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
+      : event.key === "Home" ? -index
+      : event.key === "End" ? count - 1 - index : 0;
+
+    if (!delta) return;
+    event.preventDefault();
+    const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
+    setActiveIndex(nextIndex);
+    const nextRow = rows[nextIndex];
+    if (nextRow) {
+      setHoveredIndex(nextIndex);
+    }
+    const svg = event.currentTarget.closest("svg");
+    const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
+    targets?.[nextIndex]?.focus();
   }
 
   const legendItems = useMemo(() => rows.map((row) => ({ label: row.label, color: row.color })), [rows]);
 
   return (
-    <div className={className} style={style}>
-      <ChartSurface width={width} height={height} ariaLabel={ariaLabel} ariaDescription={ariaDescription} tooltip={tooltipState} tooltipStyle={chartTheme.tooltipStyle}>
+    <div className={className} style={{ width: "100%", ...style }}>
+      <ChartSurface
+        width={width}
+        height={height}
+        ariaLabel={ariaLabel}
+        ariaDescription={ariaDescription}
+        tooltip={tooltipState}
+        tooltipStyle={chartTheme.tooltipStyle}
+        tooltipId={tooltipId}
+      >
         <defs>
           {sliceVariant === "gradient"
             ? rows.map((row) => (
@@ -131,6 +172,8 @@ export function DonutChart<TDatum extends object>({
           const labelPoint = polar(cx, cy, (innerRadius + outerRadius) / 2, mid);
           const aria = joinLabels([row.label, valueFormatter(row.value), `${Math.round(slice.percent * 100)}%`]);
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
+          const isHovered = hoveredIndex === index;
+          const isFocused = activeIndex === index;
 
           return (
             <g key={`${row.label}-${row.index}`}>
@@ -144,20 +187,26 @@ export function DonutChart<TDatum extends object>({
                 role="graphics-symbol"
                 aria-roledescription="slice"
                 aria-label={aria}
-                tabIndex={index === 0 ? 0 : -1}
-                onPointerEnter={(event) => showTooltip(event, row, slice.percent)}
-                onPointerMove={(event) => showTooltip(event, row, slice.percent)}
-                onPointerLeave={() => setTooltipState(null)}
+                aria-describedby={isHovered || isFocused ? tooltipId : undefined}
+                tabIndex={index === activeIndex ? 0 : -1}
+                onPointerEnter={(event) => handlePointerMove(event, row, slice.percent)}
+                onPointerMove={(event) => handlePointerMove(event, row, slice.percent)}
+                onPointerLeave={hideTooltip}
                 onFocus={(event) => {
+                  setActiveIndex(index);
+                  setHoveredIndex(row.index);
                   const rect = event.currentTarget.getBoundingClientRect();
-                  setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row, slice.percent) });
+                  setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row, slice.percent), id: tooltipId });
                 }}
-                onBlur={() => setTooltipState(null)}
+                onBlur={hideTooltip}
+                onKeyDown={(event) => handleKeyDown(event, index)}
                 onClick={() => onDatumClick?.(context)}
                 style={{
                   cursor: onDatumClick ? "pointer" : "default",
                   transformOrigin: `${cx}px ${cy}px`,
-                  filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.08))"
+                  filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.08))",
+                  outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
+                  outlineOffset: 3
                 }}
               >
                 <title>{aria}</title>

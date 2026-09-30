@@ -173,6 +173,28 @@ Use sparklines inside metric cards:
 - inventory movement
 - signups this week
 
+## Y-Axis and Zero Inclusions
+
+Control whether axes strictly include zero or dynamically fit the data range:
+
+```tsx
+<LineChart
+  data={stockPrices}
+  xKey="date"
+  yKey="price"
+  // includeZero defaults to false on LineChart/MultiLineChart for high dynamic resolution
+  yAxis={{ includeZero: false, tickCount: 6 }}
+/>
+
+<BarChart
+  data={revenue}
+  xKey="month"
+  yKey="amount"
+  // includeZero defaults to true on BarChart
+  yAxis={{ includeZero: true }}
+/>
+```
+
 ## Themes and palettes
 
 Built-in themes:
@@ -188,10 +210,15 @@ Built-in palettes:
 "fire" | "cyber" | "pastel" | "graphite" | "emerald" | "bloom"
 ```
 
-Use a named theme:
+Extend a named theme using `base`:
 
 ```tsx
-<DonutChart data={data} labelKey="source" valueKey="users" theme="sunset" />
+<BarChart
+  data={data}
+  xKey="month"
+  yKey="revenue"
+  theme={{ base: "midnight", gridColor: "#334155" }}
+/>
 ```
 
 Use only a palette override:
@@ -234,6 +261,8 @@ animation={{ preset: "dramatic" }}
 animation={{ preset: "linear" }}
 ```
 
+Exported helper `animationPreset("bouncy")` is also available for custom animation builders.
+
 You can still override exact Framer Motion transition values:
 
 ```tsx
@@ -260,7 +289,7 @@ Reduced-motion users are respected automatically.
 
 ## Tooltips
 
-All chart components support a `tooltip` render prop or `tooltip={false}`.
+All chart components support a `tooltip` render prop or `tooltip={false}`. Tooltips render with smooth viewport boundary detection and accessible `aria-describedby` links on active shapes.
 
 ```tsx
 <BarChart
@@ -270,6 +299,14 @@ All chart components support a `tooltip` render prop or `tooltip={false}`.
   tooltip={({ label, value }) => <span>{label}: ${value}k</span>}
 />
 ```
+
+## Accessibility (WCAG 2.1 Level A)
+
+- **Roving Tabindex Keyboard Navigation**: All charts implement accessible roving `tabIndex` with keyboard navigation. Keyboard users can Tab to the chart and traverse data points with `ArrowRight` / `ArrowDown` / `ArrowLeft` / `ArrowUp` / `Home` / `End`.
+- **Visible Focus Indicator**: Active and focused shapes display a high-contrast focus ring (`2px solid`) matching the chart theme.
+- **ARIA Semantics**: Shapes are marked with `role="graphics-symbol"`, `aria-roledescription`, clear `aria-label`, and `aria-describedby` connected to live tooltips.
+- **Reduced Motion**: Full compliance with `prefers-reduced-motion`.
+- **SSR Hydration Safe**: Pre-rendered HTML paints complete shapes and opacity without blank flashes before hydration.
 
 ## Empty states
 
@@ -294,7 +331,7 @@ The package includes `llms.txt` with chart-selection guidance for agents. Short 
 - SVG output stays crisp at any size.
 - TypeScript props guide the API.
 - Product teams can match charts to brand colors quickly.
-- Accessibility is built in with `role="img"`, `title`, `desc`, keyboard focus, and reduced-motion support.
+- Accessibility is built in with roving keyboard navigation, SVG graphics semantics, titles, descriptions, and reduced-motion support.
 
 ## Non-goals for v0.1
 

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AxisBottom, AxisLeft, GridRows } from "../components/Axis";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
@@ -53,10 +53,17 @@ export function BarChart<TDatum extends object>({
   onDatumClick
 }: BarChartProps<TDatum>) {
   const gradientBaseId = useId().replace(/:/g, "");
+  const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const bounds = useMemo(() => ({
     ...defaultMargin,
@@ -89,7 +96,8 @@ export function BarChart<TDatum extends object>({
     [bounds.innerHeight, bounds.top, includeZero, rows, yAxis?.tickCount]
   );
   const baseline = yScale.scale(0);
-  const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
+  // In SSR (before mount), render the final state directly so SSR HTML is not a blank 0-height SVG
+  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
   function tooltipContent(row: (typeof rows)[number]): ReactNode {
@@ -108,22 +116,41 @@ export function BarChart<TDatum extends object>({
     );
   }
 
-  function showTooltip(event: PointerEvent<SVGRectElement>, row: (typeof rows)[number]) {
+  function handlePointerMove(event: PointerEvent<SVGRectElement>, row: (typeof rows)[number]) {
     if (!tooltipEnabled) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
-    setHoveredIndex(row.index);
-    setTooltipState((prev) => {
-      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3 && hoveredIndex === row.index) {
-        return prev;
-      }
-      return { x: clientX, y: clientY, content: tooltipContent(row) };
-    });
+    // Key state updates on hoveredIndex; avoid re-rendering commits when hovering inside the same bar
+    if (hoveredIndex !== row.index) {
+      setHoveredIndex(row.index);
+      setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
+    }
   }
 
   function hideTooltip() {
     setHoveredIndex(null);
     setTooltipState(null);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<SVGRectElement>, index: number) {
+    const count = rows.length;
+    if (count <= 1) return;
+    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
+      : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
+      : event.key === "Home" ? -index
+      : event.key === "End" ? count - 1 - index : 0;
+
+    if (!delta) return;
+    event.preventDefault();
+    const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
+    setActiveIndex(nextIndex);
+    const nextRow = rows[nextIndex];
+    if (nextRow) {
+      setHoveredIndex(nextIndex);
+    }
+    const svg = event.currentTarget.closest("svg");
+    const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
+    targets?.[nextIndex]?.focus();
   }
 
   return (
@@ -136,6 +163,7 @@ export function BarChart<TDatum extends object>({
       ariaDescription={ariaDescription}
       tooltip={tooltipState}
       tooltipStyle={chartTheme.tooltipStyle}
+      tooltipId={tooltipId}
     >
       <defs>
         {barVariant === "gradient"
@@ -171,6 +199,7 @@ export function BarChart<TDatum extends object>({
           const aria = joinLabels([row.label, valueFormatter(row.value)]);
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
           const isHovered = hoveredIndex === index;
+          const isFocused = activeIndex === index;
 
           return (
             <g key={`${row.label}-${row.index}`}>
@@ -187,27 +216,30 @@ export function BarChart<TDatum extends object>({
                 role="graphics-symbol"
                 aria-roledescription="bar"
                 aria-label={aria}
-                tabIndex={index === 0 ? 0 : -1}
-                onPointerEnter={(event) => showTooltip(event, row)}
-                onPointerMove={(event) => showTooltip(event, row)}
+                aria-describedby={isHovered || isFocused ? tooltipId : undefined}
+                tabIndex={index === activeIndex ? 0 : -1}
+                onPointerEnter={(event) => handlePointerMove(event, row)}
+                onPointerMove={(event) => handlePointerMove(event, row)}
                 onPointerLeave={hideTooltip}
                 onFocus={(event) => {
-                  const rect = event.currentTarget.getBoundingClientRect();
+                  setActiveIndex(index);
                   setHoveredIndex(row.index);
-                  setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row) });
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
                 }}
                 onBlur={hideTooltip}
+                onKeyDown={(event) => handleKeyDown(event, index)}
                 onClick={() => onDatumClick?.(context)}
                 style={{
-                  cursor: onDatumClick ? "pointer" : "default"
+                  cursor: onDatumClick ? "pointer" : "default",
+                  outline: isFocused && hoveredIndex === index ? `2px solid ${chartTheme.textColor}` : "none",
+                  outlineOffset: 2
                 }}
               >
                 <title>{aria}</title>
               </motion.rect>
               {showValues && barHeight > 14 ? (() => {
                 const isPositive = row.value >= 0;
-                // If bar is tall enough, place inside bar near the top for clean, unclipped look
-                // If bar is short, place above the bar, strictly clamped above baseline
                 const fitInside = barHeight >= 28;
                 const textY = fitInside
                   ? (isPositive ? y + 15 : y + barHeight - 8)

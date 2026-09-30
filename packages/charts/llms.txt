@@ -53,8 +53,22 @@ Palette names:
 
 `aurora`, `ocean`, `sunset`, `forest`, `candy`, `royal`, `fire`, `cyber`, `pastel`, `graphite`, `emerald`, `bloom`
 
+Theme extension:
+
+Pass `theme={{ base: "midnight", gridColor: "#334155" }}` to extend any named theme.
+
+Zero inclusion / axis tuning:
+
+- `yAxis={{ includeZero: false }}` (default for `LineChart` and `MultiLineChart` to maximize dynamic range)
+- `yAxis={{ includeZero: true }}` (default for `BarChart`)
+
 Animation presets:
 
 `spring`, `gentle`, `snappy`, `bouncy`, `calm`, `dramatic`, `linear`
+Exported helper: `animationPreset(presetName)`
+
+Accessibility (WCAG 2.1 Level A):
+
+Charts feature accessible roving `tabIndex={0}` on the active point/slice and `-1` on the rest, with arrow-key keyboard navigation (`ArrowRight`/`ArrowLeft`/`ArrowUp`/`ArrowDown`/`Home`/`End`), visible high-contrast focus rings, and `aria-describedby` connected to live tooltips.
 
 Prefer `ResponsiveChart` for real app pages. Always pass `ariaLabel`. Use `valueFormatter` for money, percentages, compact numbers, and units. Use `colors={[...]}` when matching a brand system exactly.

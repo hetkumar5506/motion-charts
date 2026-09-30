@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AxisBottom, AxisLeft, GridRows } from "../components/Axis";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
@@ -70,9 +70,16 @@ export function MultiLineChart<TDatum extends object>({
   onDatumClick
 }: MultiLineChartProps<TDatum>) {
   const gradientBaseId = useId().replace(/:/g, "");
+  const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
+  const [activeGlobalIndex, setActiveGlobalIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const bounds = useMemo(() => ({
     ...defaultMargin,
     ...margin,
@@ -108,7 +115,7 @@ export function MultiLineChart<TDatum extends object>({
     [allValues, bounds.innerHeight, bounds.top, includeZero, yAxis?.tickCount]
   );
   const baseline = yScale.scale(0);
-  const shouldInitial = shouldAnimateInitial(animation, reducedMotion);
+  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
   const renderedSeries = useMemo(
@@ -163,22 +170,37 @@ export function MultiLineChart<TDatum extends object>({
     );
   }
 
-  function showTooltip(event: PointerEvent<SVGCircleElement>, row: (typeof renderedSeries)[number]["rows"][number]) {
+  function handlePointerMove(event: PointerEvent<SVGCircleElement>, row: (typeof renderedSeries)[number]["rows"][number]) {
     if (!tooltipEnabled) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
-    setHoveredIndex(row.index);
-    setTooltipState((prev) => {
-      if (prev && Math.abs(prev.x - clientX) < 3 && Math.abs(prev.y - clientY) < 3 && hoveredIndex === row.index) {
-        return prev;
-      }
-      return { x: clientX, y: clientY, content: tooltipContent(row) };
-    });
+    if (hoveredIndex !== row.index) {
+      setHoveredIndex(row.index);
+      setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
+    }
   }
 
   function hideTooltip() {
     setHoveredIndex(null);
     setTooltipState(null);
+  }
+
+  const totalPoints = renderedSeries.length * data.length;
+
+  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, globalIndex: number) {
+    if (totalPoints <= 1) return;
+    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
+      : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
+      : event.key === "Home" ? -globalIndex
+      : event.key === "End" ? totalPoints - 1 - globalIndex : 0;
+
+    if (!delta) return;
+    event.preventDefault();
+    const nextIndex = Math.min(totalPoints - 1, Math.max(0, globalIndex + delta));
+    setActiveGlobalIndex(nextIndex);
+    const svg = event.currentTarget.closest("svg");
+    const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
+    targets?.[nextIndex]?.focus();
   }
 
   const legendItems = useMemo(() => preparedSeries.map((item) => ({ label: item.label, color: item.color })), [preparedSeries]);
@@ -189,7 +211,7 @@ export function MultiLineChart<TDatum extends object>({
       : null;
 
   return (
-    <div className={className} style={style}>
+    <div className={className} style={{ width: "100%", ...style }}>
       <ChartSurface
         width={width}
         height={height}
@@ -197,6 +219,7 @@ export function MultiLineChart<TDatum extends object>({
         ariaDescription={ariaDescription}
         tooltip={tooltipState}
         tooltipStyle={chartTheme.tooltipStyle}
+        tooltipId={tooltipId}
       >
         <defs>
           {renderedSeries.map((item, index) => (
@@ -265,7 +288,9 @@ export function MultiLineChart<TDatum extends object>({
             {item.rows.map((row, index) => {
               const point = item.points[index];
               if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
+              const globalIndex = seriesIndex * data.length + index;
               const isHovered = hoveredIndex === index;
+              const isFocused = activeGlobalIndex === globalIndex;
               const context = {
                 datum: row.datum,
                 index: row.index,
@@ -298,20 +323,25 @@ export function MultiLineChart<TDatum extends object>({
                   role="graphics-symbol"
                   aria-roledescription="data point"
                   aria-label={aria}
-                  tabIndex={index === 0 && seriesIndex === 0 ? 0 : -1}
+                  aria-describedby={isHovered || isFocused ? tooltipId : undefined}
+                  tabIndex={globalIndex === activeGlobalIndex ? 0 : -1}
                   style={{
                     cursor: onDatumClick ? "pointer" : "default",
-                    filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))"
+                    filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
+                    outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
+                    outlineOffset: 3
                   }}
-                  onPointerEnter={(event) => showTooltip(event, row)}
-                  onPointerMove={(event) => showTooltip(event, row)}
+                  onPointerEnter={(event) => handlePointerMove(event, row)}
+                  onPointerMove={(event) => handlePointerMove(event, row)}
                   onPointerLeave={hideTooltip}
                   onFocus={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect();
+                    setActiveGlobalIndex(globalIndex);
                     setHoveredIndex(row.index);
-                    setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row) });
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
                   }}
                   onBlur={hideTooltip}
+                  onKeyDown={(event) => handleKeyDown(event, globalIndex)}
                   onClick={() => onDatumClick?.(context)}
                 >
                   <title>{aria}</title>

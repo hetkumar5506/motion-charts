@@ -1,11 +1,12 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import * as ReactDOM from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 export type TooltipState = {
   x: number;
   y: number;
   content: ReactNode;
+  id?: string;
 } | null;
 
 export type ChartSurfaceProps = {
@@ -18,9 +19,21 @@ export type ChartSurfaceProps = {
   children: ReactNode;
   tooltip?: TooltipState;
   tooltipStyle?: CSSProperties;
+  tooltipId?: string;
 };
 
-export function ChartSurface({ width, height, className, style, ariaLabel, ariaDescription, children, tooltip, tooltipStyle }: ChartSurfaceProps) {
+export function ChartSurface({
+  width,
+  height,
+  className,
+  style,
+  ariaLabel,
+  ariaDescription,
+  children,
+  tooltip,
+  tooltipStyle,
+  tooltipId
+}: ChartSurfaceProps) {
   const titleId = useId();
   const descriptionId = useId();
 
@@ -41,12 +54,12 @@ export function ChartSurface({ width, height, className, style, ariaLabel, ariaD
         {ariaDescription ? <desc id={descriptionId}>{ariaDescription}</desc> : null}
         {children}
       </svg>
-      <ChartTooltip tooltip={tooltip} style={tooltipStyle} />
+      <ChartTooltip tooltip={tooltip} style={tooltipStyle} tooltipId={tooltipId} />
     </div>
   );
 }
 
-function ChartTooltip({ tooltip, style }: { tooltip?: TooltipState; style?: CSSProperties }) {
+function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; style?: CSSProperties; tooltipId?: string }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -55,9 +68,10 @@ function ChartTooltip({ tooltip, style }: { tooltip?: TooltipState; style?: CSSP
 
   if (!tooltip) return null;
 
-  // Viewport clamping & flip logic
+  // Viewport clamping & position logic:
+  // Smoothly clamp within viewport bounds without sudden teleports
   const tooltipWidth = 220;
-  const tooltipHeight = 64;
+  const tooltipHeight = 56;
   const offset = 14;
 
   let left = tooltip.x + offset;
@@ -67,15 +81,19 @@ function ChartTooltip({ tooltip, style }: { tooltip?: TooltipState; style?: CSSP
     const vpWidth = window.innerWidth;
     const vpHeight = window.innerHeight;
 
-    // Flip to left if overflowing right edge
+    // Smoothly constrain left within [12, vpWidth - tooltipWidth - 12]
+    // If cursor is near right edge, smoothly place to the left of cursor
     if (left + tooltipWidth > vpWidth - 12) {
-      left = Math.max(12, tooltip.x - tooltipWidth - offset);
+      const leftAlternative = tooltip.x - tooltipWidth - offset;
+      left = leftAlternative >= 12 ? leftAlternative : Math.max(12, vpWidth - tooltipWidth - 12);
+    } else {
+      left = Math.max(12, left);
     }
-    // Flip or clamp if overflowing bottom edge
+
+    // Smoothly clamp vertical bounds
     if (top + tooltipHeight > vpHeight - 12) {
       top = Math.max(12, vpHeight - tooltipHeight - 12);
     }
-    // Clamp top boundary
     if (top < 12) {
       top = 12;
     }
@@ -84,11 +102,12 @@ function ChartTooltip({ tooltip, style }: { tooltip?: TooltipState; style?: CSSP
   const tooltipElement = (
     <AnimatePresence>
       <motion.div
+        id={tooltipId || tooltip.id}
         role="tooltip"
-        initial={{ opacity: 0, y: 6, scale: 0.94 }}
+        initial={{ opacity: 0, y: 4, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 4, scale: 0.94 }}
-        transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+        exit={{ opacity: 0, y: 3, scale: 0.96 }}
+        transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
         style={{
           position: "fixed",
           left,
@@ -112,8 +131,10 @@ function ChartTooltip({ tooltip, style }: { tooltip?: TooltipState; style?: CSSP
     </AnimatePresence>
   );
 
-  if (mounted && typeof document !== "undefined" && document.body) {
-    return createPortal(tooltipElement, document.body);
+  // Safely feature-detect createPortal so non-DOM reconcilers don't crash
+  const portalFn = (ReactDOM as unknown as { createPortal?: typeof ReactDOM.createPortal }).createPortal;
+  if (mounted && typeof document !== "undefined" && document.body && typeof portalFn === "function") {
+    return portalFn(tooltipElement, document.body);
   }
 
   return tooltipElement;
