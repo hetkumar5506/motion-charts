@@ -70,8 +70,8 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
 
   // Viewport clamping & position logic:
   // Smoothly clamp within viewport bounds without sudden teleports
-  const tooltipWidth = 220;
-  const tooltipHeight = 56;
+  const tooltipWidth = 280;
+  const tooltipHeight = 70;
   const offset = 14;
 
   let left = tooltip.x + offset;

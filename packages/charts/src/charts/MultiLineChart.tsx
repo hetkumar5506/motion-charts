@@ -144,7 +144,7 @@ export function MultiLineChart<TDatum extends object>({
     [baseline, curve, data, labels, preparedSeries, xScale, yScale]
   );
 
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{ seriesId: string; index: number } | null>(null);
 
   function tooltipContent(row: (typeof renderedSeries)[number]["rows"][number]): ReactNode {
     const context = {
@@ -174,14 +174,14 @@ export function MultiLineChart<TDatum extends object>({
     if (!tooltipEnabled) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
-    if (hoveredIndex !== row.index) {
-      setHoveredIndex(row.index);
+    if (!hoveredPoint || hoveredPoint.seriesId !== row.seriesId || hoveredPoint.index !== row.index) {
+      setHoveredPoint({ seriesId: row.seriesId, index: row.index });
       setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
     }
   }
 
   function hideTooltip() {
-    setHoveredIndex(null);
+    setHoveredPoint(null);
     setTooltipState(null);
   }
 
@@ -206,8 +206,8 @@ export function MultiLineChart<TDatum extends object>({
   const legendItems = useMemo(() => preparedSeries.map((item) => ({ label: item.label, color: item.color })), [preparedSeries]);
   const hasData = data.length > 0 && preparedSeries.length > 0;
   const hoveredX =
-    hoveredIndex !== null && labels[hoveredIndex] !== undefined
-      ? xScale.center(labels[hoveredIndex]!, hoveredIndex)
+    hoveredPoint !== null && labels[hoveredPoint.index] !== undefined
+      ? xScale.center(labels[hoveredPoint.index]!, hoveredPoint.index)
       : null;
 
   return (
@@ -256,7 +256,13 @@ export function MultiLineChart<TDatum extends object>({
           />
         )}
         {xAxis?.show === false ? null : (
-          <AxisBottom scale={xScale} y={bounds.top + bounds.innerHeight} formatter={(value) => xAxis?.formatter?.(value) ?? value} style={chartTheme} />
+          <AxisBottom
+            scale={xScale}
+            y={bounds.top + bounds.innerHeight}
+            formatter={(value) => xAxis?.formatter?.(value) ?? value}
+            style={chartTheme}
+            tickCount={xAxis?.tickCount}
+          />
         )}
 
         {renderedSeries.map((item, seriesIndex) => (
@@ -289,7 +295,7 @@ export function MultiLineChart<TDatum extends object>({
               const point = item.points[index];
               if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
               const globalIndex = seriesIndex * data.length + index;
-              const isHovered = hoveredIndex === index;
+              const isHovered = hoveredPoint !== null && hoveredPoint.seriesId === row.seriesId && hoveredPoint.index === index;
               const isFocused = activeGlobalIndex === globalIndex;
               const context = {
                 datum: row.datum,
@@ -328,7 +334,7 @@ export function MultiLineChart<TDatum extends object>({
                   style={{
                     cursor: onDatumClick ? "pointer" : "default",
                     filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
-                    outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
+                    outline: isFocused && (isHovered || hoveredPoint === null) ? `2px solid ${chartTheme.textColor}` : "none",
                     outlineOffset: 3
                   }}
                   onPointerEnter={(event) => handlePointerMove(event, row)}
@@ -336,7 +342,7 @@ export function MultiLineChart<TDatum extends object>({
                   onPointerLeave={hideTooltip}
                   onFocus={(event) => {
                     setActiveGlobalIndex(globalIndex);
-                    setHoveredIndex(row.index);
+                    setHoveredPoint({ seriesId: row.seriesId, index: row.index });
                     const rect = event.currentTarget.getBoundingClientRect();
                     setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
                   }}
@@ -351,7 +357,7 @@ export function MultiLineChart<TDatum extends object>({
           </g>
         ))}
       </ChartSurface>
-      {showLegend ? <InlineLegend items={legendItems} color={chartTheme.mutedTextColor} /> : null}
+      {showLegend ? <InlineLegend items={legendItems} theme={chartTheme} /> : null}
     </div>
   );
 }

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.4
+
+### Fixed & Enhanced
+- **Strict Numeric Sanitization**: Properly parenthesized finite checking in `numberOf` so `NaN`, `Infinity`, and `-Infinity` numbers are caught, warn in dev mode, and coerce to `0` instead of corrupting SVG paths.
+- **Path Builder Robustness**: Filtered non-finite points in `linePath` and `areaPath` so a dirty datum cannot break or blank out the entire line or area fill in `LineChart`, `MultiLineChart`, and `Sparkline`.
+- **X-Axis Tick Thinning**: Added smart label thinning to `AxisBottom` respecting `xAxis.tickCount` and container width, preventing overlapping label ink smears when displaying dense (e.g. 60+ points) datasets.
+- **Typed Date Support**: `Date` instances passed to `xKey` or `labelKey` now format automatically via `.toLocaleDateString()` instead of printing raw verbose `Date.toString()`.
+- **Theme-Aware Legend**: `InlineLegend` chips and labels now dynamically adapt background, border, and text colors to light or dark themes (e.g. `midnight`).
+- **Series-Aware MultiLineChart**: Tooltip and hover focus now store `{ seriesId, index }`, preventing hover on one series from erroneously highlighting same-index points across other series.
+- **Animation Preset Fallback**: `animationPreset()` now safely falls back to `spring` when an unknown preset name or typo is passed.
+- **Bundler-Compatible Dev Warnings**: Dev mode warnings now use standard `process.env.NODE_ENV !== "production"` syntax so bundlers like Vite statically replace and activate warnings in browser dev consoles.
+- **Value Labels Visibility**: `BarChart` `showValues` now renders value labels for short bars rather than silently clipping at ≤14px.
+- **Donut Negative Value Warning**: Dev mode warning added when negative values are clamped to 0 in `DonutChart`.
+- **Cached Number Format**: Reused a cached `Intl.NumberFormat` instance for high-frequency 60fps formatting performance.
+
 ## 0.1.3
 
 ### Fixed & Enhanced

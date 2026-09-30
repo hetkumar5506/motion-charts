@@ -216,7 +216,13 @@ export function LineChart<TDatum extends object>({
         />
       )}
       {xAxis?.show === false ? null : (
-        <AxisBottom scale={xScale} y={bounds.top + bounds.innerHeight} formatter={(value) => xAxis?.formatter?.(value) ?? value} style={chartTheme} />
+        <AxisBottom
+          scale={xScale}
+          y={bounds.top + bounds.innerHeight}
+          formatter={(value) => xAxis?.formatter?.(value) ?? value}
+          style={chartTheme}
+          tickCount={xAxis?.tickCount}
+        />
       )}
 
       {showArea && fillPath ? (

@@ -10,6 +10,7 @@ import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { resolveChartTheme } from "../themes";
 import { arcPath, pieSlices, polar } from "../utils/geometry";
 import { chartTransition, shouldAnimateInitial } from "../utils/motion";
+import { isDev } from "../utils/env";
 
 export type DonutChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   labelKey: Accessor<TDatum, string | number>;
@@ -65,7 +66,11 @@ export function DonutChart<TDatum extends object>({
     () =>
       data.map((datum, index) => {
         const label = labelOf(datum, index, labelKey);
-        const value = Math.max(0, numberOf(datum, index, valueKey));
+        const rawValue = numberOf(datum, index, valueKey);
+        if (rawValue < 0 && isDev()) {
+          console.warn(`[@motion-charts/core] DonutChart received negative value at index ${index} (${rawValue}). Clamping to 0.`);
+        }
+        const value = Math.max(0, rawValue);
         const color = colorAt(chartTheme.colors, index);
         return { datum, index, label, value, color };
       }),
@@ -247,7 +252,7 @@ export function DonutChart<TDatum extends object>({
           </text>
         ) : null}
       </ChartSurface>
-      {showLegend ? <InlineLegend items={legendItems} color={chartTheme.mutedTextColor} /> : null}
+      {showLegend ? <InlineLegend items={legendItems} theme={chartTheme} /> : null}
     </div>
   );
 }

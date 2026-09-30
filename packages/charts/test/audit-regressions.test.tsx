@@ -68,4 +68,57 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     expect(matches0).toHaveLength(1);
     expect(matchesMinus1).toHaveLength(2);
   });
+
+  it("handles NaN, Infinity, and -Infinity by warning and coercing to 0 without corrupting paths", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(numberOf({ v: NaN }, 0, "v")).toBe(0);
+    expect(numberOf({ v: Infinity }, 0, "v")).toBe(0);
+    expect(numberOf({ v: -Infinity }, 0, "v")).toBe(0);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+
+    const dataWithNaN = [
+      { x: "Jan", y: 10 },
+      { x: "Feb", y: NaN },
+      { x: "Mar", y: 30 }
+    ];
+    const html = renderToString(
+      <LineChart data={dataWithNaN} xKey="x" yKey="y" width={400} height={200} />
+    );
+    expect(html).not.toContain("NaN");
+    expect(html).toContain('d="M');
+  });
+
+  it("formats Date objects appropriately in labelOf", () => {
+    const date = new Date(2026, 0, 15);
+    const html = renderToString(
+      <BarChart
+        data={[{ d: date, v: 10 }]}
+        xKey="d"
+        yKey="v"
+      />
+    );
+    expect(html).toContain(date.toLocaleDateString());
+  });
+
+  it("thins x-axis ticks when there are many data points", () => {
+    const denseData = Array.from({ length: 60 }, (_, i) => ({
+      x: `Day ${i + 1}`,
+      y: i * 2
+    }));
+    const html = renderToString(
+      <LineChart data={denseData} xKey="x" yKey="y" width={600} height={300} xAxis={{ tickCount: 6 }} />
+    );
+    // Count the number of rendered <text> tick elements inside the bottom axis (marked dy="0.72em")
+    const matches = html.match(/dy="0\.72em"/g);
+    // 60 points should be thinned down to around 6-12 ticks
+    expect(matches?.length).toBeLessThanOrEqual(12);
+  });
+
+  it("falls back to spring in animationPreset for unknown preset names", async () => {
+    const { animationPreset, animationPresets } = await import("../src");
+    expect(animationPreset("unknown-typo" as any)).toEqual(animationPresets.spring);
+    expect(animationPreset(undefined)).toEqual(animationPresets.spring);
+    expect(animationPreset("bouncy")).toEqual(animationPresets.bouncy);
+  });
 });

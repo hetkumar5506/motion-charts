@@ -12,6 +12,9 @@ export const animationPresets = {
 
 export type AnimationPresetName = keyof typeof animationPresets;
 
-export function animationPreset(name: AnimationPresetName | undefined): Transition {
-  return animationPresets[name ?? "spring"];
+export function animationPreset(name: AnimationPresetName | string | undefined): Transition {
+  if (name && name in animationPresets) {
+    return animationPresets[name as AnimationPresetName];
+  }
+  return animationPresets.spring;
 }

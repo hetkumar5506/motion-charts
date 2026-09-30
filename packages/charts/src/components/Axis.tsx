@@ -69,34 +69,58 @@ export function AxisBottom({
   scale,
   y,
   formatter,
-  style
+  style,
+  tickCount
 }: {
   scale: CategoryScale;
   y: number;
   formatter?: (value: string) => string;
   style?: AxisStyle;
+  tickCount?: number;
 }) {
   const merged = { ...defaults, ...style };
+  const totalLabels = scale.labels.length;
+
+  // Thin labels if tickCount is provided or if there are too many labels for the width
+  const rangeWidth = Math.abs(scale.range[1] - scale.range[0]);
+  const maxTicks = tickCount && tickCount > 0 ? tickCount : Math.max(2, Math.floor(rangeWidth / 55));
+  const step = totalLabels > maxTicks ? Math.ceil(totalLabels / maxTicks) : 1;
+
+  const visibleIndices = new Set<number>();
+  for (let i = 0; i < totalLabels; i += step) {
+    visibleIndices.add(i);
+  }
+  // Ensure the last label is also represented if there's enough space
+  if (totalLabels > 1 && !visibleIndices.has(totalLabels - 1)) {
+    const lastVisible = Math.max(...Array.from(visibleIndices));
+    if (totalLabels - 1 - lastVisible >= Math.floor(step / 2)) {
+      visibleIndices.add(totalLabels - 1);
+    }
+  }
+
   return (
     <g aria-hidden="true">
       <line x1={scale.range[0]} x2={scale.range[1]} y1={y} y2={y} stroke={merged.axisColor} />
-      {scale.labels.map((label, i) => (
-        <g key={`${label}-${i}`} transform={`translate(${scale.center(label, i)} ${y})`}>
-          <line x1={0} x2={0} y1={0} y2={4} stroke={merged.axisColor} />
-          <text
-            x={0}
-            y={12}
-            dy="0.72em"
-            textAnchor="middle"
-            fill={merged.tickColor}
-            fontFamily={merged.fontFamily}
-            fontSize={merged.fontSize}
-            fontWeight={500}
-          >
-            {formatter ? formatter(label) : label}
-          </text>
-        </g>
-      ))}
+      {scale.labels.map((label, i) => {
+        if (!visibleIndices.has(i)) return null;
+        return (
+          <g key={`${label}-${i}`} transform={`translate(${scale.center(label, i)} ${y})`}>
+            <line x1={0} x2={0} y1={0} y2={4} stroke={merged.axisColor} />
+            <text
+              x={0}
+              y={12}
+              dy="0.72em"
+              textAnchor="middle"
+              fill={merged.tickColor}
+              fontFamily={merged.fontFamily}
+              fontSize={merged.fontSize}
+              fontWeight={500}
+            >
+              {formatter ? formatter(label) : label}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }

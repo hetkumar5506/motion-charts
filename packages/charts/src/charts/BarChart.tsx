@@ -187,7 +187,13 @@ export function BarChart<TDatum extends object>({
         />
       )}
       {xAxis?.show === false ? null : (
-        <AxisBottom scale={xScale} y={bounds.top + bounds.innerHeight} formatter={(value) => xAxis?.formatter?.(value) ?? value} style={chartTheme} />
+        <AxisBottom
+          scale={xScale}
+          y={bounds.top + bounds.innerHeight}
+          formatter={(value) => xAxis?.formatter?.(value) ?? value}
+          style={chartTheme}
+          tickCount={xAxis?.tickCount}
+        />
       )}
 
       <g>
@@ -238,7 +244,7 @@ export function BarChart<TDatum extends object>({
               >
                 <title>{aria}</title>
               </motion.rect>
-              {showValues && barHeight > 14 ? (() => {
+              {showValues ? (() => {
                 const isPositive = row.value >= 0;
                 const fitInside = barHeight >= 28;
                 const textY = fitInside
