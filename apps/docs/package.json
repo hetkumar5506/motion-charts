@@ -8,7 +8,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@motion-charts/core": "0.1.0",
+    "@motion-charts/core": "*",
     "framer-motion": "^12.23.0",
     "next": "^16.3.7",
     "react": "^19.0.0",

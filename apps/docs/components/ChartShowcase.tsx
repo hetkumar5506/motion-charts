@@ -1,238 +1,459 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart, DonutChart, MultiLineChart, ResponsiveChart, Sparkline, type ChartThemeName } from "@motion-charts/core";
+import {
+  BarChart,
+  DonutChart,
+  LineChart,
+  MultiLineChart,
+  ResponsiveChart,
+  Sparkline,
+  type AnimationPresetName,
+  type ChartThemeName
+} from "@motion-charts/core";
 
-const datasets = [
+const revenueDataSets = [
   [
-    { month: "Jan", revenue: 42, users: 18, orders: 31 },
-    { month: "Feb", revenue: 64, users: 28, orders: 46 },
-    { month: "Mar", revenue: 51, users: 34, orders: 39 },
-    { month: "Apr", revenue: 86, users: 41, orders: 61 },
-    { month: "May", revenue: 72, users: 54, orders: 57 },
-    { month: "Jun", revenue: 98, users: 67, orders: 73 }
+    { month: "Jan", revenue: 45, users: 22, orders: 34, growth: 12 },
+    { month: "Feb", revenue: 68, users: 31, orders: 52, growth: 18 },
+    { month: "Mar", revenue: 54, users: 39, orders: 44, growth: -6 },
+    { month: "Apr", revenue: 92, users: 48, orders: 67, growth: 28 },
+    { month: "May", revenue: 81, users: 59, orders: 63, growth: 14 },
+    { month: "Jun", revenue: 115, users: 74, orders: 85, growth: 32 }
   ],
   [
-    { month: "Jan", revenue: 58, users: 24, orders: 41 },
-    { month: "Feb", revenue: 36, users: 21, orders: 29 },
-    { month: "Mar", revenue: 77, users: 38, orders: 58 },
-    { month: "Apr", revenue: 69, users: 45, orders: 54 },
-    { month: "May", revenue: 112, users: 72, orders: 86 },
-    { month: "Jun", revenue: 91, users: 66, orders: 71 }
+    { month: "Jan", revenue: 62, users: 28, orders: 44, growth: 16 },
+    { month: "Feb", revenue: 41, users: 24, orders: 32, growth: -12 },
+    { month: "Mar", revenue: 84, users: 42, orders: 63, growth: 35 },
+    { month: "Apr", revenue: 76, users: 51, orders: 59, growth: 10 },
+    { month: "May", revenue: 125, users: 80, orders: 94, growth: 42 },
+    { month: "Jun", revenue: 104, users: 72, orders: 79, growth: -8 }
   ],
   [
-    { month: "Jan", revenue: 34, users: 15, orders: 24 },
-    { month: "Feb", revenue: 52, users: 29, orders: 38 },
-    { month: "Mar", revenue: 63, users: 36, orders: 49 },
-    { month: "Apr", revenue: 48, users: 32, orders: 36 },
-    { month: "May", revenue: 88, users: 59, orders: 67 },
-    { month: "Jun", revenue: 124, users: 84, orders: 93 }
+    { month: "Jan", revenue: 38, users: 18, orders: 28, growth: 8 },
+    { month: "Feb", revenue: 58, users: 33, orders: 42, growth: 22 },
+    { month: "Mar", revenue: 71, users: 41, orders: 55, growth: 15 },
+    { month: "Apr", revenue: 55, users: 36, orders: 41, growth: -10 },
+    { month: "May", revenue: 98, users: 66, orders: 74, growth: 30 },
+    { month: "Jun", revenue: 138, users: 92, orders: 105, growth: 48 }
   ]
 ];
 
-const channels = [
+const trafficChannels = [
   [
-    { channel: "Organic", users: 44 },
-    { channel: "Product Hunt", users: 18 },
-    { channel: "Twitter", users: 24 },
-    { channel: "Newsletter", users: 14 }
+    { channel: "Direct / Organic", visitors: 48 },
+    { channel: "Product Hunt", visitors: 26 },
+    { channel: "Social / X", visitors: 22 },
+    { channel: "Email Digest", visitors: 16 }
   ],
   [
-    { channel: "Organic", users: 31 },
-    { channel: "Product Hunt", users: 34 },
-    { channel: "Twitter", users: 21 },
-    { channel: "Newsletter", users: 24 }
+    { channel: "Direct / Organic", visitors: 36 },
+    { channel: "Product Hunt", visitors: 42 },
+    { channel: "Social / X", visitors: 19 },
+    { channel: "Email Digest", visitors: 25 }
   ],
   [
-    { channel: "Organic", users: 52 },
-    { channel: "Product Hunt", users: 16 },
-    { channel: "Twitter", users: 12 },
-    { channel: "Newsletter", users: 32 }
+    { channel: "Direct / Organic", visitors: 58 },
+    { channel: "Product Hunt", visitors: 18 },
+    { channel: "Social / X", visitors: 14 },
+    { channel: "Email Digest", visitors: 34 }
   ]
 ];
 
-const themes: ChartThemeName[] = ["aurora", "ocean", "sunset", "candy", "midnight", "minimal"];
+const themes: { id: ChartThemeName; label: string; accent: string }[] = [
+  { id: "aurora", label: "Aurora", accent: "#2563eb" },
+  { id: "midnight", label: "Midnight", accent: "#38bdf8" },
+  { id: "candy", label: "Candy", accent: "#d946ef" },
+  { id: "ocean", label: "Ocean", accent: "#0284c7" },
+  { id: "sunset", label: "Sunset", accent: "#ea580c" },
+  { id: "minimal", label: "Minimal", accent: "#0f172a" }
+];
+
+const presets: AnimationPresetName[] = ["spring", "gentle", "snappy", "bouncy", "calm"];
 
 export function ChartShowcase() {
-  const [version, setVersion] = useState(0);
+  const [dataIndex, setDataIndex] = useState(0);
   const [theme, setTheme] = useState<ChartThemeName>("aurora");
-  const data = datasets[version % datasets.length] ?? datasets[0]!;
-  const channelData = channels[version % channels.length] ?? channels[0]!;
-  const totalUsers = useMemo(() => channelData.reduce((sum, item) => sum + item.users, 0), [channelData]);
-  const kpis = useMemo(
-    () => [
-      { label: "Revenue", value: `$${data[data.length - 1]?.revenue ?? 0}k`, key: "revenue" as const, colorIndex: 0 },
-      { label: "Customers", value: `${data[data.length - 1]?.users ?? 0}k`, key: "users" as const, colorIndex: 1 },
-      { label: "Orders", value: `${data[data.length - 1]?.orders ?? 0}k`, key: "orders" as const, colorIndex: 2 }
-    ],
-    [data]
-  );
+  const [preset, setPreset] = useState<AnimationPresetName>("gentle");
+  const [activeTab, setActiveTab] = useState<"overview" | "bar" | "line" | "multiline" | "donut">("overview");
+
+  const data = revenueDataSets[dataIndex % revenueDataSets.length] ?? revenueDataSets[0]!;
+  const channels = trafficChannels[dataIndex % trafficChannels.length] ?? trafficChannels[0]!;
+  const totalVisitors = useMemo(() => channels.reduce((sum, item) => sum + item.visitors, 0), [channels]);
+  const isDark = theme === "midnight";
 
   return (
-    <section className="grid gap-6">
-      {/* Interactive Bar Chart Card */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <h2 className="text-base font-bold text-slate-900 tracking-tight">Interactive Playground</h2>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">Live data transitions, spring physics, and responsive SVG rasterization.</p>
-          </div>
-          
+    <div className={`rounded-2xl border transition-colors duration-200 ${
+      isDark ? "bg-[#090d16] border-slate-800 text-slate-100" : "bg-white border-slate-200/90 text-slate-900 shadow-sm"
+    }`}>
+      {/* Control Header */}
+      <div className={`p-6 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
+        isDark ? "border-slate-800/80" : "border-slate-100"
+      }`}>
+        <div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setVersion((value) => value + 1)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 hover:border-slate-300 active:scale-[0.98]"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M2 8a6 6 0 1 0 1.76-4.24L1 6m0 0V2m0 4h4" />
-              </svg>
-              Shuffle Data
-            </button>
+            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            <h2 className="text-base font-bold tracking-tight">Interactive Component Playground</h2>
+            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold ${
+              isDark ? "bg-slate-800 text-slate-300" : "bg-blue-50 text-blue-700"
+            }`}>
+              @motion-charts/core v0.1.5
+            </span>
           </div>
+          <p className={`text-xs mt-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+            Zero-layout-shift SVG graphics rendered with Framer Motion spring interpolation and accessible roving keyboard navigation.
+          </p>
         </div>
 
-        {/* Theme Selectors */}
-        <div className="mb-6 flex flex-wrap items-center gap-1.5 p-1 rounded-lg bg-slate-100/80 border border-slate-200/60 w-fit">
-          <span className="text-[11px] font-medium text-slate-500 px-2">Palette:</span>
-          {themes.map((item) => (
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setDataIndex((v) => v + 1)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-[0.98] transition cursor-pointer"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2 8a6 6 0 1 0 1.76-4.24L1 6m0 0V2m0 4h4" />
+            </svg>
+            Animate New Data
+          </button>
+        </div>
+      </div>
+
+      {/* Toolbar: Themes, Presets, and Tab switcher */}
+      <div className={`px-6 py-3.5 border-b flex flex-wrap items-center justify-between gap-4 text-xs ${
+        isDark ? "border-slate-800 bg-slate-900/40" : "border-slate-100 bg-slate-50/50"
+      }`}>
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-1 bg-slate-200/50 dark:bg-slate-800/60 p-1 rounded-lg">
+          {(["overview", "bar", "line", "multiline", "donut"] as const).map((tab) => (
             <button
-              key={item}
+              key={tab}
               type="button"
-              onClick={() => setTheme(item)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize transition ${
-                theme === item
-                  ? "bg-white text-slate-900 shadow-sm font-semibold border border-slate-200/80"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1 rounded-md font-semibold capitalize transition ${
+                activeTab === tab
+                  ? isDark
+                    ? "bg-slate-800 text-white shadow-xs"
+                    : "bg-white text-slate-900 shadow-xs"
+                  : isDark
+                  ? "text-slate-400 hover:text-slate-200"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              {item}
+              {tab === "overview" ? "Dashboard View" : tab}
             </button>
           ))}
         </div>
 
-        {/* KPI Sparklines Grid */}
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
-          {kpis.map((kpi) => (
-            <article key={kpi.key} className="rounded-lg border border-slate-100 bg-slate-50/50 p-4 transition hover:border-slate-200">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{kpi.label}</p>
-                  <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{kpi.value}</p>
-                </div>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100/70 text-emerald-800">
-                  +12.4%
-                </span>
-              </div>
-              <div className="mt-2">
-                <Sparkline
-                  data={data.map((item) => ({ month: item.month, value: item[kpi.key] }))}
-                  xKey="month"
-                  yKey="value"
-                  theme={theme}
-                  colorIndex={kpi.colorIndex}
-                  height={76}
-                  padding={14}
-                  ariaLabel={`${kpi.label} sparkline`}
-                  valueFormatter={(value) => `${value}k`}
-                  animation={{ preset: "snappy", stagger: 0.012 }}
-                  showEndValue
-                />
-              </div>
-            </article>
-          ))}
-        </div>
+        {/* Theme & Preset Pickers */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>Theme:</span>
+            <div className="flex items-center gap-1">
+              {themes.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTheme(t.id)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition flex items-center gap-1.5 ${
+                    theme === t.id
+                      ? isDark
+                        ? "bg-slate-800 text-white font-semibold ring-1 ring-slate-700"
+                        : "bg-white text-slate-900 font-semibold shadow-xs ring-1 ring-slate-200"
+                      : isDark
+                      ? "text-slate-400 hover:text-slate-200"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: t.accent }} />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        {/* BarChart Container */}
-        <div className="rounded-lg border border-slate-100 bg-slate-50/30 p-4 pt-6">
-          <ResponsiveChart minHeight={300} maxHeight={380}>
-            {({ width, height }) => (
-              <BarChart
-                data={data}
-                width={width}
-                height={height}
-                xKey="month"
-                yKey="revenue"
-                theme={theme}
-                ariaLabel="Animated monthly revenue bar chart"
-                ariaDescription="Bars animate to new values whenever the dataset changes."
-                valueFormatter={(value) => `$${value}k`}
-                animation={{ preset: "gentle", stagger: 0.035 }}
-                barRadius={4}
-                tooltip={({ label, value, color }) => (
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-xs" style={{ backgroundColor: color }} />
-                      <span className="text-[11px] font-medium text-slate-500">{label}</span>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[11px] font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>Physics:</span>
+            <select
+              value={preset}
+              onChange={(e) => setPreset(e.target.value as AnimationPresetName)}
+              className={`rounded-md border text-xs px-2 py-1 font-medium outline-hidden ${
+                isDark
+                  ? "bg-slate-800 border-slate-700 text-slate-200"
+                  : "bg-white border-slate-200 text-slate-800"
+              }`}
+            >
+              {presets.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Interactive Showcase Body */}
+      <div className="p-6">
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* KPI Sparkline Cards */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { label: "Net Revenue", key: "revenue" as const, prefix: "$", suffix: "k", colorIndex: 0 },
+                { label: "Active Customers", key: "users" as const, prefix: "", suffix: "k", colorIndex: 1 },
+                { label: "Total Orders", key: "orders" as const, prefix: "", suffix: "k", colorIndex: 2 }
+              ].map((kpi) => {
+                const currentVal = data[data.length - 1]?.[kpi.key] ?? 0;
+                return (
+                  <div
+                    key={kpi.key}
+                    className={`rounded-xl border p-4 transition ${
+                      isDark ? "bg-slate-900/50 border-slate-800" : "bg-slate-50/70 border-slate-200/80"
+                    }`}
+                  >
+                    <div className="flex items-baseline justify-between mb-2">
+                      <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                        {kpi.label}
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        +18.4%
+                      </span>
                     </div>
-                    <span className="text-sm font-bold text-slate-900 pl-3.5">${value}k revenue</span>
+                    <div className="text-2xl font-extrabold tracking-tight mb-3">
+                      {kpi.prefix}{currentVal}{kpi.suffix}
+                    </div>
+                    <Sparkline
+                      data={data.map((d) => ({ month: d.month, val: d[kpi.key] }))}
+                      xKey="month"
+                      yKey="val"
+                      theme={theme}
+                      colorIndex={kpi.colorIndex}
+                      height={64}
+                      padding={4}
+                      showArea
+                      showPoints={false}
+                      showEndValue
+                      valueFormatter={(v) => `${kpi.prefix}${v}${kpi.suffix}`}
+                      animation={{ preset, stagger: 0.015 }}
+                    />
                   </div>
+                );
+              })}
+            </div>
+
+            {/* Split Grid: BarChart & MultiLineChart */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className={`rounded-xl border p-5 ${isDark ? "bg-slate-900/40 border-slate-800" : "bg-slate-50/40 border-slate-200/70"}`}>
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold tracking-tight">Monthly Performance (BarChart)</h3>
+                  <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                    Animated spring bars with calibrated rounded radius and theme-aware tooltips.
+                  </p>
+                </div>
+                <ResponsiveChart minHeight={270} maxHeight={320}>
+                  {({ width, height }) => (
+                    <BarChart
+                      data={data}
+                      xKey="month"
+                      yKey="revenue"
+                      width={width}
+                      height={height}
+                      theme={theme}
+                      showValues
+                      barRadius={6}
+                      valueFormatter={(v) => `$${v}k`}
+                      animation={{ preset, stagger: 0.03 }}
+                    />
+                  )}
+                </ResponsiveChart>
+              </div>
+
+              <div className={`rounded-xl border p-5 ${isDark ? "bg-slate-900/40 border-slate-800" : "bg-slate-50/40 border-slate-200/70"}`}>
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold tracking-tight">Telemetry Trends (MultiLineChart)</h3>
+                  <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                    Concurrent series with Catmull-Rom cubic bezier curves and theme-adapted legends.
+                  </p>
+                </div>
+                <ResponsiveChart minHeight={270} maxHeight={320}>
+                  {({ width, height }) => (
+                    <MultiLineChart
+                      data={data}
+                      xKey="month"
+                      series={[
+                        { id: "revenue", label: "Revenue ($k)", yKey: "revenue", showArea: true },
+                        { id: "orders", label: "Orders (k)", yKey: "orders" },
+                        { id: "users", label: "Customers (k)", yKey: "users" }
+                      ]}
+                      width={width}
+                      height={height}
+                      theme={theme}
+                      showLegend
+                      valueFormatter={(v) => `${v}k`}
+                      animation={{ preset, stagger: 0.02 }}
+                    />
+                  )}
+                </ResponsiveChart>
+              </div>
+            </div>
+
+            {/* Donut Chart Distribution */}
+            <div className={`rounded-xl border p-5 ${isDark ? "bg-slate-900/40 border-slate-800" : "bg-slate-50/40 border-slate-200/70"}`}>
+              <div className="mb-4">
+                <h3 className="text-sm font-bold tracking-tight">Channel Acquisition Share (DonutChart)</h3>
+                <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  Polar arc geometry with inner cutout, centered metric display, and accessible graphics semantics.
+                </p>
+              </div>
+              <ResponsiveChart minHeight={260} maxHeight={320}>
+                {({ width, height }) => (
+                  <DonutChart
+                    data={channels}
+                    labelKey="channel"
+                    valueKey="visitors"
+                    width={width}
+                    height={height}
+                    theme={theme}
+                    centerLabel={`${totalVisitors}k Visitors`}
+                    showLegend
+                    showLabels
+                    valueFormatter={(v) => `${v}k`}
+                    animation={{ preset, stagger: 0.035 }}
+                  />
                 )}
-              />
-            )}
-          </ResponsiveChart>
-        </div>
-      </div>
+              </ResponsiveChart>
+            </div>
+          </div>
+        )}
 
-      {/* Two Column Grid for Trends and Composition */}
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900">Multi-Series Metric Trends</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Smooth cubic bezier interpolation across concurrent series.</p>
+        {activeTab === "bar" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold">BarChart Component Demonstration</h3>
+                <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  Featuring roving tabIndex, value labels above short bars, and configurable zeroLine baseline.
+                </p>
+              </div>
+            </div>
+            <div className={`rounded-xl border p-6 ${isDark ? "bg-slate-900/40 border-slate-800" : "bg-slate-50/40 border-slate-200/70"}`}>
+              <ResponsiveChart minHeight={340} maxHeight={420}>
+                {({ width, height }) => (
+                  <BarChart
+                    data={data}
+                    xKey="month"
+                    yKey="revenue"
+                    width={width}
+                    height={height}
+                    theme={theme}
+                    showValues
+                    barRadius={6}
+                    valueFormatter={(v) => `$${v},000`}
+                    animation={{ preset, stagger: 0.04 }}
+                  />
+                )}
+              </ResponsiveChart>
+            </div>
           </div>
-          <div className="rounded-lg border border-slate-100 bg-slate-50/30 p-4 pt-5">
-            <ResponsiveChart minHeight={290} maxHeight={360} aspectRatio={1.65}>
-              {({ width, height }) => (
-                <MultiLineChart
-                  data={data}
-                  width={width}
-                  height={height}
-                  xKey="month"
-                  series={[
-                    { id: "revenue", label: "Revenue", yKey: "revenue", showArea: true },
-                    { id: "users", label: "Users", yKey: "users" },
-                    { id: "orders", label: "Orders", yKey: "orders" }
-                  ]}
-                  theme={theme}
-                  ariaLabel="Revenue users and orders multi-line chart"
-                  valueFormatter={(value) => `${value}k`}
-                  animation={{ preset: "gentle", stagger: 0.025 }}
-                />
-              )}
-            </ResponsiveChart>
-          </div>
-        </div>
+        )}
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900">Acquisition Distribution</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Polar arc transitions with centered total summary.</p>
+        {activeTab === "line" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold">LineChart Component Demonstration</h3>
+                <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  Clean area gradients, dynamic crosshairs, date label formatting, and connectNulls gap management.
+                </p>
+              </div>
+            </div>
+            <div className={`rounded-xl border p-6 ${isDark ? "bg-slate-900/40 border-slate-800" : "bg-slate-50/40 border-slate-200/70"}`}>
+              <ResponsiveChart minHeight={340} maxHeight={420}>
+                {({ width, height }) => (
+                  <LineChart
+                    data={data}
+                    xKey="month"
+                    yKey="revenue"
+                    width={width}
+                    height={height}
+                    theme={theme}
+                    showArea
+                    showPoints
+                    valueFormatter={(v) => `$${v}k`}
+                    animation={{ preset, stagger: 0.03 }}
+                  />
+                )}
+              </ResponsiveChart>
+            </div>
           </div>
-          <div className="rounded-lg border border-slate-100 bg-slate-50/30 p-4 pt-5">
-            <ResponsiveChart minHeight={270} maxHeight={340} aspectRatio={1.15}>
-              {({ width, height }) => (
-                <DonutChart
-                  data={channelData}
-                  width={width}
-                  height={height}
-                  labelKey="channel"
-                  valueKey="users"
-                  theme={theme}
-                  ariaLabel="Animated acquisition channel donut chart"
-                  valueFormatter={(value) => `${value}k`}
-                  centerLabel={`${totalUsers}k`}
-                  animation={{ preset: "gentle", stagger: 0.04 }}
-                  showLabels
-                />
-              )}
-            </ResponsiveChart>
+        )}
+
+        {activeTab === "multiline" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold">MultiLineChart Component Demonstration</h3>
+                <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  Series-aware hover tracking, isolated active points, and theme-adaptive legend pills.
+                </p>
+              </div>
+            </div>
+            <div className={`rounded-xl border p-6 ${isDark ? "bg-slate-900/40 border-slate-800" : "bg-slate-50/40 border-slate-200/70"}`}>
+              <ResponsiveChart minHeight={340} maxHeight={420}>
+                {({ width, height }) => (
+                  <MultiLineChart
+                    data={data}
+                    xKey="month"
+                    series={[
+                      { id: "revenue", label: "Monthly Revenue", yKey: "revenue", showArea: true },
+                      { id: "orders", label: "Customer Orders", yKey: "orders" },
+                      { id: "users", label: "Registered Users", yKey: "users" }
+                    ]}
+                    width={width}
+                    height={height}
+                    theme={theme}
+                    showLegend
+                    valueFormatter={(v) => `${v}k`}
+                    animation={{ preset, stagger: 0.025 }}
+                  />
+                )}
+              </ResponsiveChart>
+            </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === "donut" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold">DonutChart Component Demonstration</h3>
+                <p className={`text-xs mt-0.5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  Automatic percent calculation, radial gradients, center summary label, and negative clamping safeguards.
+                </p>
+              </div>
+            </div>
+            <div className={`rounded-xl border p-6 ${isDark ? "bg-slate-900/40 border-slate-800" : "bg-slate-50/40 border-slate-200/70"}`}>
+              <ResponsiveChart minHeight={340} maxHeight={420}>
+                {({ width, height }) => (
+                  <DonutChart
+                    data={channels}
+                    labelKey="channel"
+                    valueKey="visitors"
+                    width={width}
+                    height={height}
+                    theme={theme}
+                    centerLabel={`${totalVisitors}k Total`}
+                    showLegend
+                    showLabels
+                    valueFormatter={(v) => `${v}k`}
+                    animation={{ preset, stagger: 0.04 }}
+                  />
+                )}
+              </ResponsiveChart>
+            </div>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }
+
