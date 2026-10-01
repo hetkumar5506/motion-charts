@@ -88,6 +88,11 @@ export function BarChart<TDatum extends object>({
     [chartTheme.colors, safeData, xKey, yKey]
   );
 
+  // Keep roving tabindex valid when a live data update removes the active bar.
+  useEffect(() => {
+    setActiveIndex((current) => rows.length === 0 ? 0 : Math.min(current, rows.length - 1));
+  }, [rows.length]);
+
   const labels = useMemo(() => rows.map((row) => row.label), [rows]);
   const xScale = useMemo(
     () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], barPadding),

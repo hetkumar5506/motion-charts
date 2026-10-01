@@ -56,7 +56,8 @@ export function Sparkline<TDatum extends object>({
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -116,6 +117,10 @@ export function Sparkline<TDatum extends object>({
     [points, rows]
   );
 
+  useEffect(() => {
+    setActiveItemIndex((current) => renderableItems.length === 0 ? 0 : Math.min(current, renderableItems.length - 1));
+  }, [renderableItems.length]);
+
   // For showEndValue, find the last finite value
   const lastFiniteItem = useMemo(() => {
     for (let i = rows.length - 1; i >= 0; i -= 1) {
@@ -127,9 +132,6 @@ export function Sparkline<TDatum extends object>({
     }
     return null;
   }, [points, rows]);
-
-  const [activeItemIndex, setActiveItemIndex] = useState(0);
-  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
 
   function tooltipContent(row: (typeof rows)[number]): ReactNode {
     const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };

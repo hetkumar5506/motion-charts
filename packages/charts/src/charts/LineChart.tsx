@@ -128,6 +128,12 @@ export function LineChart<TDatum extends object>({
     [points, rows]
   );
 
+  // Keep roving tabindex valid when a live data update changes the number of
+  // finite points (for example, when the latest API response contains gaps).
+  useEffect(() => {
+    setActiveItemIndex((current) => renderableItems.length === 0 ? 0 : Math.min(current, renderableItems.length - 1));
+  }, [renderableItems.length]);
+
   const baseline = yScale.scale(0);
   const baselinePoints: (Point | null)[] = useMemo(
     () => points.map((p) => (p ? { x: p.x, y: baseline } : null)),

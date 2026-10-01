@@ -103,7 +103,7 @@ export default function Page() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                npm v0.1.5 Live
+                npm v0.1.8 Live
               </a>
               <a
                 href="#playground"

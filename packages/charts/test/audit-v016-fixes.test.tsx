@@ -7,7 +7,7 @@ import { BarChart } from "../src/charts/BarChart";
 import { DonutChart } from "../src/charts/DonutChart";
 import { Sparkline } from "../src/charts/Sparkline";
 import { paletteColors } from "../src/themes";
-import { isDarkColor, getContrastTextColor } from "../src/utils/color";
+import { colorAt, getContrastTextColor, isDarkColor, parseToRgb } from "../src/utils/color";
 
 describe("Audit Report Confirmed Bug Fixes (BUG-1 to BUG-9)", () => {
   // BUG-1: Missing (null) data points excluded from y-scale extent & no fake 0 dip
@@ -134,6 +134,15 @@ describe("Audit Report Confirmed Bug Fixes (BUG-1 to BUG-9)", () => {
     expect(isDarkColor("black")).toBe(true);
     expect(getContrastTextColor("#fef08a")).toBe("#0f172a");
     expect(getContrastTextColor("#1e293b")).toBe("#ffffff");
+  });
+
+  it("parses SSR-safe CSS colors and keeps palette indexes stable", () => {
+    expect(parseToRgb(" #0f172a ")).toEqual([15, 23, 42]);
+    expect(parseToRgb("#0f172acc")).toEqual([15, 23, 42]);
+    expect(parseToRgb("rgb(100% 0% 50% / 0.5)")).toEqual([255, 0, 128]);
+    expect(parseToRgb("hsl(0, 100%, 50%)")).toEqual([255, 0, 0]);
+    expect(isDarkColor("navy")).toBe(true);
+    expect(colorAt(["#111", "#222"], -1)).toBe("#222");
   });
 
   // O-1 Observation: paletteColors gracefully falls back to default palette on typo

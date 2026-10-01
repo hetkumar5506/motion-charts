@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed & Enhanced
+- Hardened SSR-safe color parsing for alpha hex, modern `rgb()`/`hsl()`, named colors, and normalized palette indexes.
+- Kept responsive chart dimensions finite and stable when containers are hidden or receive invalid sizing props.
+- Reworked tooltip measurement to use a stable ref, portal-aware layout measurement, resize updates, and viewport-safe clamping.
+- Preserved a valid roving keyboard target after live data updates and made duplicate multi-line series IDs safe for React and SVG.
+- Improved donut label contrast and sanitized invalid pie/arc geometry inputs.
+- Kept documentation badges aligned with the published `0.1.8` package version.
+
 ## 0.1.8
 
 ### Fixed & Enhanced

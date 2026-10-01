@@ -105,7 +105,9 @@ export function areaPath(
 }
 
 export function pieSlices(values: readonly number[], padAngle = 0): readonly ArcSlice[] {
-  const positive = values.map((value) => Math.max(0, value));
+  // Treat invalid input the same as an empty slice. This keeps the exported
+  // geometry helper safe even when it is used without DonutChart's accessors.
+  const positive = values.map((value) => (Number.isFinite(value) ? Math.max(0, value) : 0));
   const total = positive.reduce((sum, value) => sum + value, 0);
   if (total <= 0) return [];
 
@@ -122,7 +124,7 @@ export function pieSlices(values: readonly number[], padAngle = 0): readonly Arc
     });
   }
 
-  const safePad = Math.max(0, padAngle);
+  const safePad = Number.isFinite(padAngle) ? Math.max(0, padAngle) : 0;
   const totalPad = Math.min(safePad * nonZeroCount, Math.PI * 1.5);
   const effectivePad = totalPad / nonZeroCount;
   const available = Math.PI * 2 - totalPad;
@@ -141,55 +143,74 @@ export function pieSlices(values: readonly number[], padAngle = 0): readonly Arc
 }
 
 export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius: number, startAngle: number, endAngle: number): string {
-  if (outerRadius <= 0 || !Number.isFinite(cx) || !Number.isFinite(cy)) return "";
+  if (
+    ![cx, cy, innerRadius, outerRadius, startAngle, endAngle].every(Number.isFinite) ||
+    outerRadius <= 0 ||
+    endAngle === startAngle
+  ) {
+    return "";
+  }
 
+  const safeOuterRadius = Math.max(0, outerRadius);
+  const safeInnerRadius = Math.min(safeOuterRadius, Math.max(0, innerRadius));
+  const clockwise = endAngle > startAngle;
+  const sweep = clockwise ? 1 : 0;
   const angleDelta = Math.abs(endAngle - startAngle);
   const isFullCircle = angleDelta >= Math.PI * 2 - 0.001;
 
   if (isFullCircle) {
-    if (innerRadius <= 0) {
-      // Full pie / solid circle: two half-circle arcs
+    const outerOppositeY = cy + safeOuterRadius;
+    const outerStartY = cy - safeOuterRadius;
+    const innerOppositeY = cy + safeInnerRadius;
+    const innerStartY = cy - safeInnerRadius;
+    const innerSweep = clockwise ? 0 : 1;
+
+    if (safeInnerRadius <= 0) {
+      // Full pie / solid circle: two half-circle arcs are valid SVG geometry.
       return [
-        `M ${cx} ${cy - outerRadius}`,
-        `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy + outerRadius}`,
-        `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy - outerRadius}`,
+        `M ${cx} ${outerStartY}`,
+        `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerOppositeY}`,
+        `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerStartY}`,
         "Z"
       ].join(" ");
     }
-    // Full donut ring: outer circle clockwise (explicitly closed with Z), inner circle counter-clockwise (closed with Z)
+
+    // Full donut rings need separate closed subpaths because SVG arcs cannot
+    // represent a complete circle with a single command.
     return [
-      `M ${cx} ${cy - outerRadius}`,
-      `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy + outerRadius}`,
-      `A ${outerRadius} ${outerRadius} 0 1 1 ${cx} ${cy - outerRadius}`,
+      `M ${cx} ${outerStartY}`,
+      `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerOppositeY}`,
+      `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerStartY}`,
       "Z",
-      `M ${cx} ${cy - innerRadius}`,
-      `A ${innerRadius} ${innerRadius} 0 1 0 ${cx} ${cy + innerRadius}`,
-      `A ${innerRadius} ${innerRadius} 0 1 0 ${cx} ${cy - innerRadius}`,
+      `M ${cx} ${innerStartY}`,
+      `A ${safeInnerRadius} ${safeInnerRadius} 0 1 ${innerSweep} ${cx} ${innerOppositeY}`,
+      `A ${safeInnerRadius} ${safeInnerRadius} 0 1 ${innerSweep} ${cx} ${innerStartY}`,
       "Z"
     ].join(" ");
   }
 
-  const safeEnd = Math.min(endAngle, startAngle + Math.PI * 2 - 0.0001);
-  const outerStart = polar(cx, cy, outerRadius, startAngle);
-  const outerEnd = polar(cx, cy, outerRadius, safeEnd);
-  const innerStart = polar(cx, cy, innerRadius, startAngle);
-  const innerEnd = polar(cx, cy, innerRadius, safeEnd);
-  const largeArc = safeEnd - startAngle > Math.PI ? 1 : 0;
+  const safeDelta = Math.min(angleDelta, Math.PI * 2 - 0.0001);
+  const safeEnd = startAngle + (clockwise ? safeDelta : -safeDelta);
+  const outerStart = polar(cx, cy, safeOuterRadius, startAngle);
+  const outerEnd = polar(cx, cy, safeOuterRadius, safeEnd);
+  const innerStart = polar(cx, cy, safeInnerRadius, startAngle);
+  const innerEnd = polar(cx, cy, safeInnerRadius, safeEnd);
+  const largeArc = safeDelta > Math.PI ? 1 : 0;
 
-  if (innerRadius <= 0) {
+  if (safeInnerRadius <= 0) {
     return [
       `M ${cx} ${cy}`,
       `L ${outerStart.x} ${outerStart.y}`,
-      `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+      `A ${safeOuterRadius} ${safeOuterRadius} 0 ${largeArc} ${sweep} ${outerEnd.x} ${outerEnd.y}`,
       "Z"
     ].join(" ");
   }
 
   return [
     `M ${outerStart.x} ${outerStart.y}`,
-    `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+    `A ${safeOuterRadius} ${safeOuterRadius} 0 ${largeArc} ${sweep} ${outerEnd.x} ${outerEnd.y}`,
     `L ${innerEnd.x} ${innerEnd.y}`,
-    `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+    `A ${safeInnerRadius} ${safeInnerRadius} 0 ${largeArc} ${sweep === 1 ? 0 : 1} ${innerStart.x} ${innerStart.y}`,
     "Z"
   ].join(" ");
 }

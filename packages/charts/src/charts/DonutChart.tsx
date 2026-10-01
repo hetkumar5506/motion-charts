@@ -5,7 +5,7 @@ import { EmptyState } from "../components/EmptyState";
 import { InlineLegend } from "../components/Legend";
 import type { Accessor, CommonChartProps, TooltipRenderContext } from "../types";
 import { labelOf, numberOf } from "../utils/accessors";
-import { colorAt } from "../utils/color";
+import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { resolveChartTheme } from "../themes";
 import { arcPath, pieSlices, polar } from "../utils/geometry";
@@ -92,6 +92,10 @@ export function DonutChart<TDatum extends object>({
         .filter((item): item is { slice: (typeof slices)[number]; row: (typeof rows)[number]; originalIndex: number } => !!item.row && item.slice.value > 0),
     [rows, slices]
   );
+
+  useEffect(() => {
+    setActiveSliceIndex((current) => renderableSlices.length === 0 ? 0 : Math.min(current, renderableSlices.length - 1));
+  }, [renderableSlices.length]);
 
   const padLeft = margin?.left ?? 0;
   const padRight = margin?.right ?? 0;
@@ -238,7 +242,7 @@ export function DonutChart<TDatum extends object>({
                   y={labelPoint.y}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill="white"
+                  fill={getContrastTextColor(row.color)}
                   fontFamily={chartTheme.fontFamily}
                   fontSize={chartTheme.fontSize}
                   fontWeight={700}

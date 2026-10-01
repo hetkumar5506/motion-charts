@@ -31,6 +31,13 @@ describe("geometry", () => {
     expect(arcPath(50, 50, 20, 40, -Math.PI / 2, 0)).toContain("A 40 40");
   });
 
+  it("sanitizes invalid pie values and arc inputs", () => {
+    expect(pieSlices([1, Number.NaN, Number.POSITIVE_INFINITY, 3])).toHaveLength(4);
+    expect(pieSlices([1, Number.NaN, Number.POSITIVE_INFINITY, 3]).every((slice) => Number.isFinite(slice.endAngle))).toBe(true);
+    expect(arcPath(50, 50, 20, Number.NaN, 0, 1)).toBe("");
+    expect(arcPath(50, 50, 20, 40, 1, 0)).not.toContain("NaN");
+  });
+
   it("handles full circle 360 degree pie and donut arcs without degenerate geometry", () => {
     const fullPie = arcPath(50, 50, 0, 40, -Math.PI / 2, Math.PI * 1.5);
     expect(fullPie).toContain("A 40 40");

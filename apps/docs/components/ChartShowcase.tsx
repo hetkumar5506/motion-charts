@@ -97,7 +97,7 @@ export function ChartShowcase() {
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold ${
               isDark ? "bg-slate-800 text-slate-300" : "bg-blue-50 text-blue-700"
             }`}>
-              @motion-charts/core v0.1.5
+              @motion-charts/core v0.1.8
             </span>
           </div>
           <p className={`text-xs mt-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import * as ReactDOM from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -61,7 +61,7 @@ export function ChartSurface({
 
 function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; style?: CSSProperties; tooltipId?: string }) {
   const [mounted, setMounted] = useState(false);
-  const tooltipRef = useState<{ current: HTMLDivElement | null }>({ current: null })[0];
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const [measuredSize, setMeasuredSize] = useState<{ width: number; height: number } | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -89,14 +89,46 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
     };
   }, [tooltip]);
 
+  // Measure after the portal is mounted and keep the size current when a
+  // custom renderer or viewport changes the tooltip's dimensions. The first
+  // render uses a conservative fallback so it is still correctly clamped.
   useEffect(() => {
-    if (tooltipRef.current) {
-      const rect = tooltipRef.current.getBoundingClientRect();
+    if (!tooltip || !mounted) return;
+
+    setMeasuredSize(null);
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const element = tooltipRef.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        setMeasuredSize({ width: rect.width, height: rect.height });
+        setMeasuredSize((previous) => (
+          previous?.width === rect.width && previous.height === rect.height
+            ? previous
+            : { width: rect.width, height: rect.height }
+        ));
       }
-    }
-  }, [tooltip?.content]);
+    };
+    const scheduleMeasure = () => {
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(measure);
+      } else {
+        window.setTimeout(measure, 0);
+      }
+    };
+
+    scheduleMeasure();
+    window.addEventListener("resize", scheduleMeasure);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleMeasure);
+    if (observer && tooltipRef.current) observer.observe(tooltipRef.current);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("resize", scheduleMeasure);
+      observer?.disconnect();
+    };
+  }, [mounted, style, tooltip?.content, tooltip?.id]);
 
   if (!tooltip || dismissed) return null;
 
@@ -134,12 +166,7 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
   const tooltipElement = (
     <AnimatePresence>
       <motion.div
-        ref={(el) => {
-          tooltipRef.current = el;
-          if (el && (!measuredSize || measuredSize.width !== el.offsetWidth || measuredSize.height !== el.offsetHeight)) {
-            setMeasuredSize({ width: el.offsetWidth, height: el.offsetHeight });
-          }
-        }}
+        ref={tooltipRef}
         id={tooltipId || tooltip.id}
         role="tooltip"
         initial={{ opacity: 0, y: 4, scale: 0.96 }}

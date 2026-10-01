@@ -96,16 +96,27 @@ export function MultiLineChart<TDatum extends object>({
   const safeSeries = series ?? [];
 
   const labels = useMemo(() => safeData.map((datum, index) => labelOf(datum, index, xKey)), [safeData, xKey]);
-  const preparedSeries = useMemo(
-    () =>
-      safeSeries.map((item, index) => ({
+  const preparedSeries = useMemo(() => {
+    const usedIds = new Set<string>();
+    return safeSeries.map((item, index) => {
+      const baseId = (typeof item.id === "string" ? item.id.trim() : "") || `series-${index + 1}`;
+      let id = baseId;
+      let duplicateNumber = 2;
+      while (usedIds.has(id)) {
+        id = `${baseId}-${duplicateNumber}`;
+        duplicateNumber += 1;
+      }
+      usedIds.add(id);
+
+      return {
         ...item,
+        id,
         label: item.label ?? item.id,
         color: item.color ?? colorAt(chartTheme.colors, index),
         strokeWidth: item.strokeWidth ?? 3
-      })),
-    [chartTheme.colors, safeSeries]
-  );
+      };
+    });
+  }, [chartTheme.colors, safeSeries]);
   // Exclude null/non-finite values from extent calculation
   const allValidValues = useMemo(
     () =>
@@ -175,6 +186,10 @@ export function MultiLineChart<TDatum extends object>({
       ),
     [renderedSeries]
   );
+
+  useEffect(() => {
+    setActiveGlobalIndex((current) => renderablePoints.length === 0 ? 0 : Math.min(current, renderablePoints.length - 1));
+  }, [renderablePoints.length]);
 
   const [hoveredPoint, setHoveredPoint] = useState<{ seriesId: string; index: number } | null>(null);
 

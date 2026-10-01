@@ -26,17 +26,19 @@ export function ResponsiveChart({
   style
 }: ResponsiveChartProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(fallbackWidth);
-  const safeAspectRatio = Math.max(0.1, aspectRatio);
-  const height = Math.round(Math.min(maxHeight, Math.max(minHeight, width / safeAspectRatio)));
+  const safeFallbackWidth = finitePositive(fallbackWidth, 720);
+  const safeAspectRatio = finitePositive(aspectRatio, 16 / 9);
+  const safeMinHeight = finiteNonNegative(minHeight, 260);
+  const safeMaxHeight = Math.max(safeMinHeight, finiteNonNegative(maxHeight, 520));
+  const [width, setWidth] = useState(safeFallbackWidth);
+  const height = Math.round(Math.min(safeMaxHeight, Math.max(safeMinHeight, width / safeAspectRatio)));
 
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
 
-    if (element.clientWidth > 0) {
-      setWidth(element.clientWidth);
-    }
+    const measuredWidth = element.clientWidth;
+    setWidth(measuredWidth > 0 ? measuredWidth : safeFallbackWidth);
 
     if (typeof ResizeObserver === "undefined") {
       if (isDev()) {
@@ -46,16 +48,32 @@ export function ResponsiveChart({
     }
 
     const observer = new ResizeObserver(([entry]) => {
-      const nextWidth = Math.round(entry?.contentRect.width ?? fallbackWidth);
-      if (nextWidth > 0) setWidth(nextWidth);
+      const nextWidth = entry?.contentRect.width ?? 0;
+      // Ignore zero-width observations while a responsive parent is hidden;
+      // retaining the previous width avoids a flash of a 1px chart.
+      if (Number.isFinite(nextWidth) && nextWidth > 0) {
+        setWidth(Math.round(nextWidth));
+      }
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [fallbackWidth]);
+  }, [safeFallbackWidth]);
 
   return (
-    <div ref={ref} className={className} style={{ width: "100%", minHeight, ...style }}>
+    <div
+      ref={ref}
+      className={className}
+      style={{ width: "100%", minHeight: safeMinHeight, ...style }}
+    >
       {children({ width, height })}
     </div>
   );
+}
+
+function finitePositive(value: number, fallback: number): number {
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function finiteNonNegative(value: number, fallback: number): number {
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
 }
