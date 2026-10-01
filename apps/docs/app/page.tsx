@@ -54,7 +54,7 @@ export default function Page() {
             </span>
             <span className="font-bold tracking-tight text-slate-900 text-sm">motion-charts</span>
             <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700 font-semibold">
-              v0.1.7
+              v0.1.8
             </span>
           </div>
 

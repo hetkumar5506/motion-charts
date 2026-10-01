@@ -130,9 +130,12 @@ export function DonutChart<TDatum extends object>({
     }
   }
 
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+
   function hideTooltip() {
     setHoveredIndex(null);
     setTooltipState(null);
+    setIsKeyboardFocused(false);
   }
 
   function handleKeyDown(event: KeyboardEvent<SVGPathElement>, itemIndex: number) {
@@ -147,6 +150,7 @@ export function DonutChart<TDatum extends object>({
     event.preventDefault();
     const nextItemIndex = Math.min(count - 1, Math.max(0, itemIndex + delta));
     setActiveSliceIndex(nextItemIndex);
+    setIsKeyboardFocused(true);
     const nextSliceItem = renderableSlices[nextItemIndex];
     if (nextSliceItem) {
       setHoveredIndex(nextSliceItem.row.index);
@@ -187,15 +191,18 @@ export function DonutChart<TDatum extends object>({
           const aria = joinLabels([row.label, valueFormatter(row.value), `${Math.round(slice.percent * 100)}%`]);
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
           const isHovered = hoveredIndex === row.index;
-          const isFocused = activeSliceIndex === itemIndex;
+          const isFocused = isKeyboardFocused && activeSliceIndex === itemIndex;
 
           return (
             <g key={`${row.label}-${row.index}`}>
               <motion.path
                 d={path}
                 fill={sliceVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
+                stroke={isFocused ? chartTheme.textColor : "transparent"}
+                strokeWidth={isFocused ? 2.5 : 0}
+                strokeLinejoin="round"
                 initial={shouldInitial ? { opacity: 0, scale: 0.86 } : false}
-                animate={{ opacity: 1, scale: 1 }}
+                animate={{ opacity: 1, scale: isFocused ? 1.04 : 1 }}
                 whileHover={{ scale: 1.035, opacity: 0.95 }}
                 transition={chartTransition(animation, reducedMotion, originalIndex)}
                 role="graphics-symbol"
@@ -208,6 +215,7 @@ export function DonutChart<TDatum extends object>({
                 onPointerLeave={hideTooltip}
                 onFocus={(event) => {
                   setActiveSliceIndex(itemIndex);
+                  setIsKeyboardFocused(true);
                   setHoveredIndex(row.index);
                   const rect = event.currentTarget.getBoundingClientRect();
                   setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row, slice.percent), id: tooltipId });

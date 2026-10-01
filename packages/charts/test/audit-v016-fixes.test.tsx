@@ -150,4 +150,41 @@ describe("Audit Report Confirmed Bug Fixes (BUG-1 to BUG-9)", () => {
     expect(html).toContain('outline:none');
     expect(html).not.toContain('outline:2px solid');
   });
+
+  // P1: Native SVG focus indicators for accessible keyboard traversal
+  it("P1: LineChart and Sparkline support native SVG focus ring and Donut slice focus stroke", () => {
+    const lineHtml = renderToString(<LineChart data={[{ x: "A", y: 10 }]} xKey="x" yKey="y" showPoints={true} />);
+    expect(lineHtml).toContain('role="graphics-symbol"');
+
+    const donutHtml = renderToString(<DonutChart data={[{ l: "A", v: 10 }]} labelKey="l" valueKey="v" />);
+    expect(donutHtml).toContain('role="graphics-symbol"');
+  });
+
+  // P2: Sparkline excludes null data points & badges last finite value
+  it("P2: Sparkline excludes nulls from rendered symbols and badges last finite value", () => {
+    const data = [
+      { m: "a", v: 100 },
+      { m: "b", v: null },
+      { m: "c", v: 110 },
+      { m: "d", v: null }
+    ];
+    const html = renderToString(
+      <Sparkline data={data as any} xKey="m" yKey="v" showEndValue={true} showPoints={true} />
+    );
+    const symbols = html.match(/role="graphics-symbol"/g);
+    // Exactly 2 symbols: a (100) and c (110)
+    expect(symbols?.length).toBe(2);
+    // End value pill should display 110 (the last finite value), NOT 0
+    expect(html).toContain(">110<");
+    expect(html).not.toContain('aria-label="b · 0"');
+    expect(html).not.toContain('aria-label="d · 0"');
+  });
+
+  // LineChart colorIndex support
+  it("supports colorIndex on LineChart", () => {
+    const data = [{ x: "A", y: 10 }, { x: "B", y: 20 }];
+    const htmlDefault = renderToString(<LineChart data={data} xKey="x" yKey="y" colorIndex={0} />);
+    const htmlIndexed = renderToString(<LineChart data={data} xKey="x" yKey="y" colorIndex={1} />);
+    expect(htmlDefault).not.toEqual(htmlIndexed);
+  });
 });

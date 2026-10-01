@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.8
+
+### Fixed & Enhanced
+- **Visible Native SVG Focus Rings (P1)**: Restored accessible, high-contrast focus rings for keyboard navigation on `LineChart`, `MultiLineChart`, `Sparkline`, and `DonutChart` using SVG-native concentric focus rings (`stroke: theme.textColor, strokeWidth: 2`) and focused slice scaling instead of rectangular CSS bounding-box outlines. Fully meets WCAG 2.1 visible focus requirements and aligns with documentation claims.
+- **Sparkline Missing Data Integrity (P2)**: Ported the null-exclusion logic from `LineChart` into `Sparkline`. Missing/null data rows are excluded from rendering interactive points, preventing fake dips to 0 and fake `aria-label="b · 0"` points.
+- **Sparkline `showEndValue` Trailing Null Guard (P2)**: When the latest data point in `Sparkline` is null or missing (e.g. today's pending metric), `showEndValue` now badges the last genuine finite value instead of displaying a false `0`.
+- **LineChart `colorIndex` Prop (O-4)**: Added `colorIndex?: number` to `LineChart` (matching `Sparkline`), allowing consumers to pick any palette color without needing custom color array overrides.
+- **Color & Luminance Calculation Memoization (P4)**: Added internal LRU/bounded caching to `parseToRgb`, `isDarkColor`, and `getContrastTextColor` to eliminate redundant recalculation and layout overhead across repeated re-renders.
+
 ## 0.1.7
 
 ### Fixed

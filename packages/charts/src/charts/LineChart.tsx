@@ -22,6 +22,7 @@ export type LineChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   showPoints?: boolean;
   curve?: "linear" | "smooth";
   strokeWidth?: number;
+  colorIndex?: number;
   /** When true (default), bridges missing/null/NaN data points. When false, renders gaps in the line/area. */
   connectNulls?: boolean;
   onDatumClick?: (context: TooltipRenderContext<TDatum>) => void;
@@ -53,6 +54,7 @@ export function LineChart<TDatum extends object>({
   showPoints = true,
   curve = "smooth",
   strokeWidth = 3,
+  colorIndex = 0,
   connectNulls = true,
   onDatumClick
 }: LineChartProps<TDatum>) {
@@ -75,7 +77,7 @@ export function LineChart<TDatum extends object>({
     innerWidth: Math.max(1, width - (margin?.left ?? defaultMargin.left) - (margin?.right ?? defaultMargin.right)),
     innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
   }), [height, margin, width]);
-  const color = colorAt(chartTheme.colors, 0);
+  const color = colorAt(chartTheme.colors, colorIndex);
 
   const safeData = data ?? [];
 
@@ -140,6 +142,8 @@ export function LineChart<TDatum extends object>({
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+
   function tooltipContent(row: (typeof rows)[number]): ReactNode {
     const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
     if (typeof tooltip === "function") return tooltip(context);
@@ -168,6 +172,7 @@ export function LineChart<TDatum extends object>({
   function hideTooltip() {
     setHoveredIndex(null);
     setTooltipState(null);
+    setIsKeyboardFocused(false);
   }
 
   // Roving keyboard navigation over renderable items only
@@ -183,6 +188,7 @@ export function LineChart<TDatum extends object>({
     event.preventDefault();
     const nextItemIndex = Math.min(count - 1, Math.max(0, itemIndex + delta));
     setActiveItemIndex(nextItemIndex);
+    setIsKeyboardFocused(true);
     const nextItem = renderableItems[nextItemIndex];
     if (nextItem) {
       setHoveredIndex(nextItem.row.index);
@@ -277,48 +283,62 @@ export function LineChart<TDatum extends object>({
       ) : null}
       {renderableItems.map(({ row, point }, itemIndex) => {
         const isHovered = hoveredIndex === row.index;
-        const isFocused = activeItemIndex === itemIndex;
+        const isFocused = isKeyboardFocused && activeItemIndex === itemIndex;
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         const initialY = Number.isFinite(baseline) ? baseline : point.y;
         return (
-          <motion.circle
-            key={`${row.label}-${row.index}`}
-            cx={point.x}
-            cy={point.y}
-            r={isHovered ? 6.5 : (showPoints ? 4.5 : 7.5)}
-            fill={showPoints || isHovered ? color : "transparent"}
-            stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
-            strokeWidth={showPoints || isHovered ? 2.5 : 0}
-            initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
-            animate={{ cx: point.x, cy: point.y, r: isHovered ? 6.5 : (showPoints ? 4.5 : 7.5), opacity: 1 }}
-            whileHover={{ r: 7.5, strokeWidth: 3 }}
-            transition={chartTransition(animation, reducedMotion, row.index)}
-            role="graphics-symbol"
-            aria-roledescription="data point"
-            aria-label={aria}
-            aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
-            tabIndex={itemIndex === activeItemIndex ? 0 : -1}
-            style={{
-              cursor: onDatumClick ? "pointer" : "default",
-              filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
-              outline: "none"
-            }}
-            onPointerEnter={(event) => handlePointerMove(event, row)}
-            onPointerMove={(event) => handlePointerMove(event, row)}
-            onPointerLeave={hideTooltip}
-            onFocus={(event) => {
-              setActiveItemIndex(itemIndex);
-              setHoveredIndex(row.index);
-              const rect = event.currentTarget.getBoundingClientRect();
-              setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
-            }}
-            onBlur={hideTooltip}
-            onKeyDown={(event) => handleKeyDown(event, itemIndex)}
-            onClick={() => onDatumClick?.(context)}
-          >
-            <title>{aria}</title>
-          </motion.circle>
+          <g key={`${row.label}-${row.index}`}>
+            {isFocused ? (
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={10.5}
+                fill="none"
+                stroke={chartTheme.textColor}
+                strokeWidth={2}
+                pointerEvents="none"
+                opacity={0.85}
+              />
+            ) : null}
+            <motion.circle
+              cx={point.x}
+              cy={point.y}
+              r={isHovered ? 6.5 : (showPoints ? 4.5 : 7.5)}
+              fill={showPoints || isHovered ? color : "transparent"}
+              stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
+              strokeWidth={showPoints || isHovered ? 2.5 : 0}
+              initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
+              animate={{ cx: point.x, cy: point.y, r: isHovered ? 6.5 : (showPoints ? 4.5 : 7.5), opacity: 1 }}
+              whileHover={{ r: 7.5, strokeWidth: 3 }}
+              transition={chartTransition(animation, reducedMotion, row.index)}
+              role="graphics-symbol"
+              aria-roledescription="data point"
+              aria-label={aria}
+              aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
+              tabIndex={itemIndex === activeItemIndex ? 0 : -1}
+              style={{
+                cursor: onDatumClick ? "pointer" : "default",
+                filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
+                outline: "none"
+              }}
+              onPointerEnter={(event) => handlePointerMove(event, row)}
+              onPointerMove={(event) => handlePointerMove(event, row)}
+              onPointerLeave={hideTooltip}
+              onFocus={(event) => {
+                setActiveItemIndex(itemIndex);
+                setIsKeyboardFocused(true);
+                setHoveredIndex(row.index);
+                const rect = event.currentTarget.getBoundingClientRect();
+                setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
+              }}
+              onBlur={hideTooltip}
+              onKeyDown={(event) => handleKeyDown(event, itemIndex)}
+              onClick={() => onDatumClick?.(context)}
+            >
+              <title>{aria}</title>
+            </motion.circle>
+          </g>
         );
       })}
     </ChartSurface>

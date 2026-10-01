@@ -212,9 +212,12 @@ export function MultiLineChart<TDatum extends object>({
     }
   }
 
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+
   function hideTooltip() {
     setHoveredPoint(null);
     setTooltipState(null);
+    setIsKeyboardFocused(false);
   }
 
   const totalPoints = renderablePoints.length;
@@ -230,6 +233,7 @@ export function MultiLineChart<TDatum extends object>({
     event.preventDefault();
     const nextIndex = Math.min(totalPoints - 1, Math.max(0, pointIndex + delta));
     setActiveGlobalIndex(nextIndex);
+    setIsKeyboardFocused(true);
     const targetPoint = renderablePoints[nextIndex];
     if (targetPoint) {
       setHoveredPoint({ seriesId: targetPoint.item.id, index: targetPoint.row.index });
@@ -332,7 +336,7 @@ export function MultiLineChart<TDatum extends object>({
 
         {renderablePoints.map(({ item, row, point, seriesIdx }, ptIndex) => {
           const isHovered = hoveredPoint !== null && hoveredPoint.seriesId === row.seriesId && hoveredPoint.index === row.index;
-          const isFocused = activeGlobalIndex === ptIndex;
+          const isFocused = isKeyboardFocused && activeGlobalIndex === ptIndex;
           const context = {
             datum: row.datum,
             index: row.index,
@@ -345,48 +349,62 @@ export function MultiLineChart<TDatum extends object>({
           const aria = joinLabels([row.seriesLabel, row.label, valueFormatter(row.value)]);
           const initialY = Number.isFinite(baseline) ? baseline : point.y;
           return (
-            <motion.circle
-              key={`${item.id}-${row.label}-${row.index}`}
-              cx={point.x}
-              cy={point.y}
-              r={isHovered ? 6 : (showPoints ? 4 : 7)}
-              fill={showPoints || isHovered ? item.color : "transparent"}
-              stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
-              strokeWidth={showPoints || isHovered ? 2.5 : 0}
-              initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
-              animate={{
-                cx: point.x,
-                cy: point.y,
-                r: isHovered ? 6 : (showPoints ? 4 : 7),
-                opacity: 1
-              }}
-              whileHover={{ r: 7.5, strokeWidth: 3 }}
-              transition={chartTransition(animation, reducedMotion, row.index + seriesIdx)}
-              role="graphics-symbol"
-              aria-roledescription="data point"
-              aria-label={aria}
-              aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
-              tabIndex={ptIndex === activeGlobalIndex ? 0 : -1}
-              style={{
-                cursor: onDatumClick ? "pointer" : "default",
-                filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
-                outline: "none"
-              }}
-              onPointerEnter={(event) => handlePointerMove(event, row)}
-              onPointerMove={(event) => handlePointerMove(event, row)}
-              onPointerLeave={hideTooltip}
-              onFocus={(event) => {
-                setActiveGlobalIndex(ptIndex);
-                setHoveredPoint({ seriesId: row.seriesId, index: row.index });
-                const rect = event.currentTarget.getBoundingClientRect();
-                setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
-              }}
-              onBlur={hideTooltip}
-              onKeyDown={(event) => handleKeyDown(event, ptIndex)}
-              onClick={() => onDatumClick?.(context)}
-            >
-              <title>{aria}</title>
-            </motion.circle>
+            <g key={`${item.id}-${row.label}-${row.index}`}>
+              {isFocused ? (
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={10.5}
+                  fill="none"
+                  stroke={chartTheme.textColor}
+                  strokeWidth={2}
+                  pointerEvents="none"
+                  opacity={0.85}
+                />
+              ) : null}
+              <motion.circle
+                cx={point.x}
+                cy={point.y}
+                r={isHovered ? 6 : (showPoints ? 4 : 7)}
+                fill={showPoints || isHovered ? item.color : "transparent"}
+                stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
+                strokeWidth={showPoints || isHovered ? 2.5 : 0}
+                initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
+                animate={{
+                  cx: point.x,
+                  cy: point.y,
+                  r: isHovered ? 6 : (showPoints ? 4 : 7),
+                  opacity: 1
+                }}
+                whileHover={{ r: 7.5, strokeWidth: 3 }}
+                transition={chartTransition(animation, reducedMotion, row.index + seriesIdx)}
+                role="graphics-symbol"
+                aria-roledescription="data point"
+                aria-label={aria}
+                aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
+                tabIndex={ptIndex === activeGlobalIndex ? 0 : -1}
+                style={{
+                  cursor: onDatumClick ? "pointer" : "default",
+                  filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
+                  outline: "none"
+                }}
+                onPointerEnter={(event) => handlePointerMove(event, row)}
+                onPointerMove={(event) => handlePointerMove(event, row)}
+                onPointerLeave={hideTooltip}
+                onFocus={(event) => {
+                  setActiveGlobalIndex(ptIndex);
+                  setIsKeyboardFocused(true);
+                  setHoveredPoint({ seriesId: row.seriesId, index: row.index });
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
+                }}
+                onBlur={hideTooltip}
+                onKeyDown={(event) => handleKeyDown(event, ptIndex)}
+                onClick={() => onDatumClick?.(context)}
+              >
+                <title>{aria}</title>
+              </motion.circle>
+            </g>
           );
         })}
       </ChartSurface>

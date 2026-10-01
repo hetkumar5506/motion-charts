@@ -87,20 +87,49 @@ export function Sparkline<TDatum extends object>({
     [height, padBottom, padTop, validValues]
   );
   const xStep = rows.length <= 1 ? 0 : (width - padLeft - padRight) / (rows.length - 1);
-  const points: Point[] = useMemo(
-    () => rows.map((row, index) => ({ x: padLeft + xStep * index, y: yScale.scale(row.value) })),
+  const points: (Point | null)[] = useMemo(
+    () =>
+      rows.map((row, index) => {
+        if (row.isNull) return null;
+        return { x: padLeft + xStep * index, y: yScale.scale(row.value) };
+      }),
     [padLeft, rows, xStep, yScale]
   );
   const baseline = height - padBottom;
-  const baselinePoints: Point[] = useMemo(() => points.map((p) => ({ x: p.x, y: baseline })), [baseline, points]);
-  const path = useMemo(() => linePath(points, curve), [curve, points]);
-  const initialPath = useMemo(() => linePath(baselinePoints, curve), [baselinePoints, curve]);
-  const fillPath = useMemo(() => areaPath(points, baseline, curve), [baseline, curve, points]);
-  const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve), [baseline, baselinePoints, curve]);
+  const baselinePoints: (Point | null)[] = useMemo(
+    () => points.map((p) => (p ? { x: p.x, y: baseline } : null)),
+    [baseline, points]
+  );
+  const path = useMemo(() => linePath(points, curve, true), [curve, points]);
+  const initialPath = useMemo(() => linePath(baselinePoints, curve, true), [baselinePoints, curve]);
+  const fillPath = useMemo(() => areaPath(points, baseline, curve, true), [baseline, curve, points]);
+  const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve, true), [baseline, baselinePoints, curve]);
   const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
-  const lastRow = rows[rows.length - 1];
-  const lastPoint = points[points.length - 1];
+
+  // Renderable items are only rows with non-null values
+  const renderableItems = useMemo(
+    () =>
+      rows
+        .map((row) => ({ row, point: points[row.index] }))
+        .filter((item): item is { row: (typeof rows)[number]; point: Point } => !!item.point && Number.isFinite(item.point.x) && Number.isFinite(item.point.y)),
+    [points, rows]
+  );
+
+  // For showEndValue, find the last finite value
+  const lastFiniteItem = useMemo(() => {
+    for (let i = rows.length - 1; i >= 0; i -= 1) {
+      const row = rows[i]!;
+      const point = points[i];
+      if (!row.isNull && point && Number.isFinite(point.x) && Number.isFinite(point.y)) {
+        return { row, point };
+      }
+    }
+    return null;
+  }, [points, rows]);
+
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
 
   function tooltipContent(row: (typeof rows)[number]): ReactNode {
     const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
@@ -126,27 +155,29 @@ export function Sparkline<TDatum extends object>({
   function hideTooltip() {
     setHoveredIndex(null);
     setTooltipState(null);
+    setIsKeyboardFocused(false);
   }
 
-  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, index: number) {
-    const count = rows.length;
+  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, itemIndex: number) {
+    const count = renderableItems.length;
     if (count <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
       : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
-      : event.key === "Home" ? -index
-      : event.key === "End" ? count - 1 - index : 0;
+      : event.key === "Home" ? -itemIndex
+      : event.key === "End" ? count - 1 - itemIndex : 0;
 
     if (!delta) return;
     event.preventDefault();
-    const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
-    setActiveIndex(nextIndex);
-    const nextRow = rows[nextIndex];
-    if (nextRow) {
-      setHoveredIndex(nextIndex);
+    const nextItemIndex = Math.min(count - 1, Math.max(0, itemIndex + delta));
+    setActiveItemIndex(nextItemIndex);
+    setIsKeyboardFocused(true);
+    const nextItem = renderableItems[nextItemIndex];
+    if (nextItem) {
+      setHoveredIndex(nextItem.row.index);
     }
     const svg = event.currentTarget.closest("svg");
     const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
-    targets?.[nextIndex]?.focus();
+    targets?.[nextItemIndex]?.focus();
   }
 
   return (
@@ -192,12 +223,13 @@ export function Sparkline<TDatum extends object>({
           pointerEvents="none"
         />
       ) : null}
-      {showEndValue && lastRow && lastPoint ? (() => {
-        const text = valueFormatter(lastRow.value);
+      {showEndValue && lastFiniteItem ? (() => {
+        const { row, point } = lastFiniteItem;
+        const text = valueFormatter(row.value);
         const pillWidth = Math.max(34, text.length * 7.5 + 10);
         const pillHeight = 20;
-        const pillX = Math.min(width - pillWidth - 2, lastPoint.x + 8);
-        const pillY = Math.max(2, Math.min(height - pillHeight - 2, lastPoint.y - pillHeight / 2));
+        const pillX = Math.min(width - pillWidth - 2, point.x + 8);
+        const pillY = Math.max(2, Math.min(height - pillHeight - 2, point.y - pillHeight / 2));
 
         return (
           <g>
@@ -233,53 +265,65 @@ export function Sparkline<TDatum extends object>({
           </g>
         );
       })() : null}
-      {rows.map((row, index) => {
-        const point = points[index];
-        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
-        const visible = showPoints || index === rows.length - 1;
+      {renderableItems.map(({ row, point }, itemIndex) => {
+        const visible = showPoints || itemIndex === renderableItems.length - 1;
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
         const initialY = Number.isFinite(baseline) ? baseline : point.y;
-        const isHovered = hoveredIndex === index;
-        const isFocused = activeIndex === index;
+        const isHovered = hoveredIndex === row.index;
+        const isFocused = isKeyboardFocused && activeItemIndex === itemIndex;
         return (
-          <motion.circle
-            key={`${row.label}-${row.index}`}
-            cx={point.x}
-            cy={point.y}
-            r={visible ? 4 : 7}
-            fill={visible ? color : "transparent"}
-            stroke={visible ? "white" : "transparent"}
-            strokeWidth={visible ? 2 : 0}
-            initial={shouldInitial ? { cx: point.x, cy: initialY, scale: 0, opacity: 0 } : false}
-            animate={{ cx: point.x, cy: point.y, scale: 1, opacity: 1 }}
-            whileHover={{ scale: 1.35 }}
-            transition={chartTransition(animation, reducedMotion, index)}
-            role="graphics-symbol"
-            aria-roledescription="data point"
-            aria-label={aria}
-            aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
-            tabIndex={index === activeIndex ? 0 : -1}
-            onPointerEnter={(event) => handlePointerMove(event, row)}
-            onPointerMove={(event) => handlePointerMove(event, row)}
-            onPointerLeave={hideTooltip}
-            onFocus={(event) => {
-              setActiveIndex(index);
-              setHoveredIndex(row.index);
-              const rect = event.currentTarget.getBoundingClientRect();
-              setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
-            }}
-            onBlur={hideTooltip}
-            onKeyDown={(event) => handleKeyDown(event, index)}
-            onClick={() => onDatumClick?.(context)}
-            style={{
-              cursor: onDatumClick ? "pointer" : "default",
-              transformOrigin: `${point.x}px ${point.y}px`,
-              outline: "none"
-            }}
-          >
-            <title>{aria}</title>
-          </motion.circle>
+          <g key={`${row.label}-${row.index}`}>
+            {isFocused ? (
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={10.5}
+                fill="none"
+                stroke={chartTheme.textColor}
+                strokeWidth={2}
+                pointerEvents="none"
+                opacity={0.85}
+              />
+            ) : null}
+            <motion.circle
+              cx={point.x}
+              cy={point.y}
+              r={visible ? 4 : 7}
+              fill={visible ? color : "transparent"}
+              stroke={visible ? "white" : "transparent"}
+              strokeWidth={visible ? 2 : 0}
+              initial={shouldInitial ? { cx: point.x, cy: initialY, scale: 0, opacity: 0 } : false}
+              animate={{ cx: point.x, cy: point.y, scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.35 }}
+              transition={chartTransition(animation, reducedMotion, row.index)}
+              role="graphics-symbol"
+              aria-roledescription="data point"
+              aria-label={aria}
+              aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
+              tabIndex={itemIndex === activeItemIndex ? 0 : -1}
+              onPointerEnter={(event) => handlePointerMove(event, row)}
+              onPointerMove={(event) => handlePointerMove(event, row)}
+              onPointerLeave={hideTooltip}
+              onFocus={(event) => {
+                setActiveItemIndex(itemIndex);
+                setIsKeyboardFocused(true);
+                setHoveredIndex(row.index);
+                const rect = event.currentTarget.getBoundingClientRect();
+                setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
+              }}
+              onBlur={hideTooltip}
+              onKeyDown={(event) => handleKeyDown(event, itemIndex)}
+              onClick={() => onDatumClick?.(context)}
+              style={{
+                cursor: onDatumClick ? "pointer" : "default",
+                transformOrigin: `${point.x}px ${point.y}px`,
+                outline: "none"
+              }}
+            >
+              <title>{aria}</title>
+            </motion.circle>
+          </g>
         );
       })}
     </ChartSurface>

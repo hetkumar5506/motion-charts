@@ -303,7 +303,7 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 ## Accessibility (Built to support WCAG 2.1 Level A)
 
 - **Roving Tabindex Keyboard Navigation**: All charts implement accessible roving `tabIndex` with keyboard navigation. Keyboard users can Tab to the chart and traverse data points with `ArrowRight` / `ArrowDown` / `ArrowLeft` / `ArrowUp` / `Home` / `End`.
-- **Visible Focus Indicator**: Active and focused shapes display a high-contrast focus ring (`2px solid`) matching the chart theme.
+- **Visible Focus Indicator**: Active and focused shapes display a high-contrast focus ring (`2px solid` SVG indicator / themed stroke) matching the chart theme.
 - **ARIA Semantics**: Shapes are marked with `role="graphics-symbol"`, `aria-roledescription`, clear `aria-label`, and `aria-describedby` connected to live tooltips.
 - **Reduced Motion**: Full compliance with `prefers-reduced-motion`.
 - **SSR Hydration Safe**: Pre-rendered HTML paints complete shapes and opacity without blank flashes before hydration.
@@ -312,10 +312,11 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 
 - `connectNulls` (boolean, default `true`): In `LineChart` and `MultiLineChart`, controls whether `null`/`NaN` data points are bridged or rendered with distinct visual gaps in line and area paths.
 - `zeroLine` (boolean, default `false`): In `BarChart`, set `xAxis={{ zeroLine: true }}` or `yAxis={{ zeroLine: true }}` to anchor the horizontal axis baseline line at `y=0` when displaying negative data.
+- `colorIndex` (number, default `0`): Available on both `LineChart` and `Sparkline` to select an exact palette color index without custom array overrides.
 - `barPadding` is clamped to `[0, 0.8]` (default `0.22`).
 - `innerRadiusRatio` in `DonutChart` is clamped to `[0, 0.9]` (default `0.62`).
-- `Date` objects passed to `xKey` or `labelKey` automatically format via `toLocaleDateString()`.
-- Numeric accessors warn in development on non-finite values (`null`, `undefined`, `NaN`, `Infinity`) and coerce safely to `0`.
+- `Date` objects passed to `xKey` or `labelKey` automatically format via `toLocaleDateString()` with fallback guards against invalid dates.
+- Numeric accessors warn in development on non-finite values (`null`, `undefined`, `NaN`, `Infinity`) and coerce safely to `0`. Missing values in LineChart, MultiLineChart, and Sparkline are excluded from axis extents and rendered points.
 
 ## Empty states
 
