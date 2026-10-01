@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.12
+
+### Fixed & Enhanced
+- **Bar Data-Update Springs**: `BarChart` now animates `attrY` and `height` smoothly on live data updates via Framer Motion springs instead of snapping to new coordinates.
+- **Baseline Transform Origins**: `BarChart` entrance scales now set SVG `originX`/`originY` relative to baseline coordinates, ensuring positive bars expand upwards from baseline and negative bars expand downwards.
+
 ## 0.1.11
 
 ### Fixed & Enhanced

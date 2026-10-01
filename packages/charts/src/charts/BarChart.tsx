@@ -231,9 +231,10 @@ export function BarChart<TDatum extends object>({
                 rx={Math.min(safeBarRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
                 fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
                 initial={false}
+                // Entrance uses only a transform; data updates animate SVG geometry attributes.
                 animate={isEntering
                   ? { scaleY: [0, 1], opacity: [0, isHovered ? 0.92 : 1] }
-                  : { scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
+                  : { attrY: y, height: barHeight, scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
                 whileHover={{ opacity: 0.85 }}
                 transition={chartTransition(animation, reducedMotion, row.index)}
                 onAnimationComplete={isEntering && index === rows.length - 1 && !showValues ? onAnimationComplete : undefined}
@@ -258,8 +259,8 @@ export function BarChart<TDatum extends object>({
                 style={{
                   cursor: onDatumClick ? "pointer" : "default",
                   outline: "none",
-                  transformOrigin: `${x + xScale.bandwidth / 2}px ${baseline}px`,
-                  transformBox: "view-box"
+                  originX: 0.5,
+                  originY: row.value >= 0 ? 1 : 0
                 }}
               >
                 <title>{aria}</title>
@@ -298,15 +299,17 @@ export function BarChart<TDatum extends object>({
                     fontSize={11}
                     fontWeight={600}
                     initial={false}
-                    animate={isEntering ? { opacity: [0, 1], scale: [0.96, 1] } : { opacity: 1, scale: 1 }}
+                    animate={isEntering
+                      ? { opacity: [0, 1], scale: [0.96, 1] }
+                      : { attrY: textY, scale: 1, opacity: 1 }}
                     transition={chartTransition(animation, reducedMotion, row.index + 1)}
                     onAnimationComplete={isEntering && index === rows.length - 1 && showValues ? onAnimationComplete : undefined}
                     style={{
                       filter: fitInside ? "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" : "none",
                       userSelect: "none",
                       pointerEvents: "none",
-                      transformOrigin: `${textX}px ${textY}px`,
-                      transformBox: "view-box"
+                      originX: 0.5,
+                      originY: 0.5
                     }}
                   >
                     {valueFormatter(row.value)}
