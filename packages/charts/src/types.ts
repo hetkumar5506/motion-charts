@@ -6,6 +6,7 @@ import type { AnimationPresetName } from "./utils/animationPresets";
 export type Primitive = string | number | boolean | null | undefined;
 export type ChartDatum = Record<string, Primitive | Date>;
 export type Accessor<TDatum, TValue> = keyof TDatum | ((datum: TDatum, index: number) => TValue);
+export type DateFormatter = (date: Date) => string;
 
 export type ChartMargin = {
   top: number;
@@ -58,6 +59,8 @@ export type CommonChartProps<TDatum> = {
   theme?: ChartThemeInput;
   ariaLabel?: string;
   ariaDescription?: string;
+  /** Format Date-valued labels. The default uses the local calendar date (YYYY-MM-DD). */
+  dateFormatter?: DateFormatter;
   valueFormatter?: (value: number) => string;
   emptyState?: ReactNode;
   animation?: MotionOptions;

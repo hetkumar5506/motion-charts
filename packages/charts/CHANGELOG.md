@@ -1,12 +1,18 @@
 # Changelog
 
+## 0.1.11
+
+### Fixed & Enhanced
+- **Post-Hydration Chart Animations**: Restored post-hydration enter animations across all chart components (`BarChart`, `DonutChart`, `LineChart`, `MultiLineChart`, `Sparkline`) using client-side animation mounting to keep SSR output static while animating smoothly on hydration.
+- **Baseline-Anchored Animated Bars**: Ensured animated bars anchor strictly to their bottom/baseline without jumping or shifting origin during height transitions.
+- **Local Date Labels & `dateFormatter` Prop**: Preserved local calendar-day dates (`YYYY-MM-DD`) by default without backward timezone shifts, and added the optional `dateFormatter` prop to chart props for custom UTC or locale-specific date formatting.
+
 ## 0.1.10
 
 ### Fixed & Enhanced
 - **Responsive Overflow & Layout Hardening**: `ResponsiveChart` and all chart surfaces now incorporate `min-width: 0`, dimension sanitization, clamped responsive margins for narrow cards, and bounds containment for donut geometry and sparklines.
 - **Narrow & Extreme Data State Hardening**: Sanitized scales and geometry calculations against zero/negative ranges, identical data bounds, single data points, and extreme values across `BarChart`, `DonutChart`, `LineChart`, `MultiLineChart`, and `Sparkline`.
 - **Invalid SVG Attribute Protection**: Direct chart usage with `NaN`, `Infinity`, zero, negative, or invalid sizing/styling values no longer produces invalid SVG attributes or layout crashes.
-- **UTC Date Label Normalization**: Date labels use deterministic UTC ISO strings (`toISOString().slice(0, 10)`), guaranteeing identical rendering across server and client timezones.
 - **BarChart Focus Ring Viewport Containment**: Focus rings on edge bars are clamped to the chart viewport to avoid clipping.
 - **Responsive Grid/Flex Documentation**: Added documentation and examples for CSS grid and flex container integration.
 

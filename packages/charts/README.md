@@ -329,7 +329,7 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 - `colorIndex` (number, default `0`): Available on both `LineChart` and `Sparkline` to select an exact palette color index without custom array overrides.
 - `barPadding` is clamped to `[0, 0.8]` (default `0.22`).
 - `innerRadiusRatio` in `DonutChart` is clamped to `[0, 0.9]` (default `0.62`).
-- `Date` objects passed to `xKey` or `labelKey` automatically format as deterministic UTC ISO dates (`YYYY-MM-DD`); invalid dates are handled safely.
+- `Date` objects passed to `xKey` or `labelKey` format as the local calendar day (`YYYY-MM-DD`) by default, so `new Date(year, month, day)` does not shift the date in timezones east of UTC. Pass `dateFormatter={(date) => date.toISOString().slice(0, 10)}` when your data represents UTC instants; invalid dates are handled safely.
 - Numeric accessors warn in development on non-finite values (`null`, `undefined`, `NaN`, `Infinity`) and coerce safely to `0`. Missing values in LineChart, MultiLineChart, and Sparkline are excluded from axis extents and rendered points.
 - Responsive dimensions and chart margins are sanitized so narrow grid/flex cards do not produce invalid SVG attributes or geometry outside the chart viewport.
 

@@ -73,6 +73,24 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     expect(html).toContain('height="3"');
   });
 
+  it("keeps animated bars anchored to their computed baseline", () => {
+    const html = renderToString(
+      <BarChart
+        data={[{ label: "A", value: 42 }, { label: "B", value: 84 }]}
+        xKey="label"
+        yKey="value"
+        width={720}
+        height={360}
+        showValues
+        animation={{ preset: "bouncy", stagger: 0.04 }}
+      />
+    );
+    expect(html).not.toMatch(/(?:NaN|Infinity|height="0")/);
+    expect(html).not.toContain("translateY");
+    expect(html).toContain("transform-box");
+    expect(html).toContain("transform-origin");
+  });
+
   it("assigns roving tabIndex and keyboard navigation attributes", () => {
     const data = [
       { label: "A", val: 10 },
@@ -120,8 +138,11 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     expect(html).toContain('d="M');
   });
 
-  it("formats Date objects appropriately in labelOf", () => {
-    const date = new Date("2026-01-15T00:00:00Z");
+  it("formats local Date calendar days and supports explicit date formatting", () => {
+    const date = new Date(2026, 0, 2);
+    const localDay = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+      .map((part, index) => index === 0 ? String(part).padStart(4, "0") : String(part).padStart(2, "0"))
+      .join("-");
     const html = renderToString(
       <BarChart
         data={[{ d: date, v: 10 }]}
@@ -129,8 +150,17 @@ describe("audit v0.1.3 regression and compliance suite", () => {
         yKey="v"
       />
     );
-    // Deterministic ISO format (YYYY-MM-DD) to prevent SSR/client locale mismatch
-    expect(html).toContain("2026-01-15");
+    expect(html).toContain(localDay);
+
+    const utcHtml = renderToString(
+      <BarChart
+        data={[{ d: date, v: 10 }]}
+        xKey="d"
+        yKey="v"
+        dateFormatter={(value) => value.toISOString().slice(0, 10)}
+      />
+    );
+    expect(utcHtml).toContain(date.toISOString().slice(0, 10));
   });
 
   it("thins x-axis ticks when there are many data points", () => {

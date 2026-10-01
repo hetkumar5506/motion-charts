@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import type { Transition } from "framer-motion";
 import type { MotionOptions } from "../types";
 import { animationPreset } from "./animationPresets";
@@ -19,4 +20,29 @@ export function chartTransition(animation: MotionOptions | undefined, reducedMot
 
 export function shouldAnimateInitial(animation: MotionOptions | undefined, reducedMotion: boolean | null): boolean {
   return animation?.initial !== false && !animation?.disabled && !reducedMotion;
+}
+
+/**
+ * Start entrance keyframes after hydration without hiding the SSR paint.
+ * Framer Motion reads `initial` only during mount, so changing an `initial`
+ * prop from false after a mounted flag flips cannot start an animation. Charts
+ * render their final geometry on the server, then switch to explicit keyframes
+ * in this hook's post-mount phase.
+ */
+export function useChartEntrance(animation: MotionOptions | undefined, reducedMotion: boolean | null): {
+  isEntering: boolean;
+  onAnimationComplete: () => void;
+} {
+  const shouldEnter = shouldAnimateInitial(animation, reducedMotion);
+  const [isEntering, setIsEntering] = useState(false);
+
+  useEffect(() => {
+    setIsEntering(shouldEnter);
+  }, [shouldEnter]);
+
+  const onAnimationComplete = useCallback(() => {
+    setIsEntering(false);
+  }, []);
+
+  return { isEntering, onAnimationComplete };
 }
