@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { BarChart, DonutChart, LineChart, MultiLineChart, Sparkline } from "../src";
-import { numberOf, rawNumberOf } from "../src/utils/accessors";
+import { labelOf, numberOf, rawNumberOf } from "../src/utils/accessors";
 import { defaultValueFormatter } from "../src/utils/format";
 
 describe("audit v0.1.3 regression and compliance suite", () => {
@@ -161,6 +161,25 @@ describe("audit v0.1.3 regression and compliance suite", () => {
       />
     );
     expect(utcHtml).toContain(date.toISOString().slice(0, 10));
+  });
+
+  it("keeps ISO date-only labels stable in western and eastern timezones", () => {
+    const originalTimeZone = process.env.TZ;
+    try {
+      for (const timeZone of ["America/Los_Angeles", "Asia/Calcutta"]) {
+        process.env.TZ = timeZone;
+        const localMidnight = new Date(2026, 2, 1);
+        const isoDateOnly = new Date("2026-03-01");
+        const localTimestamp = new Date("2026-03-01T15:30:00");
+
+        expect(labelOf({ date: localMidnight }, 0, "date")).toBe("2026-03-01");
+        expect(labelOf({ date: isoDateOnly }, 0, "date")).toBe("2026-03-01");
+        expect(labelOf({ date: localTimestamp }, 0, "date")).toBe("2026-03-01");
+      }
+    } finally {
+      if (originalTimeZone === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTimeZone;
+    }
   });
 
   it("thins x-axis ticks when there are many data points", () => {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.14
+
+### Fixed & Enhanced
+- **Timezone-Stable Date Labels**: Date-only ISO values such as `new Date("2026-03-01")` now reliably use UTC calendar parts, while local constructors and timestamps use local parts. This eliminates off-by-one date shifts across both eastern and western timezones while preserving the `dateFormatter` prop for custom policies.
+- **Enhanced Documentation**: Expanded documentation, README, and llms.txt with responsive grid/flex layout guidance and date formatting best practices.
+
 ## 0.1.13
 
 ### Fixed & Enhanced
