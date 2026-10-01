@@ -231,9 +231,9 @@ export function BarChart<TDatum extends object>({
                 rx={Math.min(safeBarRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
                 fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
                 initial={false}
-                // Entrance uses only a transform; data updates animate SVG geometry attributes.
+                // Keep geometry keys present in both branches so framer-motion does not cancel the entrance.
                 animate={isEntering
-                  ? { scaleY: [0, 1], opacity: [0, isHovered ? 0.92 : 1] }
+                  ? { attrY: y, height: barHeight, scaleY: [0, 1], opacity: [0, isHovered ? 0.92 : 1] }
                   : { attrY: y, height: barHeight, scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
                 whileHover={{ opacity: 0.85 }}
                 transition={chartTransition(animation, reducedMotion, row.index)}
@@ -300,7 +300,7 @@ export function BarChart<TDatum extends object>({
                     fontWeight={600}
                     initial={false}
                     animate={isEntering
-                      ? { opacity: [0, 1], scale: [0.96, 1] }
+                      ? { attrY: textY, opacity: [0, 1], scale: [0.96, 1] }
                       : { attrY: textY, scale: 1, opacity: 1 }}
                     transition={chartTransition(animation, reducedMotion, row.index + 1)}
                     onAnimationComplete={isEntering && index === rows.length - 1 && showValues ? onAnimationComplete : undefined}

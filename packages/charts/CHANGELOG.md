@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.13
+
+### Fixed & Enhanced
+- **Bar Entrance Animation Restoration (R-2)**: Preserved `attrY` and `height` (and `attrY` on value labels) across both `isEntering` and resting `animate` targets in `BarChart`. This prevents Framer Motion from treating omitted geometry keys as instantaneous completion signals, allowing bar entrance animations (`scaleY: [0, 1]`) to run their full duration alongside live data spring updates.
+
 ## 0.1.12
 
 ### Fixed & Enhanced
