@@ -63,10 +63,16 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
   const [mounted, setMounted] = useState(false);
   const tooltipRef = useState<{ current: HTMLDivElement | null }>({ current: null })[0];
   const [measuredSize, setMeasuredSize] = useState<{ width: number; height: number } | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Reset dismissed state whenever tooltip changes (new point hovered/focused)
+  useEffect(() => {
+    setDismissed(false);
+  }, [tooltip?.content, tooltip?.x, tooltip?.y]);
 
   // On touch devices, pointerleave often does not fire. Add an outside tap handler to dismiss lingering tooltip.
   useEffect(() => {
@@ -74,10 +80,7 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
     const handleOutsideTouch = (event: TouchEvent | MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target?.closest?.("[role='graphics-symbol']") && !target?.closest?.("[role='tooltip']")) {
-        // If tapped outside active symbols and tooltip, hide
-        if (tooltipRef.current) {
-          tooltipRef.current.style.display = "none";
-        }
+        setDismissed(true);
       }
     };
     window.addEventListener("touchstart", handleOutsideTouch, { passive: true });
@@ -95,7 +98,7 @@ function ChartTooltip({ tooltip, style, tooltipId }: { tooltip?: TooltipState; s
     }
   }, [tooltip?.content]);
 
-  if (!tooltip) return null;
+  if (!tooltip || dismissed) return null;
 
   // Viewport clamping & position logic:
   // Measure actual element bounds when available with sane initial fallback

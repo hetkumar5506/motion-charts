@@ -25,7 +25,7 @@ export type DonutChartProps<TDatum extends object> = CommonChartProps<TDatum> & 
 };
 
 export function DonutChart<TDatum extends object>({
-  data,
+  data = [],
   labelKey,
   valueKey,
   width = 520,
@@ -55,16 +55,18 @@ export function DonutChart<TDatum extends object>({
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeSliceIndex, setActiveSliceIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  const safeData = data ?? [];
+
   const rows = useMemo(
     () =>
-      data.map((datum, index) => {
+      safeData.map((datum, index) => {
         const label = labelOf(datum, index, labelKey);
         const rawValue = numberOf(datum, index, valueKey);
         if (rawValue < 0 && isDev()) {
@@ -74,12 +76,21 @@ export function DonutChart<TDatum extends object>({
         const color = colorAt(chartTheme.colors, index);
         return { datum, index, label, value, color };
       }),
-    [chartTheme.colors, data, labelKey, valueKey]
+    [chartTheme.colors, labelKey, safeData, valueKey]
   );
   const total = useMemo(() => rows.reduce((sum, row) => sum + row.value, 0), [rows]);
   const slices = useMemo(
     () => pieSlices(rows.map((row) => row.value), padAngle),
     [padAngle, rows]
+  );
+
+  // Filter only renderable slices with value > 0 for 1:1 DOM index keyboard navigation
+  const renderableSlices = useMemo(
+    () =>
+      slices
+        .map((slice, index) => ({ slice, row: rows[index], originalIndex: index }))
+        .filter((item): item is { slice: (typeof slices)[number]; row: (typeof rows)[number]; originalIndex: number } => !!item.row && item.slice.value > 0),
+    [rows, slices]
   );
 
   const padLeft = margin?.left ?? 0;
@@ -124,25 +135,25 @@ export function DonutChart<TDatum extends object>({
     setTooltipState(null);
   }
 
-  function handleKeyDown(event: KeyboardEvent<SVGPathElement>, index: number) {
-    const count = slices.length;
+  function handleKeyDown(event: KeyboardEvent<SVGPathElement>, itemIndex: number) {
+    const count = renderableSlices.length;
     if (count <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
       : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
-      : event.key === "Home" ? -index
-      : event.key === "End" ? count - 1 - index : 0;
+      : event.key === "Home" ? -itemIndex
+      : event.key === "End" ? count - 1 - itemIndex : 0;
 
     if (!delta) return;
     event.preventDefault();
-    const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
-    setActiveIndex(nextIndex);
-    const nextRow = rows[nextIndex];
-    if (nextRow) {
-      setHoveredIndex(nextIndex);
+    const nextItemIndex = Math.min(count - 1, Math.max(0, itemIndex + delta));
+    setActiveSliceIndex(nextItemIndex);
+    const nextSliceItem = renderableSlices[nextItemIndex];
+    if (nextSliceItem) {
+      setHoveredIndex(nextSliceItem.row.index);
     }
     const svg = event.currentTarget.closest("svg");
     const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
-    targets?.[nextIndex]?.focus();
+    targets?.[nextItemIndex]?.focus();
   }
 
   const legendItems = useMemo(() => rows.map((row) => ({ label: row.label, color: row.color })), [rows]);
@@ -169,16 +180,14 @@ export function DonutChart<TDatum extends object>({
             : null}
         </defs>
         {total <= 0 ? <EmptyState x={cx} y={cy} theme={chartTheme}>{emptyState}</EmptyState> : null}
-        {slices.map((slice, index) => {
-          const row = rows[index];
-          if (!row || slice.value <= 0) return null;
+        {renderableSlices.map(({ slice, row, originalIndex }, itemIndex) => {
           const path = arcPath(cx, cy, innerRadius, outerRadius, slice.startAngle, slice.endAngle);
           const mid = (slice.startAngle + slice.endAngle) / 2;
           const labelPoint = polar(cx, cy, (innerRadius + outerRadius) / 2, mid);
           const aria = joinLabels([row.label, valueFormatter(row.value), `${Math.round(slice.percent * 100)}%`]);
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
-          const isHovered = hoveredIndex === index;
-          const isFocused = activeIndex === index;
+          const isHovered = hoveredIndex === row.index;
+          const isFocused = activeSliceIndex === itemIndex;
 
           return (
             <g key={`${row.label}-${row.index}`}>
@@ -188,30 +197,29 @@ export function DonutChart<TDatum extends object>({
                 initial={shouldInitial ? { opacity: 0, scale: 0.86 } : false}
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ scale: 1.035, opacity: 0.95 }}
-                transition={chartTransition(animation, reducedMotion, index)}
+                transition={chartTransition(animation, reducedMotion, originalIndex)}
                 role="graphics-symbol"
                 aria-roledescription="slice"
                 aria-label={aria}
-                aria-describedby={isHovered || isFocused ? tooltipId : undefined}
-                tabIndex={index === activeIndex ? 0 : -1}
+                aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
+                tabIndex={itemIndex === activeSliceIndex ? 0 : -1}
                 onPointerEnter={(event) => handlePointerMove(event, row, slice.percent)}
                 onPointerMove={(event) => handlePointerMove(event, row, slice.percent)}
                 onPointerLeave={hideTooltip}
                 onFocus={(event) => {
-                  setActiveIndex(index);
+                  setActiveSliceIndex(itemIndex);
                   setHoveredIndex(row.index);
                   const rect = event.currentTarget.getBoundingClientRect();
                   setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row, slice.percent), id: tooltipId });
                 }}
                 onBlur={hideTooltip}
-                onKeyDown={(event) => handleKeyDown(event, index)}
+                onKeyDown={(event) => handleKeyDown(event, itemIndex)}
                 onClick={() => onDatumClick?.(context)}
                 style={{
                   cursor: onDatumClick ? "pointer" : "default",
                   transformOrigin: `${cx}px ${cy}px`,
                   filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.08))",
-                  outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
-                  outlineOffset: 3
+                  outline: "none"
                 }}
               >
                 <title>{aria}</title>
@@ -229,7 +237,7 @@ export function DonutChart<TDatum extends object>({
                   pointerEvents="none"
                   initial={shouldInitial ? { opacity: 0 } : false}
                   animate={{ opacity: 1 }}
-                  transition={chartTransition(animation, reducedMotion, index + 1)}
+                  transition={chartTransition(animation, reducedMotion, originalIndex + 1)}
                 >
                   {Math.round(slice.percent * 100)}%
                 </motion.text>

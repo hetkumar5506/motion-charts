@@ -46,8 +46,8 @@ export type MultiLineChartProps<TDatum extends object> = Omit<CommonChartProps<T
 const defaultMargin = { top: 24, right: 28, bottom: 44, left: 56 };
 
 export function MultiLineChart<TDatum extends object>({
-  data,
-  series,
+  data = [],
+  series = [],
   xKey,
   width = 720,
   height = 360,
@@ -92,20 +92,29 @@ export function MultiLineChart<TDatum extends object>({
     innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
   }), [height, margin, width]);
 
-  const labels = useMemo(() => data.map((datum, index) => labelOf(datum, index, xKey)), [data, xKey]);
+  const safeData = data ?? [];
+  const safeSeries = series ?? [];
+
+  const labels = useMemo(() => safeData.map((datum, index) => labelOf(datum, index, xKey)), [safeData, xKey]);
   const preparedSeries = useMemo(
     () =>
-      series.map((item, index) => ({
+      safeSeries.map((item, index) => ({
         ...item,
         label: item.label ?? item.id,
         color: item.color ?? colorAt(chartTheme.colors, index),
         strokeWidth: item.strokeWidth ?? 3
       })),
-    [chartTheme.colors, series]
+    [chartTheme.colors, safeSeries]
   );
-  const allValues = useMemo(
-    () => preparedSeries.flatMap((item) => data.map((datum, index) => numberOf(datum, index, item.yKey))),
-    [data, preparedSeries]
+  // Exclude null/non-finite values from extent calculation
+  const allValidValues = useMemo(
+    () =>
+      preparedSeries.flatMap((item) =>
+        safeData
+          .map((datum, index) => rawNumberOf(datum, index, item.yKey))
+          .filter((v): v is number => v !== null)
+      ),
+    [preparedSeries, safeData]
   );
   const xScale = useMemo(
     () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], 0),
@@ -114,8 +123,8 @@ export function MultiLineChart<TDatum extends object>({
   // Default line charts to includeZero: false so variations are visible
   const includeZero = yAxis?.includeZero ?? false;
   const yScale = useMemo(
-    () => createLinearScale(extent(allValues, includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
-    [allValues, bounds.innerHeight, bounds.top, includeZero, yAxis?.tickCount]
+    () => createLinearScale(extent(allValidValues, includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
+    [allValidValues, bounds.innerHeight, bounds.top, includeZero, yAxis?.tickCount]
   );
   const baseline = yScale.scale(0);
   const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
@@ -124,16 +133,15 @@ export function MultiLineChart<TDatum extends object>({
   const renderedSeries = useMemo(
     () =>
       preparedSeries.map((item) => {
-        const rows = data.map((datum, index) => {
+        const rows = safeData.map((datum, index) => {
           const label = labels[index] ?? String(index + 1);
-          const value = numberOf(datum, index, item.yKey);
-          return { datum, index, label, value, color: item.color, seriesId: item.id, seriesLabel: item.label };
+          const rawVal = rawNumberOf(datum, index, item.yKey);
+          const value = rawVal ?? 0;
+          const isNull = rawVal === null;
+          return { datum, index, label, value, rawVal, isNull, color: item.color, seriesId: item.id, seriesLabel: item.label };
         });
         const points: (Point | null)[] = rows.map((row) => {
-          if (!connectNulls) {
-            const raw = rawNumberOf(row.datum, row.index, item.yKey);
-            if (raw === null) return null;
-          }
+          if (row.isNull) return null;
           return {
             x: xScale.center(row.label, row.index),
             y: yScale.scale(row.value)
@@ -150,7 +158,22 @@ export function MultiLineChart<TDatum extends object>({
           initialFillPath: areaPath(baselinePoints, baseline, curve, connectNulls)
         };
       }),
-    [baseline, connectNulls, curve, data, labels, preparedSeries, xScale, yScale]
+    [baseline, connectNulls, curve, labels, preparedSeries, safeData, xScale, yScale]
+  );
+
+  // Flatten only renderable points across all series for 1:1 keyboard navigation
+  const renderablePoints = useMemo(
+    () =>
+      renderedSeries.flatMap((item, seriesIdx) =>
+        item.rows
+          .map((row, index) => {
+            const point = item.points[index];
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
+            return { item, row, point, seriesIdx, index };
+          })
+          .filter((p): p is { item: (typeof renderedSeries)[number]; row: (typeof renderedSeries)[number]["rows"][number]; point: Point; seriesIdx: number; index: number } => p !== null)
+      ),
+    [renderedSeries]
   );
 
   const [hoveredPoint, setHoveredPoint] = useState<{ seriesId: string; index: number } | null>(null);
@@ -194,26 +217,30 @@ export function MultiLineChart<TDatum extends object>({
     setTooltipState(null);
   }
 
-  const totalPoints = renderedSeries.length * data.length;
+  const totalPoints = renderablePoints.length;
 
-  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, globalIndex: number) {
+  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, pointIndex: number) {
     if (totalPoints <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
       : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
-      : event.key === "Home" ? -globalIndex
-      : event.key === "End" ? totalPoints - 1 - globalIndex : 0;
+      : event.key === "Home" ? -pointIndex
+      : event.key === "End" ? totalPoints - 1 - pointIndex : 0;
 
     if (!delta) return;
     event.preventDefault();
-    const nextIndex = Math.min(totalPoints - 1, Math.max(0, globalIndex + delta));
+    const nextIndex = Math.min(totalPoints - 1, Math.max(0, pointIndex + delta));
     setActiveGlobalIndex(nextIndex);
+    const targetPoint = renderablePoints[nextIndex];
+    if (targetPoint) {
+      setHoveredPoint({ seriesId: targetPoint.item.id, index: targetPoint.row.index });
+    }
     const svg = event.currentTarget.closest("svg");
     const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
     targets?.[nextIndex]?.focus();
   }
 
   const legendItems = useMemo(() => preparedSeries.map((item) => ({ label: item.label, color: item.color })), [preparedSeries]);
-  const hasData = data.length > 0 && preparedSeries.length > 0;
+  const hasData = safeData.length > 0 && preparedSeries.length > 0;
   const hoveredX =
     hoveredPoint !== null && labels[hoveredPoint.index] !== undefined
       ? xScale.center(labels[hoveredPoint.index]!, hoveredPoint.index)
@@ -300,71 +327,68 @@ export function MultiLineChart<TDatum extends object>({
                 pointerEvents="none"
               />
             ) : null}
-            {item.rows.map((row, index) => {
-              const point = item.points[index];
-              if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
-              const globalIndex = seriesIndex * data.length + index;
-              const isHovered = hoveredPoint !== null && hoveredPoint.seriesId === row.seriesId && hoveredPoint.index === index;
-              const isFocused = activeGlobalIndex === globalIndex;
-              const context = {
-                datum: row.datum,
-                index: row.index,
-                label: row.label,
-                value: row.value,
-                color: row.color,
-                seriesId: row.seriesId,
-                seriesLabel: row.seriesLabel
-              };
-              const aria = joinLabels([row.seriesLabel, row.label, valueFormatter(row.value)]);
-              const initialY = Number.isFinite(baseline) ? baseline : point.y;
-              return (
-                <motion.circle
-                  key={`${item.id}-${row.label}-${row.index}`}
-                  cx={point.x}
-                  cy={point.y}
-                  r={isHovered ? 6 : (showPoints ? 4 : 7)}
-                  fill={showPoints || isHovered ? item.color : "transparent"}
-                  stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
-                  strokeWidth={showPoints || isHovered ? 2.5 : 0}
-                  initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
-                  animate={{
-                    cx: point.x,
-                    cy: point.y,
-                    r: isHovered ? 6 : (showPoints ? 4 : 7),
-                    opacity: 1
-                  }}
-                  whileHover={{ r: 7.5, strokeWidth: 3 }}
-                  transition={chartTransition(animation, reducedMotion, index + seriesIndex)}
-                  role="graphics-symbol"
-                  aria-roledescription="data point"
-                  aria-label={aria}
-                  aria-describedby={isHovered || isFocused ? tooltipId : undefined}
-                  tabIndex={globalIndex === activeGlobalIndex ? 0 : -1}
-                  style={{
-                    cursor: onDatumClick ? "pointer" : "default",
-                    filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
-                    outline: isFocused && (isHovered || hoveredPoint === null) ? `2px solid ${chartTheme.textColor}` : "none",
-                    outlineOffset: 3
-                  }}
-                  onPointerEnter={(event) => handlePointerMove(event, row)}
-                  onPointerMove={(event) => handlePointerMove(event, row)}
-                  onPointerLeave={hideTooltip}
-                  onFocus={(event) => {
-                    setActiveGlobalIndex(globalIndex);
-                    setHoveredPoint({ seriesId: row.seriesId, index: row.index });
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
-                  }}
-                  onBlur={hideTooltip}
-                  onKeyDown={(event) => handleKeyDown(event, globalIndex)}
-                  onClick={() => onDatumClick?.(context)}
-                >
-                  <title>{aria}</title>
-                </motion.circle>
-              );
-            })}
           </g>
         ))}
+
+        {renderablePoints.map(({ item, row, point, seriesIdx }, ptIndex) => {
+          const isHovered = hoveredPoint !== null && hoveredPoint.seriesId === row.seriesId && hoveredPoint.index === row.index;
+          const isFocused = activeGlobalIndex === ptIndex;
+          const context = {
+            datum: row.datum,
+            index: row.index,
+            label: row.label,
+            value: row.value,
+            color: row.color,
+            seriesId: row.seriesId,
+            seriesLabel: row.seriesLabel
+          };
+          const aria = joinLabels([row.seriesLabel, row.label, valueFormatter(row.value)]);
+          const initialY = Number.isFinite(baseline) ? baseline : point.y;
+          return (
+            <motion.circle
+              key={`${item.id}-${row.label}-${row.index}`}
+              cx={point.x}
+              cy={point.y}
+              r={isHovered ? 6 : (showPoints ? 4 : 7)}
+              fill={showPoints || isHovered ? item.color : "transparent"}
+              stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
+              strokeWidth={showPoints || isHovered ? 2.5 : 0}
+              initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
+              animate={{
+                cx: point.x,
+                cy: point.y,
+                r: isHovered ? 6 : (showPoints ? 4 : 7),
+                opacity: 1
+              }}
+              whileHover={{ r: 7.5, strokeWidth: 3 }}
+              transition={chartTransition(animation, reducedMotion, row.index + seriesIdx)}
+              role="graphics-symbol"
+              aria-roledescription="data point"
+              aria-label={aria}
+              aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
+              tabIndex={ptIndex === activeGlobalIndex ? 0 : -1}
+              style={{
+                cursor: onDatumClick ? "pointer" : "default",
+                filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
+                outline: "none"
+              }}
+              onPointerEnter={(event) => handlePointerMove(event, row)}
+              onPointerMove={(event) => handlePointerMove(event, row)}
+              onPointerLeave={hideTooltip}
+              onFocus={(event) => {
+                setActiveGlobalIndex(ptIndex);
+                setHoveredPoint({ seriesId: row.seriesId, index: row.index });
+                const rect = event.currentTarget.getBoundingClientRect();
+                setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
+              }}
+              onBlur={hideTooltip}
+              onKeyDown={(event) => handleKeyDown(event, ptIndex)}
+              onClick={() => onDatumClick?.(context)}
+            >
+              <title>{aria}</title>
+            </motion.circle>
+          );
+        })}
       </ChartSurface>
       {showLegend ? <InlineLegend items={legendItems} theme={chartTheme} /> : null}
     </div>

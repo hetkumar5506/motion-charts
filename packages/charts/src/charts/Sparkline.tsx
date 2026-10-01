@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
 import type { Accessor, CommonChartProps, TooltipRenderContext } from "../types";
-import { labelOf, numberOf } from "../utils/accessors";
+import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
@@ -25,7 +25,7 @@ export type SparklineProps<TDatum extends object> = CommonChartProps<TDatum> & {
 };
 
 export function Sparkline<TDatum extends object>({
-  data,
+  data = [],
   yKey,
   xKey,
   width = 320,
@@ -64,23 +64,27 @@ export function Sparkline<TDatum extends object>({
   }, []);
 
   const color = colorAt(chartTheme.colors, colorIndex);
+  const safeData = data ?? [];
   const rows = useMemo(
     () =>
-      data.map((datum, index) => {
+      safeData.map((datum, index) => {
         const label = xKey ? labelOf(datum, index, xKey) : String(index + 1);
-        const value = numberOf(datum, index, yKey);
-        return { datum, index, label, value, color };
+        const rawVal = rawNumberOf(datum, index, yKey);
+        const value = rawVal ?? 0;
+        const isNull = rawVal === null;
+        return { datum, index, label, value, rawVal, isNull, color };
       }),
-    [color, data, xKey, yKey]
+    [color, safeData, xKey, yKey]
   );
   const padLeft = margin?.left ?? padding;
   const padRight = margin?.right ?? (showEndValue ? Math.max(padding, 46) : padding);
   const padTop = margin?.top ?? padding;
   const padBottom = margin?.bottom ?? padding;
 
+  const validValues = useMemo(() => rows.filter((r) => !r.isNull).map((r) => r.value), [rows]);
   const yScale = useMemo(
-    () => createLinearScale(extent(rows.map((row) => row.value), false), [height - padBottom, padTop], 4),
-    [height, padBottom, padTop, rows]
+    () => createLinearScale(extent(validValues, false), [height - padBottom, padTop], 4),
+    [height, padBottom, padTop, validValues]
   );
   const xStep = rows.length <= 1 ? 0 : (width - padLeft - padRight) / (rows.length - 1);
   const points: Point[] = useMemo(
@@ -254,7 +258,7 @@ export function Sparkline<TDatum extends object>({
             role="graphics-symbol"
             aria-roledescription="data point"
             aria-label={aria}
-            aria-describedby={isHovered || isFocused ? tooltipId : undefined}
+            aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
             tabIndex={index === activeIndex ? 0 : -1}
             onPointerEnter={(event) => handlePointerMove(event, row)}
             onPointerMove={(event) => handlePointerMove(event, row)}
@@ -271,8 +275,7 @@ export function Sparkline<TDatum extends object>({
             style={{
               cursor: onDatumClick ? "pointer" : "default",
               transformOrigin: `${point.x}px ${point.y}px`,
-              outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
-              outlineOffset: 3
+              outline: "none"
             }}
           >
             <title>{aria}</title>

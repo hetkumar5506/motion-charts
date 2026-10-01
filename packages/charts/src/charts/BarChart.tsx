@@ -5,7 +5,7 @@ import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
 import type { Accessor, AxisOptions, CommonChartProps, TooltipRenderContext } from "../types";
 import { labelOf, numberOf } from "../utils/accessors";
-import { colorAt } from "../utils/color";
+import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { resolveChartTheme } from "../themes";
 import { chartTransition, shouldAnimateInitial } from "../utils/motion";
@@ -27,7 +27,7 @@ export type BarChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
 const defaultMargin = { top: 24, right: 20, bottom: 44, left: 56 };
 
 export function BarChart<TDatum extends object>({
-  data,
+  data = [],
   xKey,
   yKey,
   width = 720,
@@ -37,6 +37,7 @@ export function BarChart<TDatum extends object>({
   style,
   colors,
   theme,
+
   ariaLabel = "Bar chart",
   ariaDescription,
   valueFormatter = defaultValueFormatter,
@@ -74,15 +75,17 @@ export function BarChart<TDatum extends object>({
     innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
   }), [height, margin, width]);
 
+  const safeData = data ?? [];
+
   const rows = useMemo(
     () =>
-      data.map((datum, index) => {
+      safeData.map((datum, index) => {
         const label = labelOf(datum, index, xKey);
         const value = numberOf(datum, index, yKey);
         const color = colorAt(chartTheme.colors, index);
         return { datum, index, label, value, color };
       }),
-    [chartTheme.colors, data, xKey, yKey]
+    [chartTheme.colors, safeData, xKey, yKey]
   );
 
   const labels = useMemo(() => rows.map((row) => row.label), [rows]);
@@ -222,7 +225,7 @@ export function BarChart<TDatum extends object>({
                 role="graphics-symbol"
                 aria-roledescription="bar"
                 aria-label={aria}
-                aria-describedby={isHovered || isFocused ? tooltipId : undefined}
+                aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
                 tabIndex={index === activeIndex ? 0 : -1}
                 onPointerEnter={(event) => handlePointerMove(event, row)}
                 onPointerMove={(event) => handlePointerMove(event, row)}
@@ -252,7 +255,7 @@ export function BarChart<TDatum extends object>({
                   : (isPositive ? Math.max(bounds.top + 10, y - 8) : y + barHeight + 14);
                 const textY = Math.round(rawTextY * 100) / 100;
                 const textX = Math.round((x + xScale.bandwidth / 2) * 100) / 100;
-                const textColor = fitInside ? "#ffffff" : chartTheme.textColor;
+                const textColor = fitInside ? getContrastTextColor(row.color) : chartTheme.textColor;
 
                 return (
                   <motion.text

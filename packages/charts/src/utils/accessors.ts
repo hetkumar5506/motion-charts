@@ -37,7 +37,12 @@ export function labelOf<TDatum>(datum: TDatum, index: number, accessor: Accessor
   const value = valueOf(datum, index, accessor);
   if (value == null) return String(index + 1);
   if (typeof value === "object" && value instanceof Date) {
-    return value.toLocaleDateString();
+    if (Number.isNaN(value.getTime())) return "Invalid Date";
+    try {
+      return value.toLocaleDateString();
+    } catch {
+      return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+    }
   }
   return String(value);
 }

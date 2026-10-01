@@ -1,4 +1,5 @@
 import type { ChartTheme } from "../themes";
+import { isDarkColor } from "../utils/color";
 
 export function InlineLegend({
   items,
@@ -13,9 +14,15 @@ export function InlineLegend({
   const textColor = theme?.textColor ?? color ?? "#475569";
   const mutedColor = theme?.mutedTextColor ?? color ?? "#475569";
   const isDark =
-    Boolean(theme?.textColor && (theme.textColor.toLowerCase().startsWith("#f") || theme.textColor.toLowerCase().startsWith("rgb(24")));
+    Boolean(theme?.textColor && (
+      isDarkColor(theme.textColor) === false ||
+      theme.textColor.toLowerCase().startsWith("#f") ||
+      theme.textColor.toLowerCase().startsWith("rgb(24") ||
+      theme.textColor.toLowerCase() === "white"
+    ));
   const chipBg = isDark ? "rgba(30, 41, 59, 0.7)" : "rgba(241, 245, 249, 0.6)";
   const chipBorder = isDark ? "rgba(51, 65, 85, 0.8)" : "rgba(226, 232, 240, 0.7)";
+
 
   return (
     <div

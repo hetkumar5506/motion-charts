@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.7
+
+### Fixed
+- **Missing (`null`) Data Integrity (BUG-1)**: Excluded `null` and non-finite values from the `yScale` extent calculation so gapped data never drags the y-axis down to 0 when `includeZero: false` is configured. `LineChart` and `MultiLineChart` now only plot circles and announce screen-reader labels for genuine non-null data rows, rather than fabricating a fake `0` point.
+- **Keyboard Navigation Focus Traps (BUG-2 & BUG-5)**: Fixed roving tabindex keyboard navigation across `LineChart`, `MultiLineChart`, and `DonutChart` by indexing strictly over the filtered array of renderable DOM elements. Gapped datasets and zero-value slices no longer cause index divergence or trap keyboard focus.
+- **Mobile Touch Tooltip Lifecycle (BUG-3)**: Refactored outside-touch dismissal in `ChartSurface` to clear internal React state rather than imperatively mutating `style.display = "none"`. Tooltips now reliably reappear upon subsequent taps on touch screens.
+- **Crash Safety on Undefined Data/Series (BUG-4)**: Added safe default empty arrays (`data = []`, `series = []`) across `BarChart`, `LineChart`, `MultiLineChart`, `DonutChart`, and `Sparkline`. JavaScript consumers passing `undefined` API responses now gracefully render empty states instead of throwing unhandled `TypeError` exceptions.
+- **Value Label Contrast & Luminance (BUG-6)**: In `BarChart`, `showValues` labels inside bars now dynamically calculate text contrast via relative luminance (`getContrastTextColor`), ensuring high legibility even on pale/light brand color palettes (e.g. yellow, amber, pastel).
+- **SSR Dangling `aria-describedby` (BUG-7)**: Removed premature `aria-describedby` attributes on server-rendered elements when tooltips are unmounted, resolving ARIA validation failures.
+- **Theme Luminance Detection (BUG-8)**: Replaced string-prefix sniffing with W3C relative luminance calculation (`isDarkColor`) in `Legend` and theme helpers, properly detecting dark and light backgrounds across arbitrary hex, rgb, and named CSS colors.
+- **Date Locale Consistency (BUG-9)**: Added safe local date parsing and fallback formatting for `Date` labels to avoid SSR/hydration discrepancies.
+- **Eliminated Rectangular "Strange Square" Artifacts**: Removed CSS `outline` on SVG circle elements that created box artifacts over data points on page load and interaction.
+- **Palette Fallback (O-1)**: `paletteColors` now gracefully falls back to the default `aurora` palette instead of returning `undefined` when provided an unrecognized name.
+
 ## 0.1.6
 
 ### Fixed

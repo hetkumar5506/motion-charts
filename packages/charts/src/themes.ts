@@ -128,7 +128,10 @@ export function resolveChartTheme(input?: ChartThemeInput, colorsOverride?: read
 
 export function paletteColors(palette?: ChartPaletteName | readonly string[]): readonly string[] | undefined {
   if (!palette) return undefined;
-  return typeof palette === "string" ? chartPalettes[palette] : palette;
+  if (typeof palette === "string") {
+    return (chartPalettes as Record<string, readonly string[]>)[palette] ?? chartPalettes.aurora;
+  }
+  return palette;
 }
 
 function makeTheme(palette: ChartPaletteName, overrides: Omit<ChartTheme, "colors" | "fontFamily" | "fontSize">): ChartTheme {

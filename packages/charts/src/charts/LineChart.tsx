@@ -30,7 +30,7 @@ export type LineChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
 const defaultMargin = { top: 24, right: 28, bottom: 44, left: 56 };
 
 export function LineChart<TDatum extends object>({
-  data,
+  data = [],
   xKey,
   yKey,
   width = 720,
@@ -61,7 +61,7 @@ export function LineChart<TDatum extends object>({
   const reducedMotion = useReducedMotion();
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -77,14 +77,18 @@ export function LineChart<TDatum extends object>({
   }), [height, margin, width]);
   const color = colorAt(chartTheme.colors, 0);
 
+  const safeData = data ?? [];
+
   const rows = useMemo(
     () =>
-      data.map((datum, index) => {
+      safeData.map((datum, index) => {
         const label = labelOf(datum, index, xKey);
-        const value = numberOf(datum, index, yKey);
-        return { datum, index, label, value, color };
+        const rawVal = rawNumberOf(datum, index, yKey);
+        const value = rawVal ?? 0;
+        const isNull = rawVal === null;
+        return { datum, index, label, value, rawVal, isNull, color };
       }),
-    [color, data, xKey, yKey]
+    [color, safeData, xKey, yKey]
   );
 
   const labels = useMemo(() => rows.map((row) => row.label), [rows]);
@@ -92,27 +96,36 @@ export function LineChart<TDatum extends object>({
     () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], 0),
     [bounds.innerWidth, bounds.left, labels]
   );
-  // Default line charts to includeZero: false so subtle variations aren't flattened
+
+  // Exclude null/missing values from extent calculation so missing points do not pollute y-scale
+  const validValues = useMemo(() => rows.filter((r) => !r.isNull).map((r) => r.value), [rows]);
   const includeZero = yAxis?.includeZero ?? false;
   const yScale = useMemo(
-    () => createLinearScale(extent(rows.map((row) => row.value), includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
-    [bounds.innerHeight, bounds.top, includeZero, rows, yAxis?.tickCount]
+    () => createLinearScale(extent(validValues, includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
+    [bounds.innerHeight, bounds.top, includeZero, validValues, yAxis?.tickCount]
   );
 
   const points: (Point | null)[] = useMemo(
     () =>
       rows.map((row) => {
-        if (!connectNulls) {
-          const raw = rawNumberOf(row.datum, row.index, yKey);
-          if (raw === null) return null;
-        }
+        if (row.isNull) return null;
         return {
           x: xScale.center(row.label, row.index),
           y: yScale.scale(row.value)
         };
       }),
-    [connectNulls, rows, xScale, yKey, yScale]
+    [rows, xScale, yScale]
   );
+
+  // Renderable items are only rows with valid non-null values
+  const renderableItems = useMemo(
+    () =>
+      rows
+        .map((row) => ({ row, point: points[row.index] }))
+        .filter((item): item is { row: (typeof rows)[number]; point: Point } => !!item.point && Number.isFinite(item.point.x) && Number.isFinite(item.point.y)),
+    [points, rows]
+  );
+
   const baseline = yScale.scale(0);
   const baselinePoints: (Point | null)[] = useMemo(
     () => points.map((p) => (p ? { x: p.x, y: baseline } : null)),
@@ -157,25 +170,26 @@ export function LineChart<TDatum extends object>({
     setTooltipState(null);
   }
 
-  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, index: number) {
-    const count = rows.length;
+  // Roving keyboard navigation over renderable items only
+  function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, itemIndex: number) {
+    const count = renderableItems.length;
     if (count <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
       : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
-      : event.key === "Home" ? -index
-      : event.key === "End" ? count - 1 - index : 0;
+      : event.key === "Home" ? -itemIndex
+      : event.key === "End" ? count - 1 - itemIndex : 0;
 
     if (!delta) return;
     event.preventDefault();
-    const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
-    setActiveIndex(nextIndex);
-    const nextRow = rows[nextIndex];
-    if (nextRow) {
-      setHoveredIndex(nextIndex);
+    const nextItemIndex = Math.min(count - 1, Math.max(0, itemIndex + delta));
+    setActiveItemIndex(nextItemIndex);
+    const nextItem = renderableItems[nextItemIndex];
+    if (nextItem) {
+      setHoveredIndex(nextItem.row.index);
     }
     const svg = event.currentTarget.closest("svg");
     const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
-    targets?.[nextIndex]?.focus();
+    targets?.[nextItemIndex]?.focus();
   }
 
   const hoveredX =
@@ -261,11 +275,9 @@ export function LineChart<TDatum extends object>({
           pointerEvents="none"
         />
       ) : null}
-      {rows.map((row, index) => {
-        const point = points[index];
-        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
-        const isHovered = hoveredIndex === index;
-        const isFocused = activeIndex === index;
+      {renderableItems.map(({ row, point }, itemIndex) => {
+        const isHovered = hoveredIndex === row.index;
+        const isFocused = activeItemIndex === itemIndex;
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         const initialY = Number.isFinite(baseline) ? baseline : point.y;
@@ -281,29 +293,28 @@ export function LineChart<TDatum extends object>({
             initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
             animate={{ cx: point.x, cy: point.y, r: isHovered ? 6.5 : (showPoints ? 4.5 : 7.5), opacity: 1 }}
             whileHover={{ r: 7.5, strokeWidth: 3 }}
-            transition={chartTransition(animation, reducedMotion, index)}
+            transition={chartTransition(animation, reducedMotion, row.index)}
             role="graphics-symbol"
             aria-roledescription="data point"
             aria-label={aria}
-            aria-describedby={isHovered || isFocused ? tooltipId : undefined}
-            tabIndex={index === activeIndex ? 0 : -1}
+            aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
+            tabIndex={itemIndex === activeItemIndex ? 0 : -1}
             style={{
               cursor: onDatumClick ? "pointer" : "default",
               filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
-              outline: isFocused && (hoveredIndex === index || hoveredIndex === null) ? `2px solid ${chartTheme.textColor}` : "none",
-              outlineOffset: 3
+              outline: "none"
             }}
             onPointerEnter={(event) => handlePointerMove(event, row)}
             onPointerMove={(event) => handlePointerMove(event, row)}
             onPointerLeave={hideTooltip}
             onFocus={(event) => {
-              setActiveIndex(index);
+              setActiveItemIndex(itemIndex);
               setHoveredIndex(row.index);
               const rect = event.currentTarget.getBoundingClientRect();
               setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });
             }}
             onBlur={hideTooltip}
-            onKeyDown={(event) => handleKeyDown(event, index)}
+            onKeyDown={(event) => handleKeyDown(event, itemIndex)}
             onClick={() => onDatumClick?.(context)}
           >
             <title>{aria}</title>
