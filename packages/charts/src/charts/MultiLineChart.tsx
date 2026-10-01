@@ -137,7 +137,11 @@ export function MultiLineChart<TDatum extends object>({
     () => createLinearScale(extent(allValidValues, includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
     [allValidValues, bounds.innerHeight, bounds.top, includeZero, yAxis?.tickCount]
   );
-  const baseline = yScale.scale(0);
+  // When includeZero is false (or dataset is strictly positive above 0),
+  // baseline should anchor to the inner bottom of the chart area so the area fill stays within chart bounds
+  const baseline = yScale.domain[0] > 0 || !includeZero
+    ? bounds.top + bounds.innerHeight
+    : yScale.scale(0);
   const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 

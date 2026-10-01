@@ -134,7 +134,11 @@ export function LineChart<TDatum extends object>({
     setActiveItemIndex((current) => renderableItems.length === 0 ? 0 : Math.min(current, renderableItems.length - 1));
   }, [renderableItems.length]);
 
-  const baseline = yScale.scale(0);
+  // When includeZero is false (or dataset is strictly positive above 0),
+  // baseline should anchor to the inner bottom of the chart area so the area fill stays within chart bounds
+  const baseline = yScale.domain[0] > 0 || !includeZero
+    ? bounds.top + bounds.innerHeight
+    : yScale.scale(0);
   const baselinePoints: (Point | null)[] = useMemo(
     () => points.map((p) => (p ? { x: p.x, y: baseline } : null)),
     [baseline, points]

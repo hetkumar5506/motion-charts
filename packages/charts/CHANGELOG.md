@@ -1,14 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.1.9
 
 ### Fixed & Enhanced
-- Hardened SSR-safe color parsing for alpha hex, modern `rgb()`/`hsl()`, named colors, and normalized palette indexes.
-- Kept responsive chart dimensions finite and stable when containers are hidden or receive invalid sizing props.
-- Reworked tooltip measurement to use a stable ref, portal-aware layout measurement, resize updates, and viewport-safe clamping.
-- Preserved a valid roving keyboard target after live data updates and made duplicate multi-line series IDs safe for React and SVG.
-- Improved donut label contrast and sanitized invalid pie/arc geometry inputs.
-- Kept documentation badges aligned with the published `0.1.8` package version.
+- **Gradient Area Fill Baseline Overflow**: Fixed `<LineChart />` and `<MultiLineChart />` area fill calculating `yScale.scale(0)` far below the chart SVG viewport when `includeZero: false` or when dataset values are strictly positive, preventing the area gradient from blowing out of the chart card.
+- **BarChart SVG Focus Indicator (N-1)**: Replaced Framer Motion style-snapshotting outline with an SVG-native sibling `<rect>` focus ring (`theme.textColor`, 2px stroke, 2px offset) triggered on keyboard focus, resolving WCAG 2.1 visible focus indicators on all bars.
+- **Deterministic Date Formatting (P3)**: Standardized `labelOf` Date handling to deterministic ISO format (`YYYY-MM-DD`), preventing SSR/client hydration mismatch warnings across differing server and client locales.
+- **Color & Geometry Edge Cases**: Hardened SSR-safe color parsing for alpha hex, modern `rgb()`/`hsl()`, and sanitized invalid pie/arc geometry inputs.
 
 ## 0.1.8
 

@@ -98,7 +98,8 @@ describe("audit v0.1.3 regression and compliance suite", () => {
         yKey="v"
       />
     );
-    expect(html).toContain(date.toLocaleDateString());
+    // Deterministic ISO format (YYYY-MM-DD) to prevent SSR/client locale mismatch
+    expect(html).toContain("2026-01-15");
   });
 
   it("thins x-axis ticks when there are many data points", () => {

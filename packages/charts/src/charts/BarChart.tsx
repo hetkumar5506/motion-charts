@@ -60,6 +60,7 @@ export function BarChart<TDatum extends object>({
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -126,6 +127,7 @@ export function BarChart<TDatum extends object>({
 
   function handlePointerMove(event: PointerEvent<SVGRectElement>, row: (typeof rows)[number]) {
     if (!tooltipEnabled) return;
+    setIsKeyboardFocused(false);
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
     // Key state updates on hoveredIndex; avoid re-rendering commits when hovering inside the same bar
@@ -138,6 +140,7 @@ export function BarChart<TDatum extends object>({
   function hideTooltip() {
     setHoveredIndex(null);
     setTooltipState(null);
+    setIsKeyboardFocused(false);
   }
 
   function handleKeyDown(event: KeyboardEvent<SVGRectElement>, index: number) {
@@ -152,6 +155,7 @@ export function BarChart<TDatum extends object>({
     event.preventDefault();
     const nextIndex = Math.min(count - 1, Math.max(0, index + delta));
     setActiveIndex(nextIndex);
+    setIsKeyboardFocused(true);
     const nextRow = rows[nextIndex];
     if (nextRow) {
       setHoveredIndex(nextIndex);
@@ -246,12 +250,25 @@ export function BarChart<TDatum extends object>({
                 onClick={() => onDatumClick?.(context)}
                 style={{
                   cursor: onDatumClick ? "pointer" : "default",
-                  outline: isFocused && hoveredIndex === index ? `2px solid ${chartTheme.textColor}` : "none",
-                  outlineOffset: 2
+                  outline: "none"
                 }}
               >
                 <title>{aria}</title>
               </motion.rect>
+              {isFocused && isKeyboardFocused ? (
+                <rect
+                  x={x - 3}
+                  y={y - 3}
+                  width={xScale.bandwidth + 6}
+                  height={barHeight + 6}
+                  rx={Math.min(barRadius + 3, (xScale.bandwidth + 6) / 2, Math.max(0, barHeight + 6) / 2)}
+                  fill="none"
+                  stroke={chartTheme.textColor}
+                  strokeWidth={2}
+                  pointerEvents="none"
+                  opacity={0.85}
+                />
+              ) : null}
               {showValues ? (() => {
                 const isPositive = row.value >= 0;
                 const fitInside = barHeight >= 28;

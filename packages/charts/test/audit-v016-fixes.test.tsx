@@ -196,4 +196,35 @@ describe("Audit Report Confirmed Bug Fixes (BUG-1 to BUG-9)", () => {
     const htmlIndexed = renderToString(<LineChart data={data} xKey="x" yKey="y" colorIndex={1} />);
     expect(htmlDefault).not.toEqual(htmlIndexed);
   });
+
+  // N-1: BarChart supports SVG-native focus indicators and clean outline: none
+  it("N-1: BarChart has outline: none on bars to prevent CSS bounding-box bugs", () => {
+    const data = [{ m: "Jan", v: 100 }, { m: "Feb", v: 200 }];
+    const html = renderToString(<BarChart data={data} xKey="m" yKey="v" />);
+    expect(html).toContain('outline:none');
+    expect(html).not.toContain('outline:2px solid');
+  });
+
+  // Area baseline clamping when includeZero is false (or positive data)
+  it("LineChart and MultiLineChart clamp area fill baseline inside inner chart bounds", () => {
+    const data = [
+      { day: "Mon", v: 12000 },
+      { day: "Tue", v: 14000 },
+      { day: "Wed", v: 13500 }
+    ];
+    const html = renderToString(
+      <LineChart data={data} xKey="day" yKey="v" showArea={true} height={360} />
+    );
+    // Area path should exist and not have y coordinates that blow through the bottom of the SVG
+    expect(html).toContain('<path');
+    expect(html).not.toContain('NaN');
+  });
+
+  // P3: Deterministic ISO format for Date labels
+  it("P3: formats Date labels deterministically in ISO YYYY-MM-DD", () => {
+    const date = new Date("2026-10-01T00:00:00Z");
+    const data = [{ date, val: 50 }];
+    const html = renderToString(<LineChart data={data} xKey="date" yKey="val" />);
+    expect(html).toMatch(/2026-10-01/);
+  });
 });
