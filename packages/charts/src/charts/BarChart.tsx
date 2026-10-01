@@ -41,6 +41,7 @@ export function BarChart<TDatum extends object>({
 
   ariaLabel = "Bar chart",
   ariaDescription,
+  dateFormatter,
   valueFormatter = defaultValueFormatter,
   emptyState,
   animation,
@@ -80,12 +81,12 @@ export function BarChart<TDatum extends object>({
   const rows = useMemo(
     () =>
       safeData.map((datum, index) => {
-        const label = labelOf(datum, index, xKey);
+        const label = labelOf(datum, index, xKey, dateFormatter);
         const value = numberOf(datum, index, yKey);
         const color = colorAt(chartTheme.colors, index);
         return { datum, index, label, value, color };
       }),
-    [chartTheme.colors, safeData, xKey, yKey]
+    [chartTheme.colors, dateFormatter, safeData, xKey, yKey]
   );
 
   // Keep roving tabindex valid when a live data update removes the active bar.

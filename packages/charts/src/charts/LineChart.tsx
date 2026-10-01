@@ -44,6 +44,7 @@ export function LineChart<TDatum extends object>({
   theme,
   ariaLabel = "Line chart",
   ariaDescription,
+  dateFormatter,
   valueFormatter = defaultValueFormatter,
   emptyState,
   animation,
@@ -82,13 +83,13 @@ export function LineChart<TDatum extends object>({
   const rows = useMemo(
     () =>
       safeData.map((datum, index) => {
-        const label = labelOf(datum, index, xKey);
+        const label = labelOf(datum, index, xKey, dateFormatter);
         const rawVal = rawNumberOf(datum, index, yKey);
         const value = rawVal ?? 0;
         const isNull = rawVal === null;
         return { datum, index, label, value, rawVal, isNull, color };
       }),
-    [color, safeData, xKey, yKey]
+    [color, dateFormatter, safeData, xKey, yKey]
   );
 
   const labels = useMemo(() => rows.map((row) => row.label), [rows]);

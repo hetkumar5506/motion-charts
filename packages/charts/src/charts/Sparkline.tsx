@@ -38,6 +38,7 @@ export function Sparkline<TDatum extends object>({
   theme,
   ariaLabel = "Sparkline chart",
   ariaDescription,
+  dateFormatter,
   valueFormatter = defaultValueFormatter,
   emptyState,
   animation,
@@ -86,13 +87,13 @@ export function Sparkline<TDatum extends object>({
   const rows = useMemo(
     () =>
       safeData.map((datum, index) => {
-        const label = xKey ? labelOf(datum, index, xKey) : String(index + 1);
+        const label = xKey ? labelOf(datum, index, xKey, dateFormatter) : String(index + 1);
         const rawVal = rawNumberOf(datum, index, yKey);
         const value = rawVal ?? 0;
         const isNull = rawVal === null;
         return { datum, index, label, value, rawVal, isNull, color };
       }),
-    [color, safeData, xKey, yKey]
+    [color, dateFormatter, safeData, xKey, yKey]
   );
   const validValues = useMemo(() => rows.filter((r) => !r.isNull).map((r) => r.value), [rows]);
   const yScale = useMemo(

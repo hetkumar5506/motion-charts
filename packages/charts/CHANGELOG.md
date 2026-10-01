@@ -5,7 +5,7 @@
 ### Fixed & Enhanced
 - **Responsive overflow guards**: `ResponsiveChart` and all chart surfaces now opt into `min-width: 0`, sanitize invalid dimensions, clamp margins for narrow cards, and keep donut geometry inside its viewBox.
 - **Invalid SVG attribute protection**: Direct chart usage with `NaN`, `Infinity`, zero, negative, or invalid sizing/styling values no longer produces invalid SVG attributes.
-- **UTC date labels**: Date labels now use `toISOString().slice(0, 10)` so dates are deterministic across server and browser timezones.
+- **Date calendar-day correction**: Date labels now use local calendar parts by default, preventing `new Date(year, month, day)` from shifting backward in timezones east of UTC. Added the `dateFormatter` prop for explicit UTC/instant formatting.
 - **Focus ring containment**: BarChart SVG focus rings are clamped to the chart viewport at the edges.
 - **Documentation**: Added responsive grid/flex guidance and narrow-card examples.
 

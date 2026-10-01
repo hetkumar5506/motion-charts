@@ -40,6 +40,7 @@ export function DonutChart<TDatum extends object>({
   theme,
   ariaLabel = "Donut chart",
   ariaDescription,
+  dateFormatter,
   valueFormatter = defaultValueFormatter,
   emptyState,
   animation,
@@ -70,7 +71,7 @@ export function DonutChart<TDatum extends object>({
   const rows = useMemo(
     () =>
       safeData.map((datum, index) => {
-        const label = labelOf(datum, index, labelKey);
+        const label = labelOf(datum, index, labelKey, dateFormatter);
         const rawValue = numberOf(datum, index, valueKey);
         if (rawValue < 0 && isDev()) {
           console.warn(`[@motion-charts/core] DonutChart received negative value at index ${index} (${rawValue}). Clamping to 0.`);
@@ -79,7 +80,7 @@ export function DonutChart<TDatum extends object>({
         const color = colorAt(chartTheme.colors, index);
         return { datum, index, label, value, color };
       }),
-    [chartTheme.colors, labelKey, safeData, valueKey]
+    [chartTheme.colors, dateFormatter, labelKey, safeData, valueKey]
   );
   const total = useMemo(() => rows.reduce((sum, row) => {
     const next = sum + row.value;

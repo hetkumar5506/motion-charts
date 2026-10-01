@@ -59,6 +59,7 @@ export function MultiLineChart<TDatum extends object>({
   theme,
   ariaLabel = "Multi-line chart",
   ariaDescription,
+  dateFormatter,
   valueFormatter = defaultValueFormatter,
   emptyState,
   animation,
@@ -92,7 +93,7 @@ export function MultiLineChart<TDatum extends object>({
   const safeData = data ?? [];
   const safeSeries = series ?? [];
 
-  const labels = useMemo(() => safeData.map((datum, index) => labelOf(datum, index, xKey)), [safeData, xKey]);
+  const labels = useMemo(() => safeData.map((datum, index) => labelOf(datum, index, xKey, dateFormatter)), [dateFormatter, safeData, xKey]);
   const preparedSeries = useMemo(() => {
     const usedIds = new Set<string>();
     return safeSeries.map((item, index) => {

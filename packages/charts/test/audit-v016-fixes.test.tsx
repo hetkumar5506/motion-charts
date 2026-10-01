@@ -220,9 +220,9 @@ describe("Audit Report Confirmed Bug Fixes (BUG-1 to BUG-9)", () => {
     expect(html).not.toContain('NaN');
   });
 
-  // P3: Deterministic ISO format for Date labels
-  it("P3: formats Date labels deterministically in ISO YYYY-MM-DD", () => {
-    const date = new Date("2026-10-01T00:00:00Z");
+  // P3/D-1: Local Date constructors retain their intended calendar day.
+  it("P3/D-1: formats local Date labels as local YYYY-MM-DD", () => {
+    const date = new Date(2026, 9, 1);
     const data = [{ date, val: 50 }];
     const html = renderToString(<LineChart data={data} xKey="date" yKey="val" />);
     expect(html).toMatch(/2026-10-01/);

@@ -1,4 +1,4 @@
-import type { Accessor } from "../types";
+import type { Accessor, DateFormatter } from "../types";
 import { isDev } from "./env";
 
 export function valueOf<TDatum, TValue>(datum: TDatum, index: number, accessor: Accessor<TDatum, TValue>): TValue {
@@ -57,14 +57,26 @@ export function numberOf<TDatum>(datum: TDatum, index: number, accessor: Accesso
   return raw ?? 0;
 }
 
-export function labelOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, unknown>): string {
+export function labelOf<TDatum>(
+  datum: TDatum,
+  index: number,
+  accessor: Accessor<TDatum, unknown>,
+  dateFormatter?: DateFormatter
+): string {
   const value = valueOf(datum, index, accessor);
   if (value == null) return String(index + 1);
   if (typeof value === "object" && value instanceof Date) {
     if (Number.isNaN(value.getTime())) return "Invalid Date";
-    // Use UTC so a Date created from an ISO timestamp renders identically in
-    // every server and browser timezone.
-    return value.toISOString().slice(0, 10);
+    if (dateFormatter) return String(dateFormatter(value) ?? "");
+
+    // Date constructors such as new Date(2026, 0, 2) express a local
+    // calendar day. Format local parts by default so that day does not move
+    // backward for users east of UTC. Consumers working with UTC instants can
+    // pass dateFormatter explicitly (for example, date => date.toISOString()).
+    const year = String(value.getFullYear()).padStart(4, "0");
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
   return String(value);
 }
