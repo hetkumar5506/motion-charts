@@ -1,13 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.10
 
 ### Fixed & Enhanced
-- **Responsive overflow guards**: `ResponsiveChart` and all chart surfaces now opt into `min-width: 0`, sanitize invalid dimensions, clamp margins for narrow cards, and keep donut geometry inside its viewBox.
-- **Invalid SVG attribute protection**: Direct chart usage with `NaN`, `Infinity`, zero, negative, or invalid sizing/styling values no longer produces invalid SVG attributes.
-- **UTC date labels**: Date labels now use `toISOString().slice(0, 10)` so dates are deterministic across server and browser timezones.
-- **Focus ring containment**: BarChart SVG focus rings are clamped to the chart viewport at the edges.
-- **Documentation**: Added responsive grid/flex guidance and narrow-card examples.
+- **Responsive Overflow & Layout Hardening**: `ResponsiveChart` and all chart surfaces now incorporate `min-width: 0`, dimension sanitization, clamped responsive margins for narrow cards, and bounds containment for donut geometry and sparklines.
+- **Narrow & Extreme Data State Hardening**: Sanitized scales and geometry calculations against zero/negative ranges, identical data bounds, single data points, and extreme values across `BarChart`, `DonutChart`, `LineChart`, `MultiLineChart`, and `Sparkline`.
+- **Invalid SVG Attribute Protection**: Direct chart usage with `NaN`, `Infinity`, zero, negative, or invalid sizing/styling values no longer produces invalid SVG attributes or layout crashes.
+- **UTC Date Label Normalization**: Date labels use deterministic UTC ISO strings (`toISOString().slice(0, 10)`), guaranteeing identical rendering across server and client timezones.
+- **BarChart Focus Ring Viewport Containment**: Focus rings on edge bars are clamped to the chart viewport to avoid clipping.
+- **Responsive Grid/Flex Documentation**: Added documentation and examples for CSS grid and flex container integration.
 
 ## 0.1.9
 
