@@ -8,7 +8,7 @@ import { labelOf, numberOf } from "../utils/accessors";
 import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { resolveChartTheme } from "../themes";
-import { chartTransition, shouldAnimateInitial } from "../utils/motion";
+import { chartTransition, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
@@ -63,11 +63,7 @@ export function BarChart<TDatum extends object>({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { isEntering, onAnimationComplete } = useChartEntrance(animation, reducedMotion);
 
   const bounds = useMemo(
     () => resolveChartBounds(width, height, defaultMargin, margin),
@@ -108,8 +104,7 @@ export function BarChart<TDatum extends object>({
   // Clamp the baseline when consumers opt out of zero inclusion; otherwise a
   // positive-only or negative-only bar chart can render bars below/above the SVG.
   const baseline = Math.min(bounds.top + bounds.innerHeight, Math.max(bounds.top, rawBaseline));
-  // In SSR (before mount), render the final state directly so SSR HTML is not a blank 0-height SVG
-  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
+  // SSR renders final geometry; post-hydration keyframes provide the entrance animation.
   const tooltipEnabled = tooltip !== false;
 
   function tooltipContent(row: (typeof rows)[number]): ReactNode {
@@ -235,9 +230,13 @@ export function BarChart<TDatum extends object>({
                 height={barHeight}
                 rx={Math.min(safeBarRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
                 fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
-                initial={shouldInitial ? { scaleY: 0, opacity: 0 } : false}
-                animate={{ scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
+                initial={false}
+                animate={isEntering
+                  ? { scaleY: [0, 1], opacity: [0, isHovered ? 0.92 : 1] }
+                  : { scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
+                whileHover={{ opacity: 0.85 }}
                 transition={chartTransition(animation, reducedMotion, row.index)}
+                onAnimationComplete={isEntering && index === rows.length - 1 && !showValues ? onAnimationComplete : undefined}
                 role="graphics-symbol"
                 aria-roledescription="bar"
                 aria-label={aria}
@@ -298,9 +297,10 @@ export function BarChart<TDatum extends object>({
                     fontFamily={chartTheme.fontFamily}
                     fontSize={11}
                     fontWeight={600}
-                    initial={shouldInitial ? { opacity: 0, scale: 0.96 } : false}
-                    animate={{ opacity: 1, scale: 1 }}
+                    initial={false}
+                    animate={isEntering ? { opacity: [0, 1], scale: [0.96, 1] } : { opacity: 1, scale: 1 }}
                     transition={chartTransition(animation, reducedMotion, row.index + 1)}
+                    onAnimationComplete={isEntering && index === rows.length - 1 && showValues ? onAnimationComplete : undefined}
                     style={{
                       filter: fitInside ? "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" : "none",
                       userSelect: "none",

@@ -86,6 +86,7 @@ describe("audit v0.1.3 regression and compliance suite", () => {
       />
     );
     expect(html).not.toMatch(/(?:NaN|Infinity|height="0")/);
+    expect(html).not.toContain("translateY");
     expect(html).toContain("transform-box");
     expect(html).toContain("transform-origin");
   });

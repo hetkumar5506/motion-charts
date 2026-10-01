@@ -9,7 +9,7 @@ import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { resolveChartTheme } from "../themes";
 import { arcPath, pieSlices, polar } from "../utils/geometry";
-import { chartTransition, shouldAnimateInitial } from "../utils/motion";
+import { chartTransition, useChartEntrance } from "../utils/motion";
 import { isDev } from "../utils/env";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
@@ -60,11 +60,7 @@ export function DonutChart<TDatum extends object>({
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeSliceIndex, setActiveSliceIndex] = useState(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { isEntering, onAnimationComplete } = useChartEntrance(animation, reducedMotion);
 
   const safeData = data ?? [];
 
@@ -121,7 +117,6 @@ export function DonutChart<TDatum extends object>({
   const outerRadius = Math.max(0, smallestDimension / 2 - radiusInset);
   const safeInnerRadiusRatio = Math.min(0.9, finiteNonNegative(innerRadiusRatio, 0.62));
   const innerRadius = outerRadius * safeInnerRadiusRatio;
-  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
   function tooltipContent(row: (typeof rows)[number], percent: number): ReactNode {
@@ -209,6 +204,7 @@ export function DonutChart<TDatum extends object>({
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
           const isHovered = hoveredIndex === row.index;
           const isFocused = isKeyboardFocused && activeSliceIndex === itemIndex;
+          const hasLabel = showLabels && slice.percent > 0.05;
 
           return (
             <g key={`${row.label}-${row.index}`}>
@@ -218,10 +214,13 @@ export function DonutChart<TDatum extends object>({
                 stroke={isFocused ? chartTheme.textColor : "transparent"}
                 strokeWidth={isFocused ? 2.5 : 0}
                 strokeLinejoin="round"
-                initial={shouldInitial ? { opacity: 0, scale: 0.86 } : false}
-                animate={{ opacity: 1, scale: isFocused ? 1.04 : 1 }}
+                initial={false}
+                animate={isEntering
+                  ? { opacity: [0, 1], scale: [0.86, isFocused ? 1.04 : 1] }
+                  : { opacity: 1, scale: isFocused ? 1.04 : 1 }}
                 whileHover={{ scale: 1.035, opacity: 0.95 }}
                 transition={chartTransition(animation, reducedMotion, originalIndex)}
+                onAnimationComplete={isEntering && itemIndex === renderableSlices.length - 1 && !hasLabel ? onAnimationComplete : undefined}
                 role="graphics-symbol"
                 aria-roledescription="slice"
                 aria-label={aria}
@@ -249,7 +248,7 @@ export function DonutChart<TDatum extends object>({
               >
                 <title>{aria}</title>
               </motion.path>
-              {showLabels && slice.percent > 0.05 ? (
+              {hasLabel ? (
                 <motion.text
                   x={labelPoint.x}
                   y={labelPoint.y}
@@ -260,9 +259,10 @@ export function DonutChart<TDatum extends object>({
                   fontSize={chartTheme.fontSize}
                   fontWeight={700}
                   pointerEvents="none"
-                  initial={shouldInitial ? { opacity: 0 } : false}
-                  animate={{ opacity: 1 }}
+                  initial={false}
+                  animate={isEntering ? { opacity: [0, 1] } : { opacity: 1 }}
                   transition={chartTransition(animation, reducedMotion, originalIndex + 1)}
+                  onAnimationComplete={isEntering && itemIndex === renderableSlices.length - 1 ? onAnimationComplete : undefined}
                 >
                   {Math.round(slice.percent * 100)}%
                 </motion.text>

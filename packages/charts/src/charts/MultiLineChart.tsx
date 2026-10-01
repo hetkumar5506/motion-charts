@@ -9,7 +9,7 @@ import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
-import { chartTransition, shouldAnimateInitial } from "../utils/motion";
+import { chartTransition, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
 import { resolveChartTheme } from "../themes";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
@@ -80,11 +80,7 @@ export function MultiLineChart<TDatum extends object>({
   const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [activeGlobalIndex, setActiveGlobalIndex] = useState(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { isEntering, onAnimationComplete } = useChartEntrance(animation, reducedMotion);
   const bounds = useMemo(
     () => resolveChartBounds(width, height, defaultMargin, margin),
     [height, margin, width]
@@ -140,7 +136,6 @@ export function MultiLineChart<TDatum extends object>({
   const baseline = yScale.domain[0] > 0 || !includeZero
     ? bounds.top + bounds.innerHeight
     : yScale.scale(0);
-  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
   const renderedSeries = useMemo(
@@ -328,8 +323,10 @@ export function MultiLineChart<TDatum extends object>({
               <motion.path
                 d={item.fillPath}
                 fill={`url(#${gradientBaseId}-${seriesIndex})`}
-                initial={shouldInitial ? { d: item.initialFillPath, opacity: 0 } : false}
-                animate={{ opacity: 1, d: item.fillPath }}
+                initial={false}
+                animate={isEntering
+                  ? { opacity: [0, 1], d: [item.initialFillPath, item.fillPath] }
+                  : { opacity: 1, d: item.fillPath }}
                 transition={chartTransition(animation, reducedMotion, seriesIndex)}
                 pointerEvents="none"
               />
@@ -342,9 +339,12 @@ export function MultiLineChart<TDatum extends object>({
                 strokeWidth={item.strokeWidth}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                initial={shouldInitial ? { d: item.initialPath, opacity: 0 } : false}
-                animate={{ d: item.path, opacity: 1 }}
+                initial={false}
+                animate={isEntering
+                  ? { d: [item.initialPath, item.path], opacity: [0, 1] }
+                  : { d: item.path, opacity: 1 }}
                 transition={chartTransition(animation, reducedMotion, seriesIndex)}
+                onAnimationComplete={isEntering && renderablePoints.length === 0 && seriesIndex === renderedSeries.length - 1 ? onAnimationComplete : undefined}
                 pointerEvents="none"
               />
             ) : null}
@@ -364,7 +364,6 @@ export function MultiLineChart<TDatum extends object>({
             seriesLabel: row.seriesLabel
           };
           const aria = joinLabels([row.seriesLabel, row.label, valueFormatter(row.value)]);
-          const initialY = Number.isFinite(baseline) ? baseline : point.y;
           return (
             <g key={`${item.id}-${row.label}-${row.index}`}>
               {isFocused ? (
@@ -386,15 +385,13 @@ export function MultiLineChart<TDatum extends object>({
                 fill={showPoints || isHovered ? item.color : "transparent"}
                 stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
                 strokeWidth={showPoints || isHovered ? 2.5 : 0}
-                initial={shouldInitial ? { cx: point.x, cy: initialY, r: 0, opacity: 0 } : false}
-                animate={{
-                  cx: point.x,
-                  cy: point.y,
-                  r: isHovered ? 6 : (showPoints ? 4 : 7),
-                  opacity: 1
-                }}
+                initial={false}
+                animate={isEntering
+                  ? { r: [0, isHovered ? 6 : (showPoints ? 4 : 7)], opacity: [0, 1] }
+                  : { r: isHovered ? 6 : (showPoints ? 4 : 7), opacity: 1 }}
                 whileHover={{ r: 7.5, strokeWidth: 3 }}
                 transition={chartTransition(animation, reducedMotion, row.index + seriesIdx)}
+                onAnimationComplete={isEntering && ptIndex === renderablePoints.length - 1 ? onAnimationComplete : undefined}
                 role="graphics-symbol"
                 aria-roledescription="data point"
                 aria-label={aria}

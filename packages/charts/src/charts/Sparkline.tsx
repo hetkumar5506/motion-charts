@@ -7,7 +7,7 @@ import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
-import { chartTransition, shouldAnimateInitial } from "../utils/motion";
+import { chartTransition, useChartEntrance } from "../utils/motion";
 import { createLinearScale, extent } from "../utils/scales";
 import { resolveChartTheme } from "../themes";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
@@ -60,11 +60,7 @@ export function Sparkline<TDatum extends object>({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { isEntering, onAnimationComplete } = useChartEntrance(animation, reducedMotion);
 
   const color = colorAt(chartTheme.colors, colorIndex);
   const safePadding = finiteNonNegative(padding, 10);
@@ -118,7 +114,6 @@ export function Sparkline<TDatum extends object>({
   const initialPath = useMemo(() => linePath(baselinePoints, curve, true), [baselinePoints, curve]);
   const fillPath = useMemo(() => areaPath(points, baseline, curve, true), [baseline, curve, points]);
   const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve, true), [baseline, baselinePoints, curve]);
-  const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
   // Renderable items are only rows with non-null values
@@ -218,8 +213,8 @@ export function Sparkline<TDatum extends object>({
         <motion.path
           d={fillPath}
           fill={`url(#${gradientId})`}
-          initial={shouldInitial ? { d: initialFillPath, opacity: 0 } : false}
-          animate={{ opacity: 1, d: fillPath }}
+          initial={false}
+          animate={isEntering ? { opacity: [0, 1], d: [initialFillPath, fillPath] } : { opacity: 1, d: fillPath }}
           transition={chartTransition(animation, reducedMotion)}
           pointerEvents="none"
         />
@@ -232,9 +227,10 @@ export function Sparkline<TDatum extends object>({
           strokeWidth={safeStrokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
-          initial={shouldInitial ? { d: initialPath, opacity: 0 } : false}
-          animate={{ d: path, opacity: 1 }}
+          initial={false}
+          animate={isEntering ? { d: [initialPath, path], opacity: [0, 1] } : { d: path, opacity: 1 }}
           transition={chartTransition(animation, reducedMotion)}
+          onAnimationComplete={isEntering && renderableItems.length === 0 ? onAnimationComplete : undefined}
           pointerEvents="none"
         />
       ) : null}
@@ -263,8 +259,8 @@ export function Sparkline<TDatum extends object>({
               fill="#ffffff"
               stroke="#e2e8f0"
               strokeWidth={1}
-              initial={shouldInitial ? { opacity: 0, scale: 0.9 } : false}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={false}
+              animate={isEntering ? { opacity: [0, 1], scale: [0.9, 1] } : { opacity: 1, scale: 1 }}
               transition={chartTransition(animation, reducedMotion, rows.length)}
               style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.06))" }}
             />
@@ -279,8 +275,8 @@ export function Sparkline<TDatum extends object>({
               fontWeight={700}
               textLength={textLength}
               lengthAdjust={textLength ? "spacingAndGlyphs" : undefined}
-              initial={shouldInitial ? { opacity: 0 } : false}
-              animate={{ opacity: 1 }}
+              initial={false}
+              animate={isEntering ? { opacity: [0, 1] } : { opacity: 1 }}
               transition={chartTransition(animation, reducedMotion, rows.length)}
             >
               {showPillText ? text : null}
@@ -292,7 +288,6 @@ export function Sparkline<TDatum extends object>({
         const visible = showPoints || itemIndex === renderableItems.length - 1;
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
-        const initialY = Number.isFinite(baseline) ? baseline : point.y;
         const isHovered = hoveredIndex === row.index;
         const isFocused = isKeyboardFocused && activeItemIndex === itemIndex;
         return (
@@ -316,10 +311,11 @@ export function Sparkline<TDatum extends object>({
               fill={visible ? color : "transparent"}
               stroke={visible ? "white" : "transparent"}
               strokeWidth={visible ? 2 : 0}
-              initial={shouldInitial ? { cx: point.x, cy: initialY, scale: 0, opacity: 0 } : false}
-              animate={{ cx: point.x, cy: point.y, scale: 1, opacity: 1 }}
+              initial={false}
+              animate={isEntering ? { scale: [0, 1], opacity: [0, 1] } : { scale: 1, opacity: 1 }}
               whileHover={{ scale: 1.35 }}
               transition={chartTransition(animation, reducedMotion, row.index)}
+              onAnimationComplete={isEntering && itemIndex === renderableItems.length - 1 ? onAnimationComplete : undefined}
               role="graphics-symbol"
               aria-roledescription="data point"
               aria-label={aria}
