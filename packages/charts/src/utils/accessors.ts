@@ -38,7 +38,9 @@ export function labelOf<TDatum>(datum: TDatum, index: number, accessor: Accessor
   if (value == null) return String(index + 1);
   if (typeof value === "object" && value instanceof Date) {
     if (Number.isNaN(value.getTime())) return "Invalid Date";
-    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+    // Use UTC so a Date created from an ISO timestamp renders identically in
+    // every server and browser timezone.
+    return value.toISOString().slice(0, 10);
   }
   return String(value);
 }

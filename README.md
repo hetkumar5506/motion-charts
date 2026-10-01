@@ -62,7 +62,7 @@ export function Revenue() {
 ## v0.1 feature set
 
 - Animated `BarChart`, `LineChart`, `MultiLineChart`, `DonutChart`, and `Sparkline`
-- Responsive measurement wrapper via `ResponsiveChart`
+- Responsive measurement wrapper via `ResponsiveChart`, with grid/flex shrink protection and narrow-card geometry guards
 - 6 chart themes: `aurora`, `midnight`, `candy`, `ocean`, `sunset`, `minimal`
 - 12 palettes: `aurora`, `ocean`, `sunset`, `forest`, `candy`, `royal`, `fire`, `cyber`, `pastel`, `graphite`, `emerald`, `bloom`
 - 7 animation presets: `spring`, `gentle`, `snappy`, `bouncy`, `calm`, `dramatic`, `linear`

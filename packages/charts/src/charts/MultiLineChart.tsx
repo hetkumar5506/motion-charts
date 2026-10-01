@@ -12,6 +12,7 @@ import { areaPath, linePath, type Point } from "../utils/geometry";
 import { chartTransition, shouldAnimateInitial } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
 import { resolveChartTheme } from "../themes";
+import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
 export type LineSeries<TDatum extends object> = {
   id: string;
@@ -83,14 +84,10 @@ export function MultiLineChart<TDatum extends object>({
   useEffect(() => {
     setMounted(true);
   }, []);
-  const bounds = useMemo(() => ({
-    ...defaultMargin,
-    ...margin,
-    width,
-    height,
-    innerWidth: Math.max(1, width - (margin?.left ?? defaultMargin.left) - (margin?.right ?? defaultMargin.right)),
-    innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
-  }), [height, margin, width]);
+  const bounds = useMemo(
+    () => resolveChartBounds(width, height, defaultMargin, margin),
+    [height, margin, width]
+  );
 
   const safeData = data ?? [];
   const safeSeries = series ?? [];
@@ -113,7 +110,7 @@ export function MultiLineChart<TDatum extends object>({
         id,
         label: item.label ?? item.id,
         color: item.color ?? colorAt(chartTheme.colors, index),
-        strokeWidth: item.strokeWidth ?? 3
+        strokeWidth: finiteNonNegative(item.strokeWidth, 3)
       };
     });
   }, [chartTheme.colors, safeSeries]);
@@ -270,10 +267,10 @@ export function MultiLineChart<TDatum extends object>({
       : null;
 
   return (
-    <div className={className} style={{ width: "100%", ...style }}>
+    <div className={className} style={{ width: "100%", minWidth: 0, ...style }}>
       <ChartSurface
-        width={width}
-        height={height}
+        width={bounds.width}
+        height={bounds.height}
         ariaLabel={ariaLabel}
         ariaDescription={ariaDescription}
         tooltip={tooltipState}
@@ -288,7 +285,7 @@ export function MultiLineChart<TDatum extends object>({
             </linearGradient>
           ))}
         </defs>
-        {!hasData ? <EmptyState x={width / 2} y={height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
+        {!hasData ? <EmptyState x={bounds.width / 2} y={bounds.height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
         {showGrid ? <GridRows scale={yScale} x1={bounds.left} x2={bounds.left + bounds.innerWidth} style={chartTheme} /> : null}
 
         {/* Vertical crosshair guide on active point */}

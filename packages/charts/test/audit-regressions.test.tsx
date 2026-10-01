@@ -90,7 +90,7 @@ describe("audit v0.1.3 regression and compliance suite", () => {
   });
 
   it("formats Date objects appropriately in labelOf", () => {
-    const date = new Date(2026, 0, 15);
+    const date = new Date("2026-01-15T00:00:00Z");
     const html = renderToString(
       <BarChart
         data={[{ d: date, v: 10 }]}

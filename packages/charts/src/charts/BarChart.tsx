@@ -10,6 +10,7 @@ import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { resolveChartTheme } from "../themes";
 import { chartTransition, shouldAnimateInitial } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
+import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
 export type BarChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   xKey: Accessor<TDatum, string | number>;
@@ -67,14 +68,12 @@ export function BarChart<TDatum extends object>({
     setMounted(true);
   }, []);
 
-  const bounds = useMemo(() => ({
-    ...defaultMargin,
-    ...margin,
-    width,
-    height,
-    innerWidth: Math.max(1, width - (margin?.left ?? defaultMargin.left) - (margin?.right ?? defaultMargin.right)),
-    innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
-  }), [height, margin, width]);
+  const bounds = useMemo(
+    () => resolveChartBounds(width, height, defaultMargin, margin),
+    [height, margin, width]
+  );
+  const safeBarRadius = finiteNonNegative(barRadius, 8);
+  const safeBarPadding = finiteNonNegative(barPadding, 0.22);
 
   const safeData = data ?? [];
 
@@ -96,15 +95,18 @@ export function BarChart<TDatum extends object>({
 
   const labels = useMemo(() => rows.map((row) => row.label), [rows]);
   const xScale = useMemo(
-    () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], barPadding),
-    [bounds.innerWidth, bounds.left, labels, barPadding]
+    () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], safeBarPadding),
+    [bounds.innerWidth, bounds.left, labels, safeBarPadding]
   );
   const includeZero = yAxis?.includeZero ?? true;
   const yScale = useMemo(
     () => createLinearScale(extent(rows.map((row) => row.value), includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
     [bounds.innerHeight, bounds.top, includeZero, rows, yAxis?.tickCount]
   );
-  const baseline = yScale.scale(0);
+  const rawBaseline = yScale.scale(0);
+  // Clamp the baseline when consumers opt out of zero inclusion; otherwise a
+  // positive-only or negative-only bar chart can render bars below/above the SVG.
+  const baseline = Math.min(bounds.top + bounds.innerHeight, Math.max(bounds.top, rawBaseline));
   // In SSR (before mount), render the final state directly so SSR HTML is not a blank 0-height SVG
   const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
@@ -167,8 +169,8 @@ export function BarChart<TDatum extends object>({
 
   return (
     <ChartSurface
-      width={width}
-      height={height}
+      width={bounds.width}
+      height={bounds.height}
       className={className}
       style={style}
       ariaLabel={ariaLabel}
@@ -187,7 +189,7 @@ export function BarChart<TDatum extends object>({
             ))
           : null}
       </defs>
-      {rows.length === 0 ? <EmptyState x={width / 2} y={height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
+      {rows.length === 0 ? <EmptyState x={bounds.width / 2} y={bounds.height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
       {showGrid ? <GridRows scale={yScale} x1={bounds.left} x2={bounds.left + bounds.innerWidth} style={chartTheme} /> : null}
       {yAxis?.show === false ? null : (
         <AxisLeft
@@ -218,6 +220,10 @@ export function BarChart<TDatum extends object>({
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
           const isHovered = hoveredIndex === index;
           const isFocused = activeIndex === index;
+          const focusX = Math.max(0, x - 3);
+          const focusY = Math.max(0, y - 3);
+          const focusRight = Math.min(bounds.width, x + xScale.bandwidth + 3);
+          const focusBottom = Math.min(bounds.height, y + barHeight + 3);
 
           return (
             <g key={`${row.label}-${row.index}`}>
@@ -226,7 +232,7 @@ export function BarChart<TDatum extends object>({
                 y={y}
                 width={xScale.bandwidth}
                 height={barHeight}
-                rx={Math.min(barRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
+                rx={Math.min(safeBarRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
                 fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
                 initial={shouldInitial ? { y: baseline, height: 0, opacity: 0 } : false}
                 animate={{ y, height: barHeight, opacity: isHovered ? 0.92 : 1 }}
@@ -257,11 +263,11 @@ export function BarChart<TDatum extends object>({
               </motion.rect>
               {isFocused && isKeyboardFocused ? (
                 <rect
-                  x={x - 3}
-                  y={y - 3}
-                  width={xScale.bandwidth + 6}
-                  height={barHeight + 6}
-                  rx={Math.min(barRadius + 3, (xScale.bandwidth + 6) / 2, Math.max(0, barHeight + 6) / 2)}
+                  x={focusX}
+                  y={focusY}
+                  width={Math.max(0, focusRight - focusX)}
+                  height={Math.max(0, focusBottom - focusY)}
+                  rx={Math.min(safeBarRadius + 3, (xScale.bandwidth + 6) / 2, Math.max(0, barHeight + 6) / 2)}
                   fill="none"
                   stroke={chartTheme.textColor}
                   strokeWidth={2}

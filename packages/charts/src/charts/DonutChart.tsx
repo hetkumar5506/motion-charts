@@ -11,6 +11,9 @@ import { resolveChartTheme } from "../themes";
 import { arcPath, pieSlices, polar } from "../utils/geometry";
 import { chartTransition, shouldAnimateInitial } from "../utils/motion";
 import { isDev } from "../utils/env";
+import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
+
+const defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
 
 export type DonutChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   labelKey: Accessor<TDatum, string | number>;
@@ -97,17 +100,23 @@ export function DonutChart<TDatum extends object>({
     setActiveSliceIndex((current) => renderableSlices.length === 0 ? 0 : Math.min(current, renderableSlices.length - 1));
   }, [renderableSlices.length]);
 
-  const padLeft = margin?.left ?? 0;
-  const padRight = margin?.right ?? 0;
-  const padTop = margin?.top ?? 0;
-  const padBottom = margin?.bottom ?? 0;
-  const innerW = Math.max(20, width - padLeft - padRight);
-  const innerH = Math.max(20, height - padTop - padBottom);
+  const bounds = useMemo(
+    () => resolveChartBounds(width, height, defaultMargin, margin),
+    [height, margin, width]
+  );
+  const { left: padLeft, top: padTop } = bounds;
+  const innerW = bounds.innerWidth;
+  const innerH = bounds.innerHeight;
 
   const cx = padLeft + innerW / 2;
   const cy = padTop + innerH / 2;
-  const outerRadius = Math.max(20, Math.min(innerW, innerH) / 2 - 22);
-  const innerRadius = outerRadius * Math.min(0.9, Math.max(0, innerRadiusRatio));
+  const smallestDimension = Math.min(innerW, innerH);
+  // Keep the ring inside the viewBox even when a chart is rendered in a very
+  // narrow responsive card. The inset scales down with the available space.
+  const radiusInset = Math.min(22, smallestDimension * 0.1);
+  const outerRadius = Math.max(0, smallestDimension / 2 - radiusInset);
+  const safeInnerRadiusRatio = Math.min(0.9, finiteNonNegative(innerRadiusRatio, 0.62));
+  const innerRadius = outerRadius * safeInnerRadiusRatio;
   const shouldInitial = mounted && shouldAnimateInitial(animation, reducedMotion);
   const tooltipEnabled = tooltip !== false;
 
@@ -167,10 +176,10 @@ export function DonutChart<TDatum extends object>({
   const legendItems = useMemo(() => rows.map((row) => ({ label: row.label, color: row.color })), [rows]);
 
   return (
-    <div className={className} style={{ width: "100%", ...style }}>
+    <div className={className} style={{ width: "100%", minWidth: 0, ...style }}>
       <ChartSurface
-        width={width}
-        height={height}
+        width={bounds.width}
+        height={bounds.height}
         ariaLabel={ariaLabel}
         ariaDescription={ariaDescription}
         tooltip={tooltipState}

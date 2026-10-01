@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import * as ReactDOM from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { finitePositive } from "../utils/layout";
 
 export type TooltipState = {
   x: number;
@@ -36,17 +37,19 @@ export function ChartSurface({
 }: ChartSurfaceProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const safeWidth = finitePositive(width, 1);
+  const safeHeight = finitePositive(height, 1);
 
   return (
-    <div className={className} style={{ position: "relative", width: "100%", ...style }}>
+    <div className={className} style={{ position: "relative", width: "100%", minWidth: 0, ...style }}>
       <svg
         role="group"
         aria-roledescription="chart"
         aria-labelledby={titleId}
         aria-describedby={ariaDescription ? descriptionId : undefined}
         width="100%"
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        height={safeHeight}
+        viewBox={`0 0 ${safeWidth} ${safeHeight}`}
         preserveAspectRatio="xMidYMid meet"
         style={{ display: "block", overflow: "visible" }}
       >

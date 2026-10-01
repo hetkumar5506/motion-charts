@@ -11,6 +11,7 @@ import { resolveChartTheme } from "../themes";
 import { areaPath, linePath, type Point } from "../utils/geometry";
 import { chartTransition, shouldAnimateInitial } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
+import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
 export type LineChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   xKey: Accessor<TDatum, string | number>;
@@ -69,14 +70,11 @@ export function LineChart<TDatum extends object>({
   useEffect(() => {
     setMounted(true);
   }, []);
-  const bounds = useMemo(() => ({
-    ...defaultMargin,
-    ...margin,
-    width,
-    height,
-    innerWidth: Math.max(1, width - (margin?.left ?? defaultMargin.left) - (margin?.right ?? defaultMargin.right)),
-    innerHeight: Math.max(1, height - (margin?.top ?? defaultMargin.top) - (margin?.bottom ?? defaultMargin.bottom))
-  }), [height, margin, width]);
+  const bounds = useMemo(
+    () => resolveChartBounds(width, height, defaultMargin, margin),
+    [height, margin, width]
+  );
+  const safeStrokeWidth = finiteNonNegative(strokeWidth, 3);
   const color = colorAt(chartTheme.colors, colorIndex);
 
   const safeData = data ?? [];
@@ -215,8 +213,8 @@ export function LineChart<TDatum extends object>({
 
   return (
     <ChartSurface
-      width={width}
-      height={height}
+      width={bounds.width}
+      height={bounds.height}
       className={className}
       style={style}
       ariaLabel={ariaLabel}
@@ -231,7 +229,7 @@ export function LineChart<TDatum extends object>({
           <stop offset="100%" stopColor={color} stopOpacity="0.0" />
         </linearGradient>
       </defs>
-      {rows.length === 0 ? <EmptyState x={width / 2} y={height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
+      {rows.length === 0 ? <EmptyState x={bounds.width / 2} y={bounds.height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
       {showGrid ? <GridRows scale={yScale} x1={bounds.left} x2={bounds.left + bounds.innerWidth} style={chartTheme} /> : null}
 
       {/* Vertical crosshair guide on active point */}
@@ -282,7 +280,7 @@ export function LineChart<TDatum extends object>({
           d={path}
           fill="none"
           stroke={color}
-          strokeWidth={strokeWidth}
+          strokeWidth={safeStrokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={shouldInitial ? { d: initialPath, opacity: 0 } : false}

@@ -10,6 +10,7 @@ import { areaPath, linePath, type Point } from "../utils/geometry";
 import { chartTransition, shouldAnimateInitial } from "../utils/motion";
 import { createLinearScale, extent } from "../utils/scales";
 import { resolveChartTheme } from "../themes";
+import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
 export type SparklineProps<TDatum extends object> = CommonChartProps<TDatum> & {
   yKey: Accessor<TDatum, number>;
@@ -65,6 +66,22 @@ export function Sparkline<TDatum extends object>({
   }, []);
 
   const color = colorAt(chartTheme.colors, colorIndex);
+  const safePadding = finiteNonNegative(padding, 10);
+  const safeStrokeWidth = finiteNonNegative(strokeWidth, 2.5);
+  const bounds = useMemo(
+    () => resolveChartBounds(
+      width,
+      height,
+      {
+        top: safePadding,
+        right: showEndValue ? Math.max(safePadding, 46) : safePadding,
+        bottom: safePadding,
+        left: safePadding
+      },
+      margin
+    ),
+    [height, margin, safePadding, showEndValue, width]
+  );
   const safeData = data ?? [];
   const rows = useMemo(
     () =>
@@ -77,26 +94,21 @@ export function Sparkline<TDatum extends object>({
       }),
     [color, safeData, xKey, yKey]
   );
-  const padLeft = margin?.left ?? padding;
-  const padRight = margin?.right ?? (showEndValue ? Math.max(padding, 46) : padding);
-  const padTop = margin?.top ?? padding;
-  const padBottom = margin?.bottom ?? padding;
-
   const validValues = useMemo(() => rows.filter((r) => !r.isNull).map((r) => r.value), [rows]);
   const yScale = useMemo(
-    () => createLinearScale(extent(validValues, false), [height - padBottom, padTop], 4),
-    [height, padBottom, padTop, validValues]
+    () => createLinearScale(extent(validValues, false), [bounds.top + bounds.innerHeight, bounds.top], 4),
+    [bounds, validValues]
   );
-  const xStep = rows.length <= 1 ? 0 : (width - padLeft - padRight) / (rows.length - 1);
+  const xStep = rows.length <= 1 ? 0 : bounds.innerWidth / (rows.length - 1);
   const points: (Point | null)[] = useMemo(
     () =>
       rows.map((row, index) => {
         if (row.isNull) return null;
-        return { x: padLeft + xStep * index, y: yScale.scale(row.value) };
+        return { x: bounds.left + xStep * index, y: yScale.scale(row.value) };
       }),
-    [padLeft, rows, xStep, yScale]
+    [bounds.left, rows, xStep, yScale]
   );
-  const baseline = height - padBottom;
+  const baseline = bounds.top + bounds.innerHeight;
   const baselinePoints: (Point | null)[] = useMemo(
     () => points.map((p) => (p ? { x: p.x, y: baseline } : null)),
     [baseline, points]
@@ -184,8 +196,8 @@ export function Sparkline<TDatum extends object>({
 
   return (
     <ChartSurface
-      width={width}
-      height={height}
+      width={bounds.width}
+      height={bounds.height}
       className={className}
       style={style}
       ariaLabel={ariaLabel}
@@ -200,7 +212,7 @@ export function Sparkline<TDatum extends object>({
           <stop offset="100%" stopColor={color} stopOpacity="0.0" />
         </linearGradient>
       </defs>
-      {rows.length === 0 ? <EmptyState x={width / 2} y={height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
+      {rows.length === 0 ? <EmptyState x={bounds.width / 2} y={bounds.height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
       {showArea && fillPath ? (
         <motion.path
           d={fillPath}
@@ -216,7 +228,7 @@ export function Sparkline<TDatum extends object>({
           d={path}
           fill="none"
           stroke={color}
-          strokeWidth={strokeWidth}
+          strokeWidth={safeStrokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={shouldInitial ? { d: initialPath, opacity: 0 } : false}
@@ -230,8 +242,8 @@ export function Sparkline<TDatum extends object>({
         const text = valueFormatter(row.value);
         const pillWidth = Math.max(34, text.length * 7.5 + 10);
         const pillHeight = 20;
-        const pillX = Math.min(width - pillWidth - 2, point.x + 8);
-        const pillY = Math.max(2, Math.min(height - pillHeight - 2, point.y - pillHeight / 2));
+        const pillX = Math.min(bounds.width - pillWidth - 2, point.x + 8);
+        const pillY = Math.max(2, Math.min(bounds.height - pillHeight - 2, point.y - pillHeight / 2));
 
         return (
           <g>

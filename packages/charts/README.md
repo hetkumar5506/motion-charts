@@ -67,7 +67,7 @@ export function RevenueChart() {
 
 ## Responsive charts
 
-Use `ResponsiveChart` when the chart should compute its real container width instead of only scaling a fixed SVG viewBox.
+Use `ResponsiveChart` when the chart should compute its real container width instead of only scaling a fixed SVG viewBox. It is safe to use inside CSS grid and flex layouts; the wrapper opts into `min-width: 0` so a chart can shrink with its card instead of forcing horizontal overflow.
 
 ```tsx
 <ResponsiveChart minHeight={280} maxHeight={440} aspectRatio={16 / 9}>
@@ -76,6 +76,20 @@ Use `ResponsiveChart` when the chart should compute its real container width ins
   )}
 </ResponsiveChart>
 ```
+
+For a chart inside your own flex or grid item, also allow that item to shrink:
+
+```tsx
+<div style={{ minWidth: 0, width: "100%" }}>
+  <ResponsiveChart minHeight={240} maxHeight={420}>
+    {({ width, height }) => (
+      <LineChart data={data} width={width} height={height} xKey="month" yKey="value" showArea />
+    )}
+  </ResponsiveChart>
+</div>
+```
+
+The wrapper sanitizes invalid dimensions, ignores temporary zero-width observations while a parent is hidden, and clamps chart margins to keep the plotting area inside the SVG at narrow widths. Individual charts also protect against invalid `width`, `height`, margin, padding, and stroke values.
 
 ## BarChart
 
@@ -315,8 +329,9 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 - `colorIndex` (number, default `0`): Available on both `LineChart` and `Sparkline` to select an exact palette color index without custom array overrides.
 - `barPadding` is clamped to `[0, 0.8]` (default `0.22`).
 - `innerRadiusRatio` in `DonutChart` is clamped to `[0, 0.9]` (default `0.62`).
-- `Date` objects passed to `xKey` or `labelKey` automatically format via `toLocaleDateString()` with fallback guards against invalid dates.
+- `Date` objects passed to `xKey` or `labelKey` automatically format as deterministic UTC ISO dates (`YYYY-MM-DD`); invalid dates are handled safely.
 - Numeric accessors warn in development on non-finite values (`null`, `undefined`, `NaN`, `Infinity`) and coerce safely to `0`. Missing values in LineChart, MultiLineChart, and Sparkline are excluded from axis extents and rendered points.
+- Responsive dimensions and chart margins are sanitized so narrow grid/flex cards do not produce invalid SVG attributes or geometry outside the chart viewport.
 
 ## Empty states
 

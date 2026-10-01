@@ -32,7 +32,7 @@ export function niceTicks(min: number, max: number, count = 5): readonly number[
   if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1];
   if (min === max) return [min];
 
-  const desired = Math.max(2, Math.floor(count));
+  const desired = Number.isFinite(count) ? Math.max(2, Math.floor(count)) : 5;
   const span = max - min;
   const step0 = Math.abs(span) / Math.max(1, desired - 1);
   const power = 10 ** Math.floor(Math.log10(step0));
@@ -78,7 +78,7 @@ export function createCategoryScale(labels: readonly string[], range: [number, n
   const [start, end] = range;
   const width = Math.max(0, end - start);
   const count = Math.max(1, displayLabels.length);
-  const safePadding = Math.min(0.8, Math.max(0, padding));
+  const safePadding = Number.isFinite(padding) ? Math.min(0.8, Math.max(0, padding)) : 0.2;
   const step = width / count;
   const bandwidth = step * (1 - safePadding);
   const inset = (step - bandwidth) / 2;

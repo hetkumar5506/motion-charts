@@ -52,7 +52,7 @@ export function ResponsiveChart({
       // Ignore zero-width observations while a responsive parent is hidden;
       // retaining the previous width avoids a flash of a 1px chart.
       if (Number.isFinite(nextWidth) && nextWidth > 0) {
-        setWidth(Math.round(nextWidth));
+        setWidth(Math.max(1, Math.round(nextWidth)));
       }
     });
     observer.observe(element);
@@ -63,7 +63,7 @@ export function ResponsiveChart({
     <div
       ref={ref}
       className={className}
-      style={{ width: "100%", minHeight: safeMinHeight, ...style }}
+      style={{ width: "100%", minWidth: 0, minHeight: safeMinHeight, ...style }}
     >
       {children({ width, height })}
     </div>
