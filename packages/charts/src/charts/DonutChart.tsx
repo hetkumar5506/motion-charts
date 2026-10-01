@@ -81,7 +81,10 @@ export function DonutChart<TDatum extends object>({
       }),
     [chartTheme.colors, labelKey, safeData, valueKey]
   );
-  const total = useMemo(() => rows.reduce((sum, row) => sum + row.value, 0), [rows]);
+  const total = useMemo(() => rows.reduce((sum, row) => {
+    const next = sum + row.value;
+    return Number.isFinite(next) ? next : Number.MAX_VALUE;
+  }, 0), [rows]);
   const slices = useMemo(
     () => pieSlices(rows.map((row) => row.value), padAngle),
     [padAngle, rows]

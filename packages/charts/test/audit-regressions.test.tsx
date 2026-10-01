@@ -2,9 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { BarChart, DonutChart, LineChart, MultiLineChart, Sparkline } from "../src";
-import { numberOf } from "../src/utils/accessors";
+import { numberOf, rawNumberOf } from "../src/utils/accessors";
+import { defaultValueFormatter } from "../src/utils/format";
 
 describe("audit v0.1.3 regression and compliance suite", () => {
+  it("uses a deterministic default number locale for SSR and hydration", () => {
+    expect(defaultValueFormatter(1234.567)).toBe("1,234.57");
+  });
+
   it("warns in dev mode on null input and coerces to 0", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const val = numberOf({ v: null }, 0, "v");
@@ -52,6 +57,22 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     expect(sparkHtml).toContain('tabindex="0"');
   });
 
+  it("clamps sparkline end-value badges inside tiny viewBoxes", () => {
+    const html = renderToString(
+      <Sparkline
+        data={[{ value: 1 }]}
+        yKey="value"
+        width={3}
+        height={3}
+        showEndValue
+        valueFormatter={() => "A very long formatted value"}
+      />
+    );
+    expect(html).not.toMatch(/(?:NaN|Infinity)/);
+    expect(html).toContain('width="3"');
+    expect(html).toContain('height="3"');
+  });
+
   it("assigns roving tabIndex and keyboard navigation attributes", () => {
     const data = [
       { label: "A", val: 10 },
@@ -67,6 +88,16 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     const matchesMinus1 = html.match(/tabindex="-1"/g);
     expect(matches0).toHaveLength(1);
     expect(matchesMinus1).toHaveLength(2);
+  });
+
+  it("does not throw when numeric coercion is hostile or datum is null", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const hostile = { [Symbol.toPrimitive]() { throw new Error("conversion failed"); } };
+
+    expect(() => rawNumberOf({ value: hostile } as never, 0, "value" as never)).not.toThrow();
+    expect(rawNumberOf({ value: hostile } as never, 0, "value" as never)).toBeNull();
+    expect(rawNumberOf(null as never, 1, "value" as never)).toBeNull();
+    warnSpy.mockRestore();
   });
 
   it("handles NaN, Infinity, and -Infinity by warning and coercing to 0 without corrupting paths", () => {

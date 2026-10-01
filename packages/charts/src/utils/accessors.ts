@@ -2,7 +2,9 @@ import type { Accessor } from "../types";
 import { isDev } from "./env";
 
 export function valueOf<TDatum, TValue>(datum: TDatum, index: number, accessor: Accessor<TDatum, TValue>): TValue {
-  return typeof accessor === "function" ? accessor(datum, index) : (datum[accessor] as TValue);
+  if (typeof accessor === "function") return accessor(datum, index);
+  if (datum == null) return undefined as TValue;
+  return datum[accessor] as TValue;
 }
 
 function warnDev(message: string, value: unknown, index: number): void {
@@ -13,11 +15,9 @@ function warnDev(message: string, value: unknown, index: number): void {
 
 export function rawNumberOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, number>): number | null {
   const value = valueOf(datum, index, accessor);
-  const isInvalid =
-    value == null ||
-    (typeof value === "number" ? !Number.isFinite(value) : !Number.isFinite(Number(value)));
+  let numericValue: number;
 
-  if (isInvalid) {
+  if (value == null) {
     warnDev(
       `[@motion-charts/core] Received non-finite numerical value at index ${index}:`,
       value,
@@ -25,7 +25,31 @@ export function rawNumberOf<TDatum>(datum: TDatum, index: number, accessor: Acce
     );
     return null;
   }
-  return typeof value === "number" ? value : Number(value);
+
+  if (typeof value === "number") {
+    numericValue = value;
+  } else {
+    try {
+      numericValue = Number(value);
+    } catch {
+      warnDev(
+        `[@motion-charts/core] Received non-finite numerical value at index ${index}:`,
+        value,
+        index
+      );
+      return null;
+    }
+  }
+
+  if (!Number.isFinite(numericValue)) {
+    warnDev(
+      `[@motion-charts/core] Received non-finite numerical value at index ${index}:`,
+      value,
+      index
+    );
+    return null;
+  }
+  return numericValue;
 }
 
 export function numberOf<TDatum>(datum: TDatum, index: number, accessor: Accessor<TDatum, number>): number {

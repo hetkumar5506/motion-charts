@@ -108,10 +108,16 @@ export function pieSlices(values: readonly number[], padAngle = 0): readonly Arc
   // Treat invalid input the same as an empty slice. This keeps the exported
   // geometry helper safe even when it is used without DonutChart's accessors.
   const positive = values.map((value) => (Number.isFinite(value) ? Math.max(0, value) : 0));
-  const total = positive.reduce((sum, value) => sum + value, 0);
-  if (total <= 0) return [];
+  const largest = positive.reduce((max, value) => Math.max(max, value), 0);
+  if (largest <= 0) return [];
 
-  const nonZeroCount = positive.filter(Boolean).length;
+  // Normalize before summing so many very large finite values cannot overflow
+  // the total to Infinity and turn every arc angle into NaN.
+  const normalized = positive.map((value) => value / largest);
+  const total = normalized.reduce((sum, value) => sum + value, 0);
+  if (!Number.isFinite(total) || total <= 0) return [];
+
+  const nonZeroCount = normalized.filter(Boolean).length;
   // If only 1 slice, no padding needed/allowed
   if (nonZeroCount <= 1) {
     let cursor = -Math.PI / 2;
@@ -130,15 +136,16 @@ export function pieSlices(values: readonly number[], padAngle = 0): readonly Arc
   const available = Math.PI * 2 - totalPad;
   let cursor = -Math.PI / 2;
 
-  return positive.map((value) => {
+  return positive.map((value, index) => {
     if (value === 0) return { startAngle: cursor, endAngle: cursor, value, percent: 0 };
-    const angle = (value / total) * available;
+    const normalizedValue = normalized[index] ?? 0;
+    const angle = (normalizedValue / total) * available;
     // Guard against pad exceeding slice width to prevent inverted slices
     const pad = Math.min(effectivePad, angle * 0.8);
     const startAngle = cursor + pad / 2;
     const endAngle = cursor + angle + effectivePad - pad / 2;
     cursor += angle + effectivePad;
-    return { startAngle, endAngle, value, percent: value / total };
+    return { startAngle, endAngle, value, percent: normalizedValue / total };
   });
 }
 
@@ -151,6 +158,8 @@ export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius
     return "";
   }
 
+  const safeCx = finiteCoordinate(cx);
+  const safeCy = finiteCoordinate(cy);
   const safeOuterRadius = Math.max(0, outerRadius);
   const safeInnerRadius = Math.min(safeOuterRadius, Math.max(0, innerRadius));
   const clockwise = endAngle > startAngle;
@@ -159,18 +168,18 @@ export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius
   const isFullCircle = angleDelta >= Math.PI * 2 - 0.001;
 
   if (isFullCircle) {
-    const outerOppositeY = cy + safeOuterRadius;
-    const outerStartY = cy - safeOuterRadius;
-    const innerOppositeY = cy + safeInnerRadius;
-    const innerStartY = cy - safeInnerRadius;
+    const outerOppositeY = finiteCoordinate(cy + safeOuterRadius);
+    const outerStartY = finiteCoordinate(cy - safeOuterRadius);
+    const innerOppositeY = finiteCoordinate(cy + safeInnerRadius);
+    const innerStartY = finiteCoordinate(cy - safeInnerRadius);
     const innerSweep = clockwise ? 0 : 1;
 
     if (safeInnerRadius <= 0) {
       // Full pie / solid circle: two half-circle arcs are valid SVG geometry.
       return [
-        `M ${cx} ${outerStartY}`,
-        `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerOppositeY}`,
-        `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerStartY}`,
+        `M ${safeCx} ${outerStartY}`,
+        `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${safeCx} ${outerOppositeY}`,
+        `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${safeCx} ${outerStartY}`,
         "Z"
       ].join(" ");
     }
@@ -178,13 +187,13 @@ export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius
     // Full donut rings need separate closed subpaths because SVG arcs cannot
     // represent a complete circle with a single command.
     return [
-      `M ${cx} ${outerStartY}`,
-      `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerOppositeY}`,
-      `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${cx} ${outerStartY}`,
+      `M ${safeCx} ${outerStartY}`,
+      `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${safeCx} ${outerOppositeY}`,
+      `A ${safeOuterRadius} ${safeOuterRadius} 0 1 ${sweep} ${safeCx} ${outerStartY}`,
       "Z",
-      `M ${cx} ${innerStartY}`,
-      `A ${safeInnerRadius} ${safeInnerRadius} 0 1 ${innerSweep} ${cx} ${innerOppositeY}`,
-      `A ${safeInnerRadius} ${safeInnerRadius} 0 1 ${innerSweep} ${cx} ${innerStartY}`,
+      `M ${safeCx} ${innerStartY}`,
+      `A ${safeInnerRadius} ${safeInnerRadius} 0 1 ${innerSweep} ${safeCx} ${innerOppositeY}`,
+      `A ${safeInnerRadius} ${safeInnerRadius} 0 1 ${innerSweep} ${safeCx} ${innerStartY}`,
       "Z"
     ].join(" ");
   }
@@ -199,7 +208,7 @@ export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius
 
   if (safeInnerRadius <= 0) {
     return [
-      `M ${cx} ${cy}`,
+      `M ${safeCx} ${safeCy}`,
       `L ${outerStart.x} ${outerStart.y}`,
       `A ${safeOuterRadius} ${safeOuterRadius} 0 ${largeArc} ${sweep} ${outerEnd.x} ${outerEnd.y}`,
       "Z"
@@ -216,10 +225,19 @@ export function arcPath(cx: number, cy: number, innerRadius: number, outerRadius
 }
 
 export function polar(cx: number, cy: number, radius: number, angle: number): Point {
-  const x = cx + radius * Math.cos(angle);
-  const y = cy + radius * Math.sin(angle);
+  const x = finiteCoordinate(cx + radius * Math.cos(angle));
+  const y = finiteCoordinate(cy + radius * Math.sin(angle));
   return {
-    x: Math.round(x * 100) / 100,
-    y: Math.round(y * 100) / 100
+    x: roundCoordinate(x),
+    y: roundCoordinate(y)
   };
+}
+
+function finiteCoordinate(value: number): number {
+  if (Number.isFinite(value)) return value;
+  return value < 0 ? -Number.MAX_VALUE : Number.MAX_VALUE;
+}
+
+function roundCoordinate(value: number): number {
+  return Math.abs(value) <= Number.MAX_VALUE / 100 ? Math.round(value * 100) / 100 : value;
 }

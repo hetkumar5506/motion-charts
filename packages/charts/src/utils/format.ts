@@ -2,7 +2,9 @@ let cachedFormatter: Intl.NumberFormat | null = null;
 
 export function defaultValueFormatter(value: number): string {
   if (!cachedFormatter) {
-    cachedFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+    // Keep server-rendered labels identical to browser labels. Consumers that
+    // need locale-specific output can provide valueFormatter explicitly.
+    cachedFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
   }
   return cachedFormatter.format(value);
 }

@@ -128,8 +128,8 @@ export function BarChart<TDatum extends object>({
   }
 
   function handlePointerMove(event: PointerEvent<SVGRectElement>, row: (typeof rows)[number]) {
-    if (!tooltipEnabled) return;
     setIsKeyboardFocused(false);
+    if (!tooltipEnabled) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
     // Key state updates on hoveredIndex; avoid re-rendering commits when hovering inside the same bar
@@ -219,7 +219,7 @@ export function BarChart<TDatum extends object>({
           const aria = joinLabels([row.label, valueFormatter(row.value)]);
           const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
           const isHovered = hoveredIndex === index;
-          const isFocused = activeIndex === index;
+          const isFocused = isKeyboardFocused && activeIndex === index;
           const focusX = Math.max(0, x - 3);
           const focusY = Math.max(0, y - 3);
           const focusRight = Math.min(bounds.width, x + xScale.bandwidth + 3);
@@ -247,6 +247,7 @@ export function BarChart<TDatum extends object>({
                 onPointerLeave={hideTooltip}
                 onFocus={(event) => {
                   setActiveIndex(index);
+                  setIsKeyboardFocused(true);
                   setHoveredIndex(row.index);
                   const rect = event.currentTarget.getBoundingClientRect();
                   setTooltipState({ x: rect.left + rect.width / 2, y: rect.top, content: tooltipContent(row), id: tooltipId });

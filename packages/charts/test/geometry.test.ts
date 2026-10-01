@@ -27,6 +27,13 @@ describe("geometry", () => {
     expect(last?.endAngle).toBeLessThanOrEqual(Math.PI * 1.5 + 0.1);
   });
 
+  it("keeps pie totals and angles finite for extreme values", () => {
+    const slices = pieSlices([Number.MAX_VALUE, Number.MAX_VALUE, 1]);
+    expect(slices).toHaveLength(3);
+    expect(slices.every((slice) => Object.values(slice).every(Number.isFinite))).toBe(true);
+    expect(slices.map((slice) => slice.percent).reduce((sum, value) => sum + value, 0)).toBeCloseTo(1);
+  });
+
   it("creates an svg arc path", () => {
     expect(arcPath(50, 50, 20, 40, -Math.PI / 2, 0)).toContain("A 40 40");
   });
@@ -36,6 +43,7 @@ describe("geometry", () => {
     expect(pieSlices([1, Number.NaN, Number.POSITIVE_INFINITY, 3]).every((slice) => Number.isFinite(slice.endAngle))).toBe(true);
     expect(arcPath(50, 50, 20, Number.NaN, 0, 1)).toBe("");
     expect(arcPath(50, 50, 20, 40, 1, 0)).not.toContain("NaN");
+    expect(arcPath(Number.MAX_VALUE, Number.MAX_VALUE, 0, Number.MAX_VALUE, 0, Math.PI * 2)).not.toMatch(/(?:NaN|Infinity)/);
   });
 
   it("handles full circle 360 degree pie and donut arcs without degenerate geometry", () => {

@@ -239,11 +239,17 @@ export function Sparkline<TDatum extends object>({
       ) : null}
       {showEndValue && lastFiniteItem ? (() => {
         const { row, point } = lastFiniteItem;
-        const text = valueFormatter(row.value);
-        const pillWidth = Math.max(34, text.length * 7.5 + 10);
-        const pillHeight = 20;
-        const pillX = Math.min(bounds.width - pillWidth - 2, point.x + 8);
-        const pillY = Math.max(2, Math.min(bounds.height - pillHeight - 2, point.y - pillHeight / 2));
+        const text = String(valueFormatter(row.value) ?? "");
+        const desiredPillWidth = Math.max(34, text.length * 7.5 + 10);
+        const pillWidth = Math.min(desiredPillWidth, Math.max(1, bounds.width));
+        const pillHeight = Math.min(20, Math.max(1, bounds.height));
+        const maxPillX = Math.max(0, bounds.width - pillWidth);
+        const maxPillY = Math.max(0, bounds.height - pillHeight);
+        const pillX = Math.min(maxPillX, Math.max(0, point.x + 8));
+        const pillY = Math.min(maxPillY, Math.max(0, point.y - pillHeight / 2));
+        const desiredTextWidth = text.length * 7.5;
+        const showPillText = pillWidth >= 8;
+        const textLength = showPillText && desiredTextWidth > pillWidth - 8 ? pillWidth - 8 : undefined;
 
         return (
           <g>
@@ -270,11 +276,13 @@ export function Sparkline<TDatum extends object>({
               fontFamily={chartTheme.fontFamily}
               fontSize={11}
               fontWeight={700}
+              textLength={textLength}
+              lengthAdjust={textLength ? "spacingAndGlyphs" : undefined}
               initial={shouldInitial ? { opacity: 0 } : false}
               animate={{ opacity: 1 }}
               transition={chartTransition(animation, reducedMotion, rows.length)}
             >
-              {text}
+              {showPillText ? text : null}
             </motion.text>
           </g>
         );

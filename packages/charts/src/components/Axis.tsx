@@ -92,7 +92,7 @@ export function AxisBottom({
   }
   // Ensure the last label is also represented if there's enough space
   if (totalLabels > 1 && !visibleIndices.has(totalLabels - 1)) {
-    const lastVisible = Math.max(...Array.from(visibleIndices));
+    const lastVisible = Math.max(0, Math.floor((totalLabels - 1) / step) * step);
     if (totalLabels - 1 - lastVisible >= Math.floor(step / 2)) {
       visibleIndices.add(totalLabels - 1);
     }

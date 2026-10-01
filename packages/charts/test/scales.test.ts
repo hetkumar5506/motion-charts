@@ -19,6 +19,21 @@ describe("scales", () => {
     expect(nonZero[1]).toBe(1010);
   });
 
+  it("handles large datasets and extreme finite domains without spreading or NaN", () => {
+    const large = Array.from({ length: 200_000 }, (_, index) => index - 100_000);
+    expect(extent(large, false)).toEqual([-100_000, 99_999]);
+
+    const extreme = createLinearScale([-Number.MAX_VALUE, Number.MAX_VALUE], [100, 0]);
+    expect(extreme.ticks.every(Number.isFinite)).toBe(true);
+    expect(extreme.scale(-Number.MAX_VALUE)).toBe(100);
+    expect(extreme.scale(Number.MAX_VALUE)).toBe(0);
+    expect(extreme.scale(0)).toBe(50);
+
+    const flatExtreme = createLinearScale([Number.MAX_VALUE, Number.MAX_VALUE], [100, 0]);
+    expect(flatExtreme.domain.every(Number.isFinite)).toBe(true);
+    expect(flatExtreme.scale(Number.MAX_VALUE)).toBe(0);
+  });
+
   it("returns readable ticks", () => {
     expect(niceTicks(0, 83, 5)).toEqual([0, 20, 40, 60, 80, 100]);
   });
