@@ -69,13 +69,18 @@ export function labelOf<TDatum>(
     if (Number.isNaN(value.getTime())) return "Invalid Date";
     if (dateFormatter) return String(dateFormatter(value) ?? "");
 
-    // Date constructors such as new Date(2026, 0, 2) express a local
-    // calendar day. Format local parts by default so that day does not move
-    // backward for users east of UTC. Consumers working with UTC instants can
-    // pass dateFormatter explicitly (for example, date => date.toISOString()).
-    const year = String(value.getFullYear()).padStart(4, "0");
-    const month = String(value.getMonth() + 1).padStart(2, "0");
-    const day = String(value.getDate()).padStart(2, "0");
+    // ISO date-only strings (for example, new Date("2026-03-01")) are parsed
+    // as UTC midnight. Use UTC calendar parts for that representation so the
+    // date does not move backward in western timezones or forward in eastern
+    // timezones. Other Date values represent local calendar dates/timestamps,
+    // so keep using local parts for those values.
+    const isUtcMidnight = value.getUTCHours() === 0
+      && value.getUTCMinutes() === 0
+      && value.getUTCSeconds() === 0
+      && value.getUTCMilliseconds() === 0;
+    const year = String(isUtcMidnight ? value.getUTCFullYear() : value.getFullYear()).padStart(4, "0");
+    const month = String((isUtcMidnight ? value.getUTCMonth() : value.getMonth()) + 1).padStart(2, "0");
+    const day = String(isUtcMidnight ? value.getUTCDate() : value.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
   return String(value);

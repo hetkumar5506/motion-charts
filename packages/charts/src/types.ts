@@ -59,7 +59,12 @@ export type CommonChartProps<TDatum> = {
   theme?: ChartThemeInput;
   ariaLabel?: string;
   ariaDescription?: string;
-  /** Format Date-valued labels. The default uses the local calendar date (YYYY-MM-DD). */
+  /**
+   * Format Date-valued labels. By default, UTC-midnight values such as
+   * new Date("2026-03-01") use their UTC calendar day; other Date values use
+   * local calendar parts. Supply this callback when your app needs a specific
+   * timezone or instant-formatting policy.
+   */
   dateFormatter?: DateFormatter;
   valueFormatter?: (value: number) => string;
   emptyState?: ReactNode;

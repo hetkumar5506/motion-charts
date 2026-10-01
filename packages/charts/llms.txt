@@ -71,4 +71,21 @@ Accessibility (WCAG 2.1 Level A):
 
 Charts feature accessible roving `tabIndex={0}` on the active point/slice and `-1` on the rest, with arrow-key keyboard navigation (`ArrowRight`/`ArrowLeft`/`ArrowUp`/`ArrowDown`/`Home`/`End`), visible high-contrast focus rings, and `aria-describedby` connected to live tooltips.
 
-Prefer `ResponsiveChart` for real app pages. It supports CSS grid/flex layouts, opts into `min-width: 0`, ignores temporary zero-width observations, and clamps narrow-card margins so chart geometry stays inside the SVG viewport. For custom wrappers, add `style={{ minWidth: 0, width: "100%" }}`. Always pass `ariaLabel`. Use `valueFormatter` for money, percentages, compact numbers, and units. Date labels render as local calendar-day `YYYY-MM-DD` strings by default; pass `dateFormatter` for explicit UTC/instant formatting. Use `colors={[...]}` when matching a brand system exactly.
+Prefer `ResponsiveChart` for real app pages. It supports CSS grid/flex layouts, opts into `min-width: 0`, ignores temporary zero-width observations, and clamps narrow-card margins so chart geometry stays inside the SVG viewport. For custom wrappers, add `style={{ minWidth: 0, width: "100%" }}`. Always pass `ariaLabel`. Use `valueFormatter` for money, percentages, compact numbers, and units. Date labels render as deterministic `YYYY-MM-DD` strings: UTC-midnight values such as `new Date("2026-03-01")` use UTC parts, while other Date values use local parts. Pass `dateFormatter` for an explicit timezone or instant policy. Use `colors={[...]}` when matching a brand system exactly.
+
+Motion and rendering guidance:
+
+- Data updates animate by default; `animation={{ initial: false }}` skips only the entrance and `animation={{ disabled: true }}` opts out of all motion.
+- SSR renders final geometry. Do not add a client-only blank state to work around entrance animation.
+- Reduced-motion users receive final geometry without animated transitions.
+- Supply stable `id` values for `MultiLineChart.series` entries.
+- For accessible charts, use a specific `ariaLabel`, keep a readable surface behind transparent chart SVGs, and test keyboard focus as well as pointer tooltips.
+
+Common selection:
+
+- Categorical comparison → `BarChart`
+- Single time series → `LineChart`
+- Multiple related time series → `MultiLineChart`
+- Share of a whole → `DonutChart`
+- Compact KPI trend → `Sparkline`
+- Measured dashboard layout → `ResponsiveChart`

@@ -7,6 +7,27 @@ Animation-first React charts powered by SVG and Framer Motion.
 
 `@motion-charts/core` is built for dashboards that should feel like polished product UI: ecommerce analytics, POS reports, SaaS admin panels, inventory dashboards, landing-page stats, and internal tools.
 
+## Documentation map
+
+- [Install and quick start](#install)
+- [Choose a chart](#components)
+- [Data, accessors, and dates](#data-accessors-and-dates)
+- [Responsive sizing](#responsive-charts)
+- [Animation and reduced motion](#animation-presets)
+- [Tooltips and interactions](#tooltips)
+- [Accessibility and SSR](#accessibility)
+- [Themes and palettes](#themes-and-palettes)
+- [Tuning and defaults](#tuning--defaults)
+
+## Requirements
+
+- React `18` or `19`
+- Framer Motion `10`, `11`, or `12`
+- Node.js `18` or newer for tooling and server rendering
+- TypeScript is recommended but not required
+
+The package ships ESM and CommonJS entry points plus generated TypeScript declarations. React, React DOM, and Framer Motion remain peer dependencies so the application controls their versions.
+
 ## Install
 
 ```bash
@@ -65,6 +86,45 @@ export function RevenueChart() {
 | `Sparkline` | KPI cards, tiny POS widgets, compact admin metrics |
 | `ResponsiveChart` | measuring parent width with `ResizeObserver` |
 
+## Data, accessors, and dates
+
+Every chart accepts a `readonly` data array. Keys can be property names or functions, so both of these forms are supported:
+
+```tsx
+const data = [
+  { month: "Jan", revenue: 42 },
+  { month: "Feb", revenue: 64 }
+];
+
+<BarChart data={data} xKey="month" yKey="revenue" />
+<BarChart
+  data={data}
+  xKey={(row, index) => `${index + 1}. ${row.month}`}
+  yKey={(row) => row.revenue}
+/>
+```
+
+Use `valueFormatter` for display-only formatting such as currency, percentages, or units. It does not change scale calculations or tooltip values. Invalid numeric values (`null`, `undefined`, `NaN`, and infinities) are warned about in development and safely coerced; line-family charts omit invalid points from geometry.
+
+### Date labels
+
+Date-valued `xKey` and `labelKey` values use a deterministic `YYYY-MM-DD` label by default:
+
+- Values at UTC midnight, including `new Date("2026-03-01")`, use UTC calendar parts. This keeps an ISO date-only value on March 1 in both Los Angeles and Calcutta.
+- Other dates, such as `new Date(2026, 2, 1)` or `new Date("2026-03-01T15:30:00")`, use the runtime's local calendar parts.
+- A timestamp exactly at UTC midnight is indistinguishable from an ISO date-only value. Use `dateFormatter` when that distinction matters or when a specific timezone is required.
+
+```tsx
+<LineChart
+  data={[{ date: new Date("2026-03-01"), value: 42 }]}
+  xKey="date"
+  yKey="value"
+  dateFormatter={(date) => date.toISOString().slice(0, 10)}
+/>
+```
+
+`dateFormatter` receives the original valid `Date` and is used for axis labels, datum labels, and tooltip context labels. Invalid dates render as `Invalid Date` rather than producing an invalid SVG attribute.
+
 ## Responsive charts
 
 Use `ResponsiveChart` when the chart should compute its real container width instead of only scaling a fixed SVG viewBox. It is safe to use inside CSS grid and flex layouts; the wrapper opts into `min-width: 0` so a chart can shrink with its card instead of forcing horizontal overflow.
@@ -90,6 +150,22 @@ For a chart inside your own flex or grid item, also allow that item to shrink:
 ```
 
 The wrapper sanitizes invalid dimensions, ignores temporary zero-width observations while a parent is hidden, and clamps chart margins to keep the plotting area inside the SVG at narrow widths. Individual charts also protect against invalid `width`, `height`, margin, padding, and stroke values.
+
+### Shared chart props
+
+All chart components accept these common options:
+
+| Prop | Purpose |
+| --- | --- |
+| `width`, `height` | Explicit SVG dimensions. Use `ResponsiveChart` when the parent controls size. |
+| `margin` | Partial `{ top, right, bottom, left }` plot margins. Values are sanitized and clamped. |
+| `theme`, `colors` | Built-in/extended theme or an explicit palette. `colors` takes precedence over the theme palette. |
+| `ariaLabel`, `ariaDescription` | Accessible chart name and description. Provide a meaningful `ariaLabel` for every chart. |
+| `valueFormatter` | Formats numeric labels and tooltip values without changing the data domain. |
+| `dateFormatter` | Controls Date-valued category labels; see [Date labels](#date-labels). |
+| `animation` | Entrance/update motion, preset, stagger, transition overrides, and opt-out. |
+| `tooltip` | Custom renderer or `false` to disable tooltips. |
+| `emptyState` | Content shown when `data` is empty. |
 
 ## BarChart
 
@@ -127,6 +203,13 @@ Useful props:
 />
 ```
 
+Useful props:
+
+- `curve` — `"smooth"` (default) or `"linear"`.
+- `showArea`, `showPoints`, `showGrid` — control supporting geometry.
+- `connectNulls` — bridge missing values or leave visible gaps.
+- `colorIndex`, `strokeWidth`, `xAxis`, and `yAxis` — tune the visual and scale.
+
 ## MultiLineChart
 
 ```tsx
@@ -143,7 +226,7 @@ Useful props:
 />
 ```
 
-Use this for ecommerce dashboards, SaaS admin panels, and POS analytics where multiple metrics need to move together.
+Use this for ecommerce dashboards, SaaS admin panels, and POS analytics where multiple metrics need to move together. Each `series` entry requires a stable `id` and `yKey`; `label`, `color`, `showArea`, and `strokeWidth` are optional per-series overrides. `showLegend` is enabled when you want those labels exposed in the chart.
 
 ## DonutChart
 
@@ -164,6 +247,8 @@ Useful props:
 - `padAngle` — spacing between slices.
 - `sliceVariant` — `"gradient"` or `"solid"`.
 - `showLegend`, `showLabels`, `centerLabel`.
+
+Values are normalized into slices; zero and non-positive values do not receive an interactive slice. Use `centerLabel` for a total or short summary rather than repeating the full dataset in the middle of the chart.
 
 ## Sparkline
 
@@ -186,6 +271,8 @@ Use sparklines inside metric cards:
 - hourly POS sales
 - inventory movement
 - signups this week
+
+`Sparkline` keeps the same interaction, tooltip, and reduced-motion behavior as the larger charts. Use `padding` for compact cards, `colorIndex` to select a stable palette entry, and `showEndValue` to display the last finite datum.
 
 ## Y-Axis and Zero Inclusions
 
@@ -247,6 +334,8 @@ Use product colors directly:
 <BarChart data={data} xKey="month" yKey="revenue" colors={["#111827", "#2563eb", "#22c55e"]} />
 ```
 
+Chart surfaces are transparent by design, so the consuming card/page supplies the background. This is especially important with `midnight`, `minimal`, or custom themes: pair their text and tick colors with a surface that provides readable contrast.
+
 Partial custom theme:
 
 ```tsx
@@ -301,6 +390,25 @@ Disable motion when needed:
 
 Reduced-motion users are respected automatically.
 
+### Motion behavior
+
+- Charts render final geometry during SSR, then play entrance keyframes after hydration so server HTML is useful and hydration-safe.
+- Data changes animate by default. Bars tween their baseline-safe SVG geometry; paths and points morph to the next dataset.
+- `animation={{ initial: false }}` disables the entrance while preserving data-update transitions.
+- `animation={{ disabled: true }}` disables entrance and update motion for that chart.
+- `prefers-reduced-motion: reduce` suppresses motion without removing the final chart or its interactions.
+- `stagger` is measured in seconds per item and is clamped to a safe range. `transition` overrides the selected preset when you need exact Framer Motion behavior.
+
+| Preset | Character |
+| --- | --- |
+| `spring` | Balanced default spring |
+| `gentle` | Soft, low-energy spring |
+| `snappy` | Fast response for compact UI |
+| `bouncy` | Noticeable overshoot for dashboards and demos |
+| `calm` | Slow, restrained movement |
+| `dramatic` | Stronger entrance emphasis |
+| `linear` | Constant-duration interpolation |
+
 ## Tooltips
 
 All chart components support a `tooltip` render prop or `tooltip={false}`. Tooltips render with dynamic measurement, viewport boundary clamping, portal rendering to `document.body` (to avoid CSS transform/filter containing-block clipping from parent cards or Framer Motion animations), and outside-touch dismissal for mobile screens. Active shapes are connected to live tooltips with `aria-describedby`.
@@ -314,13 +422,19 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 />
 ```
 
-## Accessibility (Built to support WCAG 2.1 Level A)
+## Accessibility
 
-- **Roving Tabindex Keyboard Navigation**: All charts implement accessible roving `tabIndex` with keyboard navigation. Keyboard users can Tab to the chart and traverse data points with `ArrowRight` / `ArrowDown` / `ArrowLeft` / `ArrowUp` / `Home` / `End`.
-- **Visible Focus Indicator**: Active and focused shapes display a high-contrast focus ring (`2px solid` SVG indicator / themed stroke) matching the chart theme.
-- **ARIA Semantics**: Shapes are marked with `role="graphics-symbol"`, `aria-roledescription`, clear `aria-label`, and `aria-describedby` connected to live tooltips.
-- **Reduced Motion**: Full compliance with `prefers-reduced-motion`.
-- **SSR Hydration Safe**: Pre-rendered HTML paints complete shapes and opacity without blank flashes before hydration.
+The library provides a useful baseline for WCAG-oriented interfaces, while the surrounding page remains responsible for meaningful names, sufficient surface contrast, and keyboard-flow decisions.
+
+- **Chart semantics**: The surface exposes `role="group"`, `aria-roledescription="chart"`, a generated title, and your `ariaLabel`/`ariaDescription`.
+- **Datum semantics**: Bars, points, and slices use `role="graphics-symbol"`, an `aria-roledescription`, and a label containing the category and formatted value.
+- **Keyboard navigation**: Interactive data marks use a roving `tabIndex`. `ArrowRight`/`ArrowDown`, `ArrowLeft`/`ArrowUp`, `Home`, and `End` move focus without trapping the user.
+- **Focus indication**: Focus rings are SVG-native and remain visible at chart edges; they do not rely on CSS outlines around SVG geometry.
+- **Tooltips**: Pointer and keyboard activation share the tooltip lifecycle. The active mark receives `aria-describedby` only while the live tooltip exists.
+- **Reduced motion**: `prefers-reduced-motion: reduce` suppresses animation while preserving final geometry, focus, labels, and tooltips.
+- **SSR and hydration**: Server-rendered markup contains final geometry rather than an empty animated state, and the post-hydration entrance does not change the semantic structure.
+
+For best results, pass a specific `ariaLabel` such as `Monthly revenue`, keep chart text on a suitable surface, and provide a visible heading when the chart is part of a larger report.
 
 ## Tuning & defaults
 
@@ -329,7 +443,7 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 - `colorIndex` (number, default `0`): Available on both `LineChart` and `Sparkline` to select an exact palette color index without custom array overrides.
 - `barPadding` is clamped to `[0, 0.8]` (default `0.22`).
 - `innerRadiusRatio` in `DonutChart` is clamped to `[0, 0.9]` (default `0.62`).
-- `Date` objects passed to `xKey` or `labelKey` format as the local calendar day (`YYYY-MM-DD`) by default, so `new Date(year, month, day)` does not shift the date in timezones east of UTC. Pass `dateFormatter={(date) => date.toISOString().slice(0, 10)}` when your data represents UTC instants; invalid dates are handled safely.
+- `Date` objects passed to `xKey` or `labelKey` format deterministically as `YYYY-MM-DD`: UTC-midnight values use UTC parts (stable for ISO date-only strings), while other values use local parts. Use `dateFormatter` for an explicit timezone or instant policy; invalid dates are handled safely.
 - Numeric accessors warn in development on non-finite values (`null`, `undefined`, `NaN`, `Infinity`) and coerce safely to `0`. Missing values in LineChart, MultiLineChart, and Sparkline are excluded from axis extents and rendered points.
 - Responsive dimensions and chart margins are sanitized so narrow grid/flex cards do not produce invalid SVG attributes or geometry outside the chart viewport.
 
@@ -338,6 +452,34 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 ```tsx
 <BarChart data={[]} xKey="month" yKey="revenue" emptyState="No revenue yet" />
 ```
+
+## Troubleshooting
+
+### The chart overflows a grid or flex card
+
+Set `minWidth: 0` on the chart's grid/flex item and prefer `ResponsiveChart` over hard-coded dimensions:
+
+```tsx
+<div style={{ minWidth: 0 }}>
+  <ResponsiveChart>{({ width, height }) => <LineChart data={data} width={width} height={height} xKey="label" yKey="value" />}</ResponsiveChart>
+</div>
+```
+
+### Dates show the wrong day
+
+ISO date-only values are normalized to their UTC calendar day. Local constructors and local timestamps use local parts. If your backend sends instants and your UI needs a specific timezone, provide `dateFormatter` and format the date with the application timezone policy.
+
+### The chart is static in a test or during SSR
+
+That is expected: server output contains final geometry, and entrance keyframes start after hydration. Set `animation={{ disabled: true }}` when a test intentionally needs no motion; do not assert against a temporary client-only empty state.
+
+### A tooltip is not visible
+
+Make sure `tooltip` is not `false`, the mark is interactive, and the chart is rendered in a browser environment. Tooltips use a portal for transformed or clipped cards and are connected to the active mark with `aria-describedby`.
+
+### Text is hard to read
+
+Chart SVGs are transparent. Put them on a suitable surface, choose a contrasting theme/text color, or provide explicit `colors`. `valueFormatter` changes text only; it does not alter numeric geometry.
 
 ## AI coding agents
 

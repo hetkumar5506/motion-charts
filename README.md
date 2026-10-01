@@ -1,32 +1,39 @@
 # Motion Charts
 
-[![npm version](https://img.shields.io/npm/v/@motion-charts/core.svg?color=2563eb&label=@motion-charts/core)](https://www.npmjs.com/package/@motion-charts/core)
-[![license](https://img.shields.io/npm/l/@motion-charts/core.svg?color=0d9488)](https://github.com/motion-charts)
+[![npm version](https://img.shields.io/npm/v/@motion-charts/core.svg?color=2563eb&label=%40motion-charts%2Fcore)](https://www.npmjs.com/package/@motion-charts/core)
+[![license](https://img.shields.io/npm/l/@motion-charts/core.svg?color=0d9488)](./LICENSE)
 
-Animation-first React charts built with SVG and Framer Motion. Engineered for dashboards, fintech telemetry, ecommerce analytics, and SaaS admin panels.
+Motion Charts is an animation-first React chart library built with SVG, TypeScript, and Framer Motion. It is designed for production interfaces such as ecommerce dashboards, SaaS analytics, POS reports, fintech telemetry, inventory screens, and KPI cards.
 
-Available on npm: **[npmjs.com/package/@motion-charts/core](https://www.npmjs.com/package/@motion-charts/core)**
+The repository contains the published package and a small interactive showcase:
+
+- [`packages/charts`](./packages/charts) — `@motion-charts/core`, the library package and its API documentation.
+- [`apps/docs`](./apps/docs) — the Next.js showcase with live controls for data, themes, and motion presets.
+- [`packages/charts/llms.txt`](./packages/charts/llms.txt) — a compact guide for AI coding agents.
+
+## What is included
+
+- `BarChart` for categorical comparisons and baseline-anchored bar motion.
+- `LineChart` for a single trend with optional area and point geometry.
+- `MultiLineChart` for multiple synchronized series.
+- `DonutChart` for composition and share-of-total data.
+- `Sparkline` for compact KPI and table-card trends.
+- `ResponsiveChart` for measured width, aspect-ratio sizing, and CSS grid/flex layouts.
+- Built-in themes and palettes, custom colors, tooltips, formatters, legends, empty states, and axis controls.
+- SVG-native accessibility semantics, roving keyboard navigation, focus indicators, reduced-motion support, and SSR-safe final geometry.
+- ESM, CommonJS, and TypeScript declaration exports.
+
+## Install the package
 
 ```bash
 npm install @motion-charts/core framer-motion
 ```
 
-This repository contains:
+React and React DOM are peer dependencies. The consuming application owns the React and Framer Motion runtime versions.
 
-- `packages/charts` — the published package: `@motion-charts/core`
-- `apps/docs` — the Next.js documentation and live interactive showcase
+For the package quick start, chart-by-chart examples, shared props, date handling, responsive sizing, accessibility, and troubleshooting, read [`packages/charts/README.md`](./packages/charts/README.md).
 
 ## Quick start
-
-```bash
-npm install
-npm run typecheck
-npm run test
-npm run build
-npm run dev
-```
-
-## Package usage
 
 ```tsx
 "use client";
@@ -34,12 +41,12 @@ npm run dev
 import { BarChart, ResponsiveChart } from "@motion-charts/core";
 
 const data = [
-  { label: "Jan", value: 42 },
-  { label: "Feb", value: 64 },
-  { label: "Mar", value: 51 }
+  { month: "Jan", revenue: 42 },
+  { month: "Feb", revenue: 64 },
+  { month: "Mar", revenue: 51 }
 ];
 
-export function Revenue() {
+export function RevenueChart() {
   return (
     <ResponsiveChart minHeight={280} maxHeight={420}>
       {({ width, height }) => (
@@ -47,11 +54,13 @@ export function Revenue() {
           data={data}
           width={width}
           height={height}
-          xKey="label"
-          yKey="value"
+          xKey="month"
+          yKey="revenue"
           theme="aurora"
           animation={{ preset: "bouncy", stagger: 0.04 }}
           ariaLabel="Monthly revenue"
+          valueFormatter={(value) => `$${value}k`}
+          showValues
         />
       )}
     </ResponsiveChart>
@@ -59,38 +68,52 @@ export function Revenue() {
 }
 ```
 
-## v0.1 feature set
+## Develop the repository
 
-- Animated `BarChart`, `LineChart`, `MultiLineChart`, `DonutChart`, and `Sparkline`
-- Responsive measurement wrapper via `ResponsiveChart`, with grid/flex shrink protection and narrow-card geometry guards
-- 6 chart themes: `aurora`, `midnight`, `candy`, `ocean`, `sunset`, `minimal`
-- 12 palettes: `aurora`, `ocean`, `sunset`, `forest`, `candy`, `royal`, `fire`, `cyber`, `pastel`, `graphite`, `emerald`, `bloom`
-- 7 animation presets: `spring`, `gentle`, `snappy`, `bouncy`, `calm`, `dramatic`, `linear`
-- Custom product color arrays with `colors={[...]}`
-- Gradient bars and donut slices by default
-- Tooltips, value formatters, axes, grids, labels, legends, empty states
-- Keyboard focus, SVG titles/descriptions, and reduced-motion support
-- `llms.txt` guide for AI coding agents
+Requirements: Node.js 18 or newer and npm. From the repository root:
 
-## Audit commands
+```bash
+npm install
+npm run typecheck
+npm test
+npm run build
+npm run dev
+```
+
+The development command starts the Next.js showcase. It is also possible to run workspace commands directly:
+
+```bash
+npm run typecheck --workspace @motion-charts/core
+npm test --workspace @motion-charts/core
+npm run build --workspace @motion-charts/core
+npm run dev --workspace docs
+```
+
+Useful checks before opening a pull request:
 
 ```bash
 npm run typecheck
-npm run test
+npm test
 npm run build
-npm audit
-npm run audit:ponytail
+npm audit --omit=dev
+git diff --check
 ```
 
-## Publish checklist
+The package test suite covers geometry, scales, themes, exports, SSR output, invalid data, responsive layout, accessibility regressions, and animation lifecycle behavior.
 
-1. Create/log in to an npm account.
-2. Rename `@motion-charts/core` to your npm scope if needed, for example `@your-name/motion-charts`.
-3. Run the audit commands above.
-4. From `packages/charts`, run:
+## Project conventions
 
-```bash
-npm publish --access public
-```
+- Keep chart geometry in SVG attributes and use Framer Motion for safe interpolation.
+- Preserve final SSR geometry; entrance animation begins after hydration.
+- Treat `prefers-reduced-motion`, keyboard navigation, labels, and tooltips as part of the public API.
+- Keep date formatting deterministic across server and browser timezones. Use `dateFormatter` when an application needs an explicit timezone policy.
+- Prefer relative URLs and browser-safe client behavior in the docs app.
+- Add a regression test for every fixed bug, especially for SSR, hydration, data updates, and timezone behavior.
 
-The first release intentionally focuses on the charts most dashboards need: bars, lines, multi-line trends, donuts, and sparklines. More chart types should be added only when real users ask for them.
+## Release notes
+
+The changelog for the package lives at [`packages/charts/CHANGELOG.md`](./packages/charts/CHANGELOG.md). The package is published as `@motion-charts/core`; release/version/tag operations should be performed only after the full validation matrix passes.
+
+## License
+
+[MIT](./LICENSE)

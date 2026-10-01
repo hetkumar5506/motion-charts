@@ -54,7 +54,7 @@ export default function Page() {
             </span>
             <span className="font-bold tracking-tight text-slate-900 text-sm">motion-charts</span>
             <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700 font-semibold">
-v0.1.9
+              v0.1.13
             </span>
           </div>
 
@@ -103,7 +103,7 @@ v0.1.9
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                npm v0.1.9 Live
+                npm v0.1.13 Live
               </a>
               <a
                 href="#playground"
