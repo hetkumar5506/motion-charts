@@ -73,6 +73,23 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     expect(html).toContain('height="3"');
   });
 
+  it("keeps animated bars anchored to their computed baseline", () => {
+    const html = renderToString(
+      <BarChart
+        data={[{ label: "A", value: 42 }, { label: "B", value: 84 }]}
+        xKey="label"
+        yKey="value"
+        width={720}
+        height={360}
+        showValues
+        animation={{ preset: "bouncy", stagger: 0.04 }}
+      />
+    );
+    expect(html).not.toMatch(/(?:NaN|Infinity|height="0")/);
+    expect(html).toContain("transform-box");
+    expect(html).toContain("transform-origin");
+  });
+
   it("assigns roving tabIndex and keyboard navigation attributes", () => {
     const data = [
       { label: "A", val: 10 },

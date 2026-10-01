@@ -235,8 +235,8 @@ export function BarChart<TDatum extends object>({
                 height={barHeight}
                 rx={Math.min(safeBarRadius, xScale.bandwidth / 2, Math.max(0, barHeight) / 2)}
                 fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
-                initial={shouldInitial ? { y: baseline, height: 0, opacity: 0 } : false}
-                animate={{ y, height: barHeight, opacity: isHovered ? 0.92 : 1 }}
+                initial={shouldInitial ? { scaleY: 0, opacity: 0 } : false}
+                animate={{ scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
                 transition={chartTransition(animation, reducedMotion, row.index)}
                 role="graphics-symbol"
                 aria-roledescription="bar"
@@ -258,7 +258,9 @@ export function BarChart<TDatum extends object>({
                 onClick={() => onDatumClick?.(context)}
                 style={{
                   cursor: onDatumClick ? "pointer" : "default",
-                  outline: "none"
+                  outline: "none",
+                  transformOrigin: `${x + xScale.bandwidth / 2}px ${baseline}px`,
+                  transformBox: "view-box"
                 }}
               >
                 <title>{aria}</title>
@@ -296,13 +298,15 @@ export function BarChart<TDatum extends object>({
                     fontFamily={chartTheme.fontFamily}
                     fontSize={11}
                     fontWeight={600}
-                    initial={shouldInitial ? { opacity: 0, y: baseline } : false}
-                    animate={{ opacity: 1, y: textY }}
+                    initial={shouldInitial ? { opacity: 0, scale: 0.96 } : false}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={chartTransition(animation, reducedMotion, row.index + 1)}
                     style={{
                       filter: fitInside ? "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" : "none",
                       userSelect: "none",
-                      pointerEvents: "none"
+                      pointerEvents: "none",
+                      transformOrigin: `${textX}px ${textY}px`,
+                      transformBox: "view-box"
                     }}
                   >
                     {valueFormatter(row.value)}
