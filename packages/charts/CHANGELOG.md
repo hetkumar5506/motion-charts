@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Fixed & Enhanced
+- **Bar data-update springs**: BarChart now animates `attrY` and `height` on live data changes instead of snapping to new values, while keeping entrance transforms separate from SVG geometry.
+- **Baseline transform origins**: BarChart entrance scales use Framer Motion's SVG `originX`/`originY` controls, so positive bars grow from the baseline and negative bars grow from zero in the correct direction.
 - **Responsive overflow guards**: `ResponsiveChart` and all chart surfaces now opt into `min-width: 0`, sanitize invalid dimensions, clamp margins for narrow cards, and keep donut geometry inside its viewBox.
 - **Invalid SVG attribute protection**: Direct chart usage with `NaN`, `Infinity`, zero, negative, or invalid sizing/styling values no longer produces invalid SVG attributes.
 - **Date calendar-day correction**: Date labels now use local calendar parts by default, preventing `new Date(year, month, day)` from shifting backward in timezones east of UTC. Added the `dateFormatter` prop for explicit UTC/instant formatting.
