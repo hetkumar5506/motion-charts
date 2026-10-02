@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chartPalettes, chartThemes, getContrastRatio, paletteColors, resolveChartTheme, type ChartThemeName } from "../src";
+import { chartPalettes, chartThemes, getContrastRatio, paletteColors, paletteProfiles, recommendPalette, resolveChartTheme, type ChartThemeName } from "../src";
 
 const builtInThemePalettes: Record<ChartThemeName, keyof typeof chartPalettes> = {
   aurora: "aurora",
@@ -12,6 +12,7 @@ const builtInThemePalettes: Record<ChartThemeName, keyof typeof chartPalettes> =
 
 describe("theme integrity", () => {
   it("keeps every palette above the contrast gate on both supported surfaces", () => {
+    expect(chartPalettes.prism).toHaveLength(6);
     for (const palette of Object.keys(chartPalettes) as Array<keyof typeof chartPalettes>) {
       for (const color of paletteColors(palette, "light") ?? []) {
         expect(getContrastRatio(color, "#ffffff"), `${palette} light ${color}`).toBeGreaterThanOrEqual(2.5);
@@ -20,6 +21,21 @@ describe("theme integrity", () => {
         expect(getContrastRatio(color, "#0f172a"), `${palette} dark ${color}`).toBeGreaterThanOrEqual(2.5);
       }
     }
+  });
+
+  it("provides complete palette profiles and deterministic product-intent recommendations", () => {
+    expect(Object.keys(paletteProfiles).sort()).toEqual(Object.keys(chartPalettes).sort());
+    for (const [name, profile] of Object.entries(paletteProfiles)) {
+      expect(profile.label, `${name} label`).not.toHaveLength(0);
+      expect(profile.mood, `${name} mood`).not.toHaveLength(0);
+      expect(profile.bestFor, `${name} use cases`).not.toHaveLength(0);
+      expect(profile.avoidWhen, `${name} caution`).not.toHaveLength(0);
+    }
+
+    expect(recommendPalette()).toBe("aurora");
+    expect(recommendPalette("fintech")).toBe("lagoon");
+    expect(recommendPalette("accessible")).toBe("okabe");
+    expect(recommendPalette("creative")).toBe("orchid");
   });
 
   it("never recalibrates a light-surface color that already clears the gate", () => {

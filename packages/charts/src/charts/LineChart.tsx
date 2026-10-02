@@ -24,6 +24,13 @@ export type LineChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   curve?: "linear" | "smooth";
   strokeWidth?: number;
   colorIndex?: number;
+  /** Blend the path into the next palette color or an explicit endpoint color. */
+  strokeVariant?: "solid" | "gradient";
+  gradientToColor?: string;
+  /** Opacity of the top edge of the optional area fill, clamped to [0, 1]. */
+  areaOpacity?: number;
+  /** Appearance of visible data points. `halo` adds a soft ambient ring. */
+  pointVariant?: "solid" | "ring" | "halo";
   /** When true (default), bridges missing/null/NaN data points. When false, renders gaps in the line/area. */
   connectNulls?: boolean;
   /** Show a spring-smoothed vertical guide snapped to the nearest hovered point. */
@@ -60,6 +67,10 @@ export function LineChart<TDatum extends object>({
   curve = "smooth",
   strokeWidth = 3,
   colorIndex = 0,
+  strokeVariant = "solid",
+  gradientToColor,
+  areaOpacity = 0.16,
+  pointVariant = "solid",
   connectNulls = true,
   crosshair = false,
   onDatumClick
@@ -76,7 +87,9 @@ export function LineChart<TDatum extends object>({
     [height, margin, width]
   );
   const safeStrokeWidth = finiteNonNegative(strokeWidth, 3);
+  const safeAreaOpacity = Math.min(1, finiteNonNegative(areaOpacity, 0.16));
   const color = colorAt(chartTheme.colors, colorIndex);
+  const gradientEndColor = gradientToColor ?? colorAt(chartTheme.colors, colorIndex + 1);
 
   const safeData = data ?? [];
 
@@ -151,6 +164,8 @@ export function LineChart<TDatum extends object>({
   const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve, connectNulls), [baseline, baselinePoints, connectNulls, curve]);
   const tooltipEnabled = tooltip !== false;
   const drawEntrance = animation?.entrance === "draw";
+  const riseEntrance = animation?.entrance === "rise";
+  const popEntrance = animation?.entrance === "pop";
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -246,8 +261,12 @@ export function LineChart<TDatum extends object>({
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.16" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+          <stop offset="0%" stopColor={color} stopOpacity={safeAreaOpacity} />
+          <stop offset="100%" stopColor={gradientEndColor} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={`${gradientId}-stroke`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={color} />
+          <stop offset="100%" stopColor={gradientEndColor} />
         </linearGradient>
       </defs>
       {rows.length === 0 ? <EmptyState x={bounds.width / 2} y={bounds.height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
@@ -306,7 +325,7 @@ export function LineChart<TDatum extends object>({
               strokeDasharray={line.dash ?? "5 4"}
               initial={false}
               animate={isEntering ? { opacity: [0, 1], pathLength: [0, 1] } : { opacity: 1, pathLength: 1 }}
-              transition={chartTransition(animation, reducedMotion, renderableItems.length + referenceIndex)}
+              transition={chartTransition(animation, reducedMotion, referenceIndex, referenceLines.length)}
               pointerEvents="none"
             />
             {line.label ? <text x={vertical ? xPosition! + 4 : bounds.left + 4} y={vertical ? bounds.top + 14 : yPosition! - 6} fill={color} fontFamily={chartTheme.fontFamily} fontSize={11} fontWeight={600}>{line.label}</text> : null}
@@ -330,15 +349,22 @@ export function LineChart<TDatum extends object>({
         <motion.path
           d={path}
           fill="none"
-          stroke={color}
+          stroke={strokeVariant === "gradient" ? `url(#${gradientId}-stroke)` : color}
           strokeWidth={safeStrokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={false}
           animate={isEntering
-            ? { d: [initialPath, path], opacity: [0, 1], pathLength: drawEntrance ? [0, 1] : 1 }
-            : { d: path, opacity: 1 }}
+            ? {
+                d: [initialPath, path],
+                opacity: [0, 1],
+                pathLength: drawEntrance ? [0, 1] : 1,
+                y: riseEntrance ? [14, 0] : 0,
+                scale: popEntrance ? [0.96, 1.015, 1] : 1
+              }
+            : { d: path, opacity: 1, y: 0, scale: 1 }}
           transition={chartTransition(animation, reducedMotion)}
+          style={popEntrance ? { transformBox: "fill-box", transformOrigin: "center" } : undefined}
           onAnimationComplete={isEntering && renderableItems.length === 0 ? onAnimationComplete : undefined}
           pointerEvents="none"
         />
@@ -346,6 +372,8 @@ export function LineChart<TDatum extends object>({
       {renderableItems.map(({ row, point }, itemIndex) => {
         const isHovered = hoveredIndex === row.index;
         const isFocused = isKeyboardFocused && activeItemIndex === itemIndex;
+        const pointRadius = isHovered ? 6.5 : (showPoints ? 4.5 : 7.5);
+        const pointVisible = showPoints || isHovered || pointVariant !== "solid";
         const context = { datum: row.datum, index: row.index, label: row.label, value: row.value, color: row.color };
         const aria = joinLabels([row.label, valueFormatter(row.value)]);
         return (
@@ -362,19 +390,31 @@ export function LineChart<TDatum extends object>({
                 opacity={0.85}
               />
             ) : null}
+            {pointVariant === "halo" && pointVisible ? (
+              <motion.circle
+                cx={point.x}
+                cy={point.y}
+                r={pointRadius + 4}
+                fill={color}
+                initial={false}
+                animate={isEntering ? { r: [0, pointRadius + 4], opacity: [0, 0.15] } : { r: pointRadius + 4, opacity: 0.15 }}
+                transition={chartTransition(animation, reducedMotion, itemIndex, renderableItems.length)}
+                pointerEvents="none"
+              />
+            ) : null}
             <motion.circle
               cx={point.x}
               cy={point.y}
-              r={isHovered ? 6.5 : (showPoints ? 4.5 : 7.5)}
-              fill={showPoints || isHovered ? color : "transparent"}
-              stroke={showPoints || isHovered ? "#ffffff" : "transparent"}
-              strokeWidth={showPoints || isHovered ? 2.5 : 0}
+              r={pointRadius}
+              fill={pointVisible ? (pointVariant === "ring" ? chartTheme.surfaceColor : color) : "transparent"}
+              stroke={pointVisible ? (pointVariant === "ring" ? color : "#ffffff") : "transparent"}
+              strokeWidth={pointVisible ? (pointVariant === "ring" ? 2.75 : 2.5) : 0}
               initial={false}
               animate={isEntering
-                ? { r: [0, isHovered ? 6.5 : (showPoints ? 4.5 : 7.5)], opacity: [0, 1] }
-                : { r: isHovered ? 6.5 : (showPoints ? 4.5 : 7.5), opacity: 1 }}
+                ? { r: popEntrance ? [0, pointRadius * 1.3, pointRadius] : [0, pointRadius], opacity: [0, 1] }
+                : { r: pointRadius, opacity: 1 }}
               whileHover={{ r: 7.5, strokeWidth: 3 }}
-              transition={chartTransition(animation, reducedMotion, row.index + (drawEntrance ? renderableItems.length : 0))}
+              transition={chartTransition(animation, reducedMotion, itemIndex, renderableItems.length)}
               onAnimationComplete={isEntering && itemIndex === renderableItems.length - 1 ? onAnimationComplete : undefined}
               role="graphics-symbol"
               aria-roledescription="data point"

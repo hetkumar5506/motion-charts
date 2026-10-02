@@ -29,6 +29,14 @@ export const chartPalettes = {
   emerald: ["#059669", "#0d9488", "#10b981", "#047857", "#0f766e", "#34d399"],
   // Vibrant berry & rose
   bloom: ["#be185d", "#e11d48", "#9d174d", "#c026d3", "#fb7185", "#f43f5e"],
+  // High-energy product signal: indigo, teal, magenta, coral, forest, crimson
+  prism: ["#4338ca", "#0e7490", "#a21caf", "#c2410c", "#0f766e", "#be123c"],
+  // Deep water, electric blue, and violet for calm product telemetry
+  lagoon: ["#0f766e", "#0e7490", "#0369a1", "#4338ca", "#6d28d9", "#9f1239"],
+  // Confident magenta, violet, indigo, and warm signal accents
+  orchid: ["#86198f", "#a21caf", "#7e22ce", "#4f46e5", "#be123c", "#c2410c"],
+  // Warm amber, olive, teal, and blue for operational dashboards
+  citrus: ["#b45309", "#a16207", "#4d7c0f", "#0f766e", "#0369a1", "#be123c"],
   // Editorial, scientific, earthy, Nordic, and plum additions
   editorial: ["#0f172a", "#b45309", "#64748b", "#7c2d12", "#475569", "#92400e"],
   okabe: ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00"],
@@ -38,6 +46,56 @@ export const chartPalettes = {
 } as const;
 
 export type ChartPaletteName = keyof typeof chartPalettes;
+
+/** Human-readable palette guidance for design systems, documentation, and AI agents. */
+export type ChartPaletteProfile = {
+  label: string;
+  mood: string;
+  bestFor: readonly string[];
+  avoidWhen: string;
+};
+
+export const paletteProfiles = {
+  aurora: { label: "Aurora", mood: "confident, balanced product blue", bestFor: ["general SaaS", "B2B analytics", "revenue"], avoidWhen: "the interface already relies heavily on saturated blue" },
+  ocean: { label: "Ocean", mood: "calm, trustworthy aquatic", bestFor: ["fintech", "health data", "retention"], avoidWhen: "a warm or editorial brand is the primary visual language" },
+  sunset: { label: "Sunset", mood: "warm, decisive, commercial", bestFor: ["commerce", "growth", "conversion"], avoidWhen: "the dashboard needs a quiet operational tone" },
+  forest: { label: "Forest", mood: "natural, stable, grounded", bestFor: ["climate", "wellness", "inventory"], avoidWhen: "series need a very large hue separation" },
+  candy: { label: "Candy", mood: "expressive, creative, optimistic", bestFor: ["creator tools", "community", "campaigns"], avoidWhen: "the product is conservative or financial" },
+  royal: { label: "Royal", mood: "institutional, composed, technical", bestFor: ["enterprise", "reporting", "governance"], avoidWhen: "a warm, human-first surface is needed" },
+  fire: { label: "Fire", mood: "urgent, high-signal, action oriented", bestFor: ["alerts", "sales", "incident views"], avoidWhen: "everyday passive monitoring" },
+  cyber: { label: "Cyber", mood: "technical, high-energy, dark-native", bestFor: ["developer tools", "observability", "security"], avoidWhen: "a paper-like editorial interface" },
+  pastel: { label: "Pastel", mood: "restrained, friendly, low-noise", bestFor: ["admin tools", "education", "support analytics"], avoidWhen: "critical alerts need to dominate" },
+  graphite: { label: "Graphite", mood: "minimal, architectural, neutral", bestFor: ["editorial", "executive reporting", "dense tables"], avoidWhen: "users need strong per-series color recognition" },
+  emerald: { label: "Emerald", mood: "fresh, positive, operational", bestFor: ["sustainability", "inventory", "success metrics"], avoidWhen: "negative states need to be the main story" },
+  bloom: { label: "Bloom", mood: "bold, human, energetic", bestFor: ["consumer apps", "social", "launch dashboards"], avoidWhen: "a muted B2B interface is required" },
+  prism: { label: "Prism", mood: "vibrant, premium, high-contrast", bestFor: ["product telemetry", "feature launches", "dark dashboards"], avoidWhen: "the surrounding UI already contains many competing accents" },
+  lagoon: { label: "Lagoon", mood: "cool, polished, composed", bestFor: ["finance", "health", "platform analytics"], avoidWhen: "a warm commercial visual is required" },
+  orchid: { label: "Orchid", mood: "creative, expressive, premium", bestFor: ["media", "creator tools", "campaign performance"], avoidWhen: "the audience expects an institutional style" },
+  citrus: { label: "Citrus", mood: "warm, optimistic, operational", bestFor: ["commerce", "operations", "field teams"], avoidWhen: "the screen is already alert-heavy" },
+  editorial: { label: "Editorial", mood: "ink, brass, considered", bestFor: ["reports", "publishing", "executive readouts"], avoidWhen: "real-time alerting is the main task" },
+  okabe: { label: "Okabe", mood: "colorblind-considered scientific", bestFor: ["research", "accessible reports", "multi-series data"], avoidWhen: "a strongly branded tonal system is required" },
+  terra: { label: "Terra", mood: "earthy, dependable, practical", bestFor: ["supply chain", "climate", "operations"], avoidWhen: "bright consumer energy is desired" },
+  nordic: { label: "Nordic", mood: "quiet, cool, methodical", bestFor: ["planning", "product analytics", "professional services"], avoidWhen: "high urgency is the primary message" },
+  plum: { label: "Plum", mood: "rich, expressive, refined", bestFor: ["lifestyle", "membership", "brand reporting"], avoidWhen: "a utilitarian monitoring interface is needed" }
+} as const satisfies Record<ChartPaletteName, ChartPaletteProfile>;
+
+export type ChartPaletteIntent = "default" | "commerce" | "fintech" | "developer" | "editorial" | "wellness" | "accessible" | "creative";
+
+const recommendedPalettes = {
+  default: "aurora",
+  commerce: "sunset",
+  fintech: "lagoon",
+  developer: "cyber",
+  editorial: "editorial",
+  wellness: "emerald",
+  accessible: "okabe",
+  creative: "orchid"
+} as const satisfies Record<ChartPaletteIntent, ChartPaletteName>;
+
+/** A deterministic shortcut for common product contexts; explicit palette names still win. */
+export function recommendPalette(intent: ChartPaletteIntent = "default"): ChartPaletteName {
+  return recommendedPalettes[intent];
+}
 
 export type ChartTheme = {
   /** Surface the theme is tuned against; chart SVGs remain transparent. */

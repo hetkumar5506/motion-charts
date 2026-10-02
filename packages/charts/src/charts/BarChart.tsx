@@ -43,7 +43,8 @@ export type BarChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   showValues?: boolean | ShowValuesOptions;
   barRadius?: number;
   barPadding?: number;
-  barVariant?: "solid" | "gradient";
+  /** `glass` adds a restrained specular highlight over the existing gradient treatment. */
+  barVariant?: "solid" | "gradient" | "glass";
   onDatumClick?: (context: TooltipRenderContext<TDatum>) => void;
 };
 
@@ -227,6 +228,7 @@ export function BarChart<TDatum extends object>({
   }, [segments.length]);
 
   const tooltipEnabled = tooltip !== false;
+  const popEntrance = animation?.entrance === "pop";
   const countUp = typeof showValues === "object" ? showValues.countUp !== false : true;
   const valueLabelFormatter = typeof showValues === "object" && showValues.formatter
     ? showValues.formatter
@@ -289,10 +291,12 @@ export function BarChart<TDatum extends object>({
     <div className={className} style={{ width: "100%", minWidth: 0, ...style }}>
       <ChartSurface width={bounds.width} height={bounds.height} ariaLabel={ariaLabel} ariaDescription={ariaDescription} tooltip={tooltipState} tooltipStyle={chartTheme.tooltipStyle} tooltipId={tooltipId}>
         <defs>
-          {barVariant === "gradient" ? preparedSeries.map((item, seriesIndex) => (
-            <linearGradient key={item.id} id={`${gradientBaseId}-${seriesIndex}`} x1={layout === "horizontal" ? "0" : "0"} y1="0" x2={layout === "horizontal" ? "1" : "0"} y2={layout === "horizontal" ? "0" : "1"}>
-              <stop offset="0%" stopColor={item.color} stopOpacity="1" />
-              <stop offset="100%" stopColor={item.color} stopOpacity="0.82" />
+          {barVariant !== "solid" ? preparedSeries.map((item, seriesIndex) => (
+            <linearGradient key={item.id} id={`${gradientBaseId}-${seriesIndex}`} x1="0" y1="0" x2={layout === "horizontal" ? "1" : "0"} y2={layout === "horizontal" ? "0" : "1"}>
+              {barVariant === "glass" ? <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" /> : null}
+              {barVariant === "glass" ? <stop offset="20%" stopColor={item.color} stopOpacity="1" /> : null}
+              <stop offset={barVariant === "glass" ? "46%" : "0%"} stopColor={item.color} stopOpacity="1" />
+              <stop offset="100%" stopColor={item.color} stopOpacity={barVariant === "glass" ? "0.72" : "0.82"} />
             </linearGradient>
           )) : null}
         </defs>
@@ -337,7 +341,7 @@ export function BarChart<TDatum extends object>({
                 strokeDasharray={line.dash ?? "5 4"}
                 initial={false}
                 animate={isEntering ? { opacity: [0, 1], pathLength: [0, 1] } : { opacity: 1, pathLength: 1 }}
-                transition={chartTransition(animation, reducedMotion, segments.length + referenceIndex)}
+                transition={chartTransition(animation, reducedMotion, referenceIndex, referenceLines.length)}
                 pointerEvents="none"
               />
               {line.label ? <text x={layout === "horizontal" ? (yPosition ?? bounds.left) : bounds.left + 4} y={layout === "vertical" ? (yPosition ?? bounds.top) - 6 : (categoryPosition ?? bounds.top) - 6} fill={color} fontFamily={chartTheme.fontFamily} fontSize={11} fontWeight={600}>{line.label}</text> : null}
@@ -369,13 +373,21 @@ export function BarChart<TDatum extends object>({
                 width={segment.width}
                 height={segment.height}
                 rx={Math.min(safeBarRadius, layout === "vertical" ? segment.width / 2 : segment.height / 2, Math.max(0, layout === "vertical" ? segment.height : segment.width) / 2)}
-                fill={barVariant === "gradient" ? `url(#${gradientBaseId}-${preparedSeries.findIndex((item) => item.id === segment.seriesId)})` : segment.color}
+                fill={barVariant !== "solid" ? `url(#${gradientBaseId}-${preparedSeries.findIndex((item) => item.id === segment.seriesId)})` : segment.color}
                 initial={false}
                 animate={isEntering
-                  ? { attrX: segment.x, attrY: segment.y, width: segment.width, height: segment.height, scaleX: layout === "horizontal" ? [0, 1] : 1, scaleY: layout === "vertical" ? [0, 1] : 1, opacity: [0, isHovered ? 0.92 : 1] }
+                  ? {
+                      attrX: segment.x,
+                      attrY: segment.y,
+                      width: segment.width,
+                      height: segment.height,
+                      scaleX: layout === "horizontal" ? (popEntrance ? [0, 1.045, 1] : [0, 1]) : 1,
+                      scaleY: layout === "vertical" ? (popEntrance ? [0, 1.045, 1] : [0, 1]) : 1,
+                      opacity: [0, isHovered ? 0.92 : 1]
+                    }
                   : { attrX: segment.x, attrY: segment.y, width: segment.width, height: segment.height, scaleX: 1, scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
                 whileHover={{ opacity: 0.85 }}
-                transition={chartTransition(animation, reducedMotion, index)}
+                transition={chartTransition(animation, reducedMotion, index, segments.length)}
                 onAnimationComplete={isEntering && index === segments.length - 1 && !showValueLabels ? onAnimationComplete : undefined}
                 role="graphics-symbol"
                 aria-roledescription="bar"
@@ -411,14 +423,14 @@ export function BarChart<TDatum extends object>({
                   fontWeight={600}
                   initial={false}
                   animate={isEntering ? { opacity: [0, 1], scale: [0.96, 1] } : { opacity: 1, scale: 1 }}
-                  transition={chartTransition(animation, reducedMotion, index + 1)}
+                  transition={chartTransition(animation, reducedMotion, index, segments.length)}
                   onAnimationComplete={isEntering && index === segments.length - 1 ? onAnimationComplete : undefined}
                   style={{ filter: labelInside && layout === "vertical" ? "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" : "none", userSelect: "none", pointerEvents: "none", originX: 0.5, originY: 0.5 }}
                 >
                   <AnimatedNumberText
                     value={segment.value}
                     format={valueLabelFormatter}
-                    transition={chartTransition(animation, reducedMotion, index)}
+                    transition={chartTransition(animation, reducedMotion, index, segments.length)}
                     initialValue={countUp && isEntering ? 0 : undefined}
                     reducedMotion={reducedMotion}
                   />

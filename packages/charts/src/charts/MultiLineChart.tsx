@@ -38,6 +38,10 @@ export type MultiLineChartProps<TDatum extends object> = Omit<CommonChartProps<T
   showLegend?: boolean;
   showPoints?: boolean;
   showArea?: boolean;
+  /** Apply a palette-blended gradient to every series stroke. */
+  strokeVariant?: "solid" | "gradient";
+  /** Opacity of the top edge of every area fill, clamped to [0, 1]. */
+  areaOpacity?: number;
   curve?: "linear" | "smooth";
   /** When true (default), bridges missing/null/NaN data points. When false, renders gaps in the lines/areas. */
   connectNulls?: boolean;
@@ -73,6 +77,8 @@ export function MultiLineChart<TDatum extends object>({
   showLegend = true,
   showPoints = true,
   showArea = false,
+  strokeVariant = "solid",
+  areaOpacity = 0.14,
   curve = "smooth",
   connectNulls = true,
   crosshair = false,
@@ -144,6 +150,9 @@ export function MultiLineChart<TDatum extends object>({
     : yScale.scale(0);
   const tooltipEnabled = tooltip !== false;
   const drawEntrance = animation?.entrance === "draw";
+  const riseEntrance = animation?.entrance === "rise";
+  const popEntrance = animation?.entrance === "pop";
+  const safeAreaOpacity = Math.min(1, finiteNonNegative(areaOpacity, 0.14));
 
   const renderedSeries = useMemo(
     () =>
@@ -301,10 +310,16 @@ export function MultiLineChart<TDatum extends object>({
       >
         <defs>
           {renderedSeries.map((item, index) => (
-            <linearGradient key={item.id} id={`${gradientBaseId}-${index}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={item.color} stopOpacity="0.14" />
-              <stop offset="100%" stopColor={item.color} stopOpacity="0.0" />
-            </linearGradient>
+            <g key={item.id}>
+              <linearGradient id={`${gradientBaseId}-${index}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={item.color} stopOpacity={safeAreaOpacity} />
+                <stop offset="100%" stopColor={colorAt(chartTheme.colors, index + 1)} stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id={`${gradientBaseId}-${index}-stroke`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={item.color} />
+                <stop offset="100%" stopColor={colorAt(chartTheme.colors, index + 1)} />
+              </linearGradient>
+            </g>
           ))}
         </defs>
         {!hasData ? <EmptyState x={bounds.width / 2} y={bounds.height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
@@ -363,7 +378,7 @@ export function MultiLineChart<TDatum extends object>({
                 strokeDasharray={line.dash ?? "5 4"}
                 initial={false}
                 animate={isEntering ? { opacity: [0, 1], pathLength: [0, 1] } : { opacity: 1, pathLength: 1 }}
-                transition={chartTransition(animation, reducedMotion, renderedSeries.length + referenceIndex)}
+                transition={chartTransition(animation, reducedMotion, referenceIndex, referenceLines.length)}
                 pointerEvents="none"
               />
               {line.label ? <text x={vertical ? xPosition! + 4 : bounds.left + 4} y={vertical ? bounds.top + 14 : yPosition! - 6} fill={color} fontFamily={chartTheme.fontFamily} fontSize={11} fontWeight={600}>{line.label}</text> : null}
@@ -381,7 +396,7 @@ export function MultiLineChart<TDatum extends object>({
                 animate={isEntering
                   ? { opacity: [0, 1], d: [item.initialFillPath, item.fillPath] }
                   : { opacity: 1, d: item.fillPath }}
-                transition={chartTransition(animation, reducedMotion, seriesIndex + (drawEntrance ? seriesIndex : 0))}
+                transition={chartTransition(animation, reducedMotion, seriesIndex, renderedSeries.length)}
                 pointerEvents="none"
               />
             ) : null}
@@ -389,15 +404,22 @@ export function MultiLineChart<TDatum extends object>({
               <motion.path
                 d={item.path}
                 fill="none"
-                stroke={item.color}
+                stroke={strokeVariant === "gradient" ? `url(#${gradientBaseId}-${seriesIndex}-stroke)` : item.color}
                 strokeWidth={item.strokeWidth}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 initial={false}
                 animate={isEntering
-                  ? { d: [item.initialPath, item.path], opacity: [0, 1], pathLength: drawEntrance ? [0, 1] : 1 }
-                  : { d: item.path, opacity: 1 }}
-                transition={chartTransition(animation, reducedMotion, seriesIndex + (drawEntrance ? seriesIndex : 0))}
+                  ? {
+                      d: [item.initialPath, item.path],
+                      opacity: [0, 1],
+                      pathLength: drawEntrance ? [0, 1] : 1,
+                      y: riseEntrance ? [14, 0] : 0,
+                      scale: popEntrance ? [0.96, 1.015, 1] : 1
+                    }
+                  : { d: item.path, opacity: 1, y: 0, scale: 1 }}
+                transition={chartTransition(animation, reducedMotion, seriesIndex, renderedSeries.length)}
+                style={popEntrance ? { transformBox: "fill-box", transformOrigin: "center" } : undefined}
                 onAnimationComplete={isEntering && renderablePoints.length === 0 && seriesIndex === renderedSeries.length - 1 ? onAnimationComplete : undefined}
                 pointerEvents="none"
               />
@@ -441,10 +463,10 @@ export function MultiLineChart<TDatum extends object>({
                 strokeWidth={showPoints || isHovered ? 2.5 : 0}
                 initial={false}
                 animate={isEntering
-                  ? { r: [0, isHovered ? 6 : (showPoints ? 4 : 7)], opacity: [0, 1] }
+                  ? { r: popEntrance ? [0, (isHovered ? 6 : (showPoints ? 4 : 7)) * 1.3, isHovered ? 6 : (showPoints ? 4 : 7)] : [0, isHovered ? 6 : (showPoints ? 4 : 7)], opacity: [0, 1] }
                   : { r: isHovered ? 6 : (showPoints ? 4 : 7), opacity: 1 }}
                 whileHover={{ r: 7.5, strokeWidth: 3 }}
-                transition={chartTransition(animation, reducedMotion, row.index + seriesIdx + (drawEntrance ? renderedSeries.length : 0))}
+                transition={chartTransition(animation, reducedMotion, ptIndex, renderablePoints.length)}
                 onAnimationComplete={isEntering && ptIndex === renderablePoints.length - 1 ? onAnimationComplete : undefined}
                 role="graphics-symbol"
                 aria-roledescription="data point"

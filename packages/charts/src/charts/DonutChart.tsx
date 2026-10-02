@@ -23,7 +23,8 @@ export type DonutChartProps<TDatum extends object> = CommonChartProps<TDatum> & 
   showLegend?: boolean;
   showLabels?: boolean;
   centerLabel?: string | ((total: number) => string);
-  sliceVariant?: "solid" | "gradient";
+  /** `glass` adds a small radial highlight while preserving the slice color. */
+  sliceVariant?: "solid" | "gradient" | "glass";
   onDatumClick?: (context: TooltipRenderContext<TDatum>) => void;
 };
 
@@ -199,11 +200,13 @@ export function DonutChart<TDatum extends object>({
         tooltipId={tooltipId}
       >
         <defs>
-          {sliceVariant === "gradient"
+          {sliceVariant !== "solid"
             ? rows.map((row) => (
-                <radialGradient key={row.index} id={`${gradientBaseId}-${row.index}`} cx="45%" cy="35%" r="65%">
-                  <stop offset="0%" stopColor={row.color} stopOpacity="1" />
-                  <stop offset="100%" stopColor={row.color} stopOpacity="0.84" />
+                <radialGradient key={row.index} id={`${gradientBaseId}-${row.index}`} cx="42%" cy="30%" r="72%">
+                  {sliceVariant === "glass" ? <stop offset="0%" stopColor="#ffffff" stopOpacity="0.48" /> : null}
+                  {sliceVariant === "glass" ? <stop offset="24%" stopColor={row.color} stopOpacity="1" /> : null}
+                  <stop offset={sliceVariant === "glass" ? "52%" : "0%"} stopColor={row.color} stopOpacity="1" />
+                  <stop offset="100%" stopColor={row.color} stopOpacity={sliceVariant === "glass" ? "0.74" : "0.84"} />
                 </radialGradient>
               ))
             : null}
@@ -228,13 +231,14 @@ export function DonutChart<TDatum extends object>({
                 outerRadius={outerRadius}
                 startAngle={slice.startAngle}
                 endAngle={slice.endAngle}
-                fill={sliceVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
+                fill={sliceVariant !== "solid" ? `url(#${gradientBaseId}-${row.index})` : row.color}
                 stroke={isFocused ? chartTheme.textColor : "transparent"}
                 strokeWidth={isFocused ? 2.5 : 0}
                 transformScale={isFocused ? 1.04 : 1}
                 hoverScale={1.035}
-                transition={chartTransition(animation, reducedMotion, originalIndex)}
+                transition={chartTransition(animation, reducedMotion, itemIndex, renderableSlices.length)}
                 sweep={animation?.entrance === "sweep"}
+                pop={animation?.entrance === "pop"}
                 isEntering={isEntering}
                 reducedMotion={reducedMotion}
                 sweepIndex={itemIndex}
@@ -280,7 +284,7 @@ export function DonutChart<TDatum extends object>({
                   pointerEvents="none"
                   initial={false}
                   animate={isEntering ? { opacity: [0, 1] } : { opacity: 1 }}
-                  transition={chartTransition(animation, reducedMotion, originalIndex + 1)}
+                  transition={chartTransition(animation, reducedMotion, itemIndex, renderableSlices.length)}
                   onAnimationComplete={isEntering && itemIndex === renderableSlices.length - 1 ? onAnimationComplete : undefined}
                 >
                   {Math.round(slice.percent * 100)}%
@@ -323,6 +327,7 @@ type AnimatedDonutSliceProps = {
   hoverScale: number;
   transition: Transition;
   sweep: boolean;
+  pop: boolean;
   isEntering: boolean;
   reducedMotion: boolean | null;
   sweepIndex: number;
@@ -358,6 +363,7 @@ function AnimatedDonutSlice({
   hoverScale,
   transition,
   sweep,
+  pop,
   isEntering,
   reducedMotion,
   sweepIndex,
@@ -415,7 +421,9 @@ function AnimatedDonutSlice({
       strokeWidth={strokeWidth}
       strokeLinejoin="round"
       initial={false}
-      animate={{ opacity: 1, scale: transformScale }}
+      animate={isEntering
+        ? { opacity: [0, 1], scale: pop ? [0.72, 1.06, transformScale] : transformScale }
+        : { opacity: 1, scale: transformScale }}
       whileHover={{ scale: hoverScale, opacity: 0.95 }}
       transition={transition}
       onAnimationComplete={onAnimationComplete}

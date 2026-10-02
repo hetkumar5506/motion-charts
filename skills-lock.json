@@ -48,6 +48,12 @@
       "sourceType": "github",
       "skillPath": "skills/ponytail-review/SKILL.md",
       "computedHash": "4646594fcd75455533f7ff1425f4f1c5ba0fa65f88241bf262b1c4fc275f049a"
+    },
+    "arena": {
+      "source": "Jakeschincariol/arena-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/arena/SKILL.md",
+      "computedHash": "c06f9828566485d5bd6507150f454d6f37d49c2b02e5308b8f744a4a046bdf39"
     }
   }
 }
