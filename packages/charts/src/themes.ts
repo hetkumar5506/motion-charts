@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { getContrastRatio } from "./utils/color";
+
+const LIGHT_SURFACE = "#ffffff";
+const LIGHT_PALETTE_CONTRAST = 2.5;
 
 export const chartPalettes = {
   // Hallmark / Cobalt inspired: Electric cobalt signal with slate, teal, and amber companions
@@ -159,7 +163,9 @@ export function resolveChartTheme(input?: ChartThemeInput, colorsOverride?: read
   const base = namedBase ?? chartThemes.aurora;
   const overrides = typeof input === "object" && input ? input : {};
   const palette = "palette" in overrides ? overrides.palette : undefined;
-  const builtInPalette = typeof input === "object" && input?.base ? builtInThemePalettes[input.base] : undefined;
+  const builtInPalette = isNamed
+    ? builtInThemePalettes[input as ChartThemeName]
+    : (typeof input === "object" && input?.base ? builtInThemePalettes[input.base] : undefined);
   const effectiveSurface = overrides.surface ?? base.surface;
   // Precedence: explicit colorsOverride -> theme.colors -> theme.palette -> base.colors.
   // A built-in palette is also adapted when a caller requests the other surface.
@@ -197,25 +203,22 @@ function lightenForDarkSurface(color: string): string {
 
 function darkenForLightSurface(color: string): string {
   const match = color.match(/^#([0-9a-f]{6})$/i);
-  if (!match) return color;
+  if (!match || getContrastRatio(color, LIGHT_SURFACE) >= LIGHT_PALETTE_CONTRAST) return color;
+
   const channels = [0, 2, 4].map((offset) => Number.parseInt(match[1]!.slice(offset, offset + 2), 16));
-  const luminance = (candidate: readonly number[]) => {
-    const linear = candidate.map((channel) => {
-      const value = channel / 255;
-      return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
-  };
-  if ((1.05) / (luminance(channels) + 0.05) >= 2.5) return color;
-  const lifted = channels.map((channel) => Math.round(channel * 0.78));
-  return `#${lifted.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+  // Very pale colors need a larger step. Near-threshold colors retain more of
+  // their original hue while crossing the 2.5:1 palette contrast gate.
+  const factor = getContrastRatio(color, LIGHT_SURFACE) < 2 ? 0.7 : 0.78;
+  const adjusted = channels.map((channel) => Math.round(channel * factor));
+  return `#${adjusted.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
 }
 
 function makeTheme(palette: ChartPaletteName, overrides: Omit<ChartTheme, "colors" | "fontFamily" | "fontSize" | "surface" | "surfaceColor"> & Partial<Pick<ChartTheme, "surface" | "surfaceColor">>): ChartTheme {
+  const surface = overrides.surface ?? "light";
   return {
-    surface: "light",
-    surfaceColor: "#ffffff",
-    colors: chartPalettes[palette],
+    surface,
+    surfaceColor: surface === "dark" ? "#0f172a" : LIGHT_SURFACE,
+    colors: paletteColors(palette, surface) ?? chartPalettes[palette],
     fontFamily,
     fontSize: 12,
     ...overrides

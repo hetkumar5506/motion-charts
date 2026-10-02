@@ -18,6 +18,7 @@ Animation-first React charts powered by SVG and Framer Motion.
 - [Accessibility and SSR](#accessibility)
 - [Themes and palettes](#themes-and-palettes)
 - [Tuning and defaults](#tuning--defaults)
+- [Roadmap](#roadmap)
 
 ## Requirements
 
@@ -166,6 +167,13 @@ For a chart inside your own flex or grid item, also allow that item to shrink:
 
 The wrapper sanitizes invalid dimensions, ignores temporary zero-width observations while a parent is hidden, and clamps chart margins to keep the plotting area inside the SVG at narrow widths. Individual charts also protect against invalid `width`, `height`, margin, padding, and stroke values.
 
+| `ResponsiveChart` prop | Purpose |
+| --- | --- |
+| `children` | A render function receiving the measured `{ width, height }` for the chart. |
+| `fallbackWidth` | SSR and no-`ResizeObserver` width before/without a real measurement. Defaults to `720`. |
+| `className`, `style` | Applied to the measured wrapper. The wrapper always includes `width: 100%` and `min-width: 0`; supplied styles can extend or override it. |
+| `aspectRatio`, `minHeight`, `maxHeight` | Control calculated height with safe defaults and bounds. |
+
 ### Shared chart props
 
 All chart components accept these common options:
@@ -205,7 +213,17 @@ Useful props:
 - `barRadius`, `barPadding` — visual tuning.
 - `showValues`, `showGrid`, `xAxis`, `yAxis`.
 
-`showValues` can be a boolean or `{ countUp?: boolean }`. Count-up labels are enabled by default and use the same spring timing as the bars; use `showValues={{ countUp: false }}` to keep labels static.
+`showValues` can be a boolean or `{ countUp?: boolean; formatter?: (value) => string }`. Count-up labels are enabled by default and use the same spring timing as the bars; use `showValues={{ countUp: false }}` to keep labels static. `showValues.formatter` formats the label above or inside a bar only; `valueFormatter` continues to format axes, accessible labels, and tooltips.
+
+```tsx
+<BarChart
+  data={monthlyRevenue}
+  xKey="month"
+  yKey="revenue"
+  valueFormatter={(value) => `$${value.toLocaleString()}`}
+  showValues={{ formatter: (value) => `$${Math.round(value / 1000)}k` }}
+/>
+```
 
 ### Horizontal bars
 
@@ -404,7 +422,9 @@ Choose an explicit light/dark surface variant. `auto` is SSR-safe: it renders th
 <LineChart data={data} xKey="month" yKey="revenue" theme={{ base: "aurora", surface: "dark" }} />
 ```
 
-Every built-in palette can be selected on either surface with `theme={{ base: "aurora", palette: "okabe", surface: "dark" }}`. The chart SVG stays transparent; apply `theme.surfaceColor` or your own card background to the containing surface.
+Every built-in palette can be selected on either surface with `theme={{ base: "aurora", palette: "okabe", surface: "dark" }}`. Named themes use the same surface-adjusted palette as their matching palette name, so `theme="ocean"` and `theme={{ base: "ocean", palette: "ocean" }}` stay visually aligned. The chart SVG stays transparent; apply `theme.surfaceColor` or your own card background to the containing surface.
+
+On light surfaces, built-in palette colors are calibrated to a minimum 2.5:1 contrast ratio against white. Colors that already meet that threshold are left untouched, which keeps established visual tokens stable.
 
 Extend a named theme using `base`:
 
@@ -517,6 +537,8 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 />
 ```
 
+The renderer receives `{ datum, index, label, value, color }`. In multi-series charts and grouped/stacked bars, it also receives `seriesId` (the stable series key) and `seriesLabel` (the visible series name). Return any React node, or set `tooltip={false}` to disable the default tooltip.
+
 ## Datum actions
 
 `onDatumClick` is supported by every chart with interactive data marks. It receives the same context for pointer and keyboard activation:
@@ -613,6 +635,14 @@ Make sure `tooltip` is not `false`, the mark is interactive, and the chart is re
 ### Text is hard to read
 
 Chart SVGs are transparent. Put them on a suitable surface, choose a contrasting theme/text color, or provide explicit `colors`. `valueFormatter` changes text only; it does not alter numeric geometry.
+
+## Roadmap
+
+The library is intentionally focused on production-ready SVG primitives rather than a large plugin surface. Next areas of exploration are guided by real product use:
+
+- richer annotation and threshold-guide ergonomics;
+- improved tooltip density controls for touch and compact dashboards;
+- additional chart families only when they can match the existing accessibility, SSR, and motion guarantees.
 
 ## AI coding agents
 

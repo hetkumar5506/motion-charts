@@ -1,252 +1,174 @@
 import { ChartShowcase, ThemeGallery } from "../components/ChartShowcase";
 
-const features = [
+const principles = [
   {
-    title: "Physics-Driven Interpolation",
-    category: "MOTION",
-    body: "Built directly on Framer Motion primitives. When data updates or time periods shift, geometry interpolates smoothly instead of snapping."
+    number: "01",
+    title: "Motion that explains change",
+    body: "Bars preserve their baseline, paths morph through data updates, and donut slices interpolate angles instead of SVG command strings."
   },
   {
-    title: "17 Curated Palettes",
-    category: "DESIGN TOKENS",
-    body: "Designed for SaaS analytics, fintech telemetry, and inventory displays. Tuned hues with high contrast and zero neon noise."
+    number: "02",
+    title: "Tokens with guardrails",
+    body: "Curated palettes adapt to their surface, with light-surface colors calibrated for contrast and named themes kept in sync."
   },
   {
-    title: "Container-Aware Scales",
-    category: "RESPONSIVENESS",
-    body: "Powered by ResizeObserver with bounded scales, SVG viewBox normalization, and full reduced-motion accessibility out of the box."
+    number: "03",
+    title: "Interaction is a feature",
+    body: "Keyboard roving focus, native SVG focus rings, tooltips, SSR-safe final geometry, and reduced-motion support ship together."
   }
 ];
 
-const palettes = {
-  editorial: ["#0f172a", "#b45309", "#64748b", "#7c2d12", "#475569", "#92400e"],
-  okabe: ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00"],
-  terra: ["#9a3412", "#4d7c0f", "#a16207", "#166534", "#7c2d12", "#3f6212"],
-  nordic: ["#1e3a5f", "#4a6fa5", "#7899c2", "#2d4a6d", "#94a3b8", "#567db0"],
-  plum: ["#86198f", "#be185d", "#9d174d", "#a21caf", "#d946ef", "#e879f9"],
-  aurora: ["#2563eb", "#0284c7", "#0d9488", "#d97706", "#7c3aed", "#e11d48"],
-  ocean: ["#0284c7", "#2563eb", "#06b6d4", "#0369a1", "#0891b2", "#1d4ed8"],
-  sunset: ["#ea580c", "#d97706", "#c2410c", "#e11d48", "#9a3412", "#b91c1c"],
-  forest: ["#059669", "#0d9488", "#16a34a", "#65a30d", "#047857", "#15803d"],
-  candy: ["#9333ea", "#c026d3", "#db2777", "#6366f1", "#7c3aed", "#e11d48"],
-  royal: ["#4338ca", "#3b82f6", "#6366f1", "#64748b", "#1e293b", "#334155"],
-  fire: ["#dc2626", "#ea580c", "#d97706", "#b91c1c", "#c2410c", "#7f1d1d"],
-  cyber: ["#0891b2", "#16a34a", "#7c3aed", "#2563eb", "#0284c7", "#4f46e5"],
-  pastel: ["#64748b", "#0284c7", "#0d9488", "#d97706", "#7c3aed", "#be185d"],
-  graphite: ["#0f172a", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"],
-  emerald: ["#059669", "#0d9488", "#10b981", "#047857", "#0f766e", "#34d399"],
-  bloom: ["#be185d", "#e11d48", "#9d174d", "#c026d3", "#fb7185", "#f43f5e"]
-};
-
 const components = [
-  { name: "BarChart", bestFor: "Categorical comparison, revenue by interval, order counts", traits: "Individual bar spring physics, rounded caps, value labels" },
-  { name: "LineChart", bestFor: "Continuous metrics: retention, MRR, traffic, temperature", traits: "Catmull-Rom cubic bezier curves, understated area gradient, hover probes" },
-  { name: "MultiLineChart", bestFor: "Multi-series telemetry: revenue vs users vs orders", traits: "Synchronized crosshairs, per-series strokes, auto-keying" },
-  { name: "DonutChart", bestFor: "Compositional ratios, acquisition channels, device share", traits: "Polar coordinate interpolation, inner cutout, centered metric display" },
-  { name: "Sparkline", bestFor: "KPI telemetry cards, compact table embeds, header badges", traits: "Zero-dependency layout, lightweight memory profile, trailing point pulse" },
-  { name: "ResponsiveChart", bestFor: "Full-width dashboard grids & dynamic window views", traits: "ResizeObserver integration, aspect ratio lock, zero layout shift" }
+  { name: "BarChart", use: "Category comparisons", note: "Grouped, stacked, or horizontal" },
+  { name: "LineChart", use: "A single changing signal", note: "Area, points, crosshair, draw entrance" },
+  { name: "MultiLineChart", use: "Related metrics over time", note: "Stable series IDs and legend" },
+  { name: "DonutChart", use: "Parts of a whole", note: "Arc updates and sweep entrance" },
+  { name: "Sparkline", use: "Dense KPI context", note: "Small, responsive trend marks" },
+  { name: "ResponsiveChart", use: "Measured layouts", note: "ResizeObserver render-function wrapper" }
 ];
 
 export default function Page() {
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-slate-900">
-      {/* Top Engineering Nav */}
-      <nav className="border-b border-slate-200/80 bg-white/90 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
-          <div className="flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-900 font-mono text-xs font-bold text-white shadow-sm">
-              MC
-            </span>
-            <span className="font-bold tracking-tight text-slate-900 text-sm">motion-charts</span>
-            <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700 font-semibold">
-              v0.2.0
-            </span>
-          </div>
-
-          <div className="flex items-center gap-5 text-xs font-semibold text-slate-600">
-            <a href="#playground" className="hover:text-slate-950 transition">Playground</a>
-            <a href="#palettes" className="hover:text-slate-950 transition">Palettes</a>
-            <a href="#api" className="hover:text-slate-950 transition">API Reference</a>
-            <a
-              href="https://github.com/hetkumar5506/motion-charts"
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition"
-            >
-              GitHub
+    <div className="min-h-screen overflow-hidden bg-[#f5f7fb] text-slate-950">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[620px] bg-[radial-gradient(ellipse_at_50%_0%,rgba(191,219,254,0.72),rgba(245,247,251,0)_66%)]" />
+      <div className="relative z-10">
+        <nav className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f5f7fb]/80 backdrop-blur-xl">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
+            <a href="#top" className="flex shrink-0 items-center gap-2.5" aria-label="Motion Charts home">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-950 font-mono text-[10px] font-bold tracking-[-0.1em] text-white shadow-lg shadow-slate-950/15">MC</span>
+              <span className="text-sm font-semibold tracking-[-0.03em]">motion-charts</span>
+              <span className="hidden rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-blue-700 sm:inline">v0.2.2</span>
             </a>
-          </div>
-        </div>
-      </nav>
-
-      <main className="mx-auto flex max-w-7xl flex-col gap-16 px-6 py-12 md:py-16">
-        {/* Header Hero */}
-        <section className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700 shadow-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
-              SVG + Framer Motion Primitives
-            </div>
-            
-            <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-slate-950 sm:text-5xl lg:text-[3.25rem] leading-[1.12]">
-              Charts engineered for production product interfaces.
-            </h1>
-            
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
-              A declarative React library where every coordinate interpolates via Framer Motion physics. Calibrated color tokens, responsive ResizeObserver measurement, and accessible roving tabindex keyboard navigation.
-            </p>
-
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <div className="flex items-center rounded-lg border border-slate-200 bg-white px-3.5 py-2 font-mono text-xs text-slate-800 shadow-sm">
-                <span className="text-slate-400 mr-2">$</span>
-                npm install @motion-charts/core framer-motion
-              </div>
-              <a
-                href="https://www.npmjs.com/package/@motion-charts/core"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
-              >
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                npm v0.2.0 Live
-              </a>
-              <a
-                href="#playground"
-                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
-              >
-                Inspect Live Charts
+            <div className="hidden items-center gap-6 text-xs font-semibold text-slate-600 md:flex">
+              <a href="#playground" className="transition hover:text-slate-950">Playground</a>
+              <a href="#themes" className="transition hover:text-slate-950">Theme lab</a>
+              <a href="#components" className="transition hover:text-slate-950">Components</a>
+              <a href="https://github.com/hetkumar5506/motion-charts" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+                GitHub <ExternalIcon />
               </a>
             </div>
+            <a href="#playground" className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-slate-950/10 transition hover:bg-slate-800 md:hidden">Explore</a>
           </div>
+        </nav>
 
-          {/* Code Specimen */}
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-semibold text-slate-700">MonthlyRevenueChart.tsx</span>
-              </div>
-              <span className="font-mono text-[11px] font-medium text-slate-500">React 19</span>
-            </div>
-            <pre className="p-5 font-mono text-xs leading-relaxed text-slate-800 bg-[#fbfcfd] overflow-x-auto">
-              <code>{`import { BarChart, ResponsiveChart } from "@motion-charts/core";
-
-export function MonthlyRevenue({ data }) {
-  return (
-    <ResponsiveChart minHeight={280}>
-      {({ width, height }) => (
-        <BarChart
-          data={data}
-          width={width}
-          height={height}
-          xKey="month"
-          yKey="revenue"
-          theme="aurora"
-          animation={{ preset: "gentle", stagger: 0.03 }}
-          valueFormatter={(v) => \`$\${v}k\`}
-          showValues
-        />
-      )}
-    </ResponsiveChart>
-  );
-}`}</code>
-            </pre>
-          </div>
-        </section>
-
-        {/* Live Interactive Showcase */}
-        <section id="playground">
-          <ChartShowcase />
-        </section>
-
-        <ThemeGallery />
-
-        {/* Core Principles */}
-        <section className="grid gap-4 md:grid-cols-3">
-          {features.map((feature) => (
-            <div key={feature.title} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <span className="font-mono text-[10px] font-bold tracking-wider text-indigo-600 uppercase">
-                {feature.category}
-              </span>
-              <h3 className="mt-2 text-sm font-bold text-slate-900">{feature.title}</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-600">{feature.body}</p>
-            </div>
-          ))}
-        </section>
-
-        {/* Palettes Grid */}
-        <section id="palettes" className="rounded-xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between border-b border-slate-100 pb-5">
+        <main id="top">
+          <section className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-16 sm:px-8 sm:pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pb-28">
             <div>
-              <span className="font-mono text-[10px] font-bold tracking-wider text-indigo-600 uppercase">
-                Tokens
-              </span>
-              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Twelve Curated Palettes</h2>
-            </div>
-            <p className="max-w-md text-xs leading-relaxed text-slate-500">
-              Each palette is formulated for high distinction across series and optimal contrast against light surfaces.
-            </p>
-          </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-blue-700 shadow-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+                React · SVG · Framer Motion
+              </div>
+              <h1 className="mt-6 max-w-3xl text-[2.9rem] font-semibold leading-[0.98] tracking-[-0.065em] text-slate-950 sm:text-6xl lg:text-[4.75rem]">
+                Data in motion,<br />
+                <span className="text-blue-700">without the compromise.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+                An animation-first chart kit for product teams that care about the last ten percent: clear interactions, dependable rendering, and motion with a reason to exist.
+              </p>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Object.entries(palettes).map(([name, colors]) => (
-              <div key={name} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 transition hover:border-slate-200">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-xs font-semibold capitalize text-slate-800">{name}</span>
-                  <span className="font-mono text-[10px] text-slate-400">6 tones</span>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 font-mono text-xs text-slate-700 shadow-sm">
+                  <span className="text-blue-600">$</span>
+                  <code className="truncate">npm i @motion-charts/core framer-motion</code>
                 </div>
-                <div className="flex h-6 overflow-hidden rounded border border-slate-200/60 shadow-xs">
-                  {colors.map((color) => (
-                    <span key={color} className="flex-1" style={{ backgroundColor: color }} title={color} />
-                  ))}
+                <a href="#playground" className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700">
+                  Open the playground <ArrowIcon />
+                </a>
+              </div>
+
+              <dl className="mt-10 grid max-w-xl grid-cols-3 divide-x divide-slate-200">
+                <Metric value="6" label="chart primitives" />
+                <Metric value="17" label="curated palettes" />
+                <Metric value="0" label="layout shifts" />
+              </dl>
+            </div>
+
+            <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
+              <div className="absolute -inset-7 -z-10 rounded-[2.5rem] bg-blue-400/15 blur-3xl" />
+              <div className="overflow-hidden rounded-[28px] border border-slate-800 bg-[#09111f] p-1 shadow-[0_30px_90px_-35px_rgba(15,23,42,0.7)]">
+                <div className="rounded-[23px] border border-white/10 bg-[linear-gradient(135deg,#0f1b30_0%,#09111f_52%,#0d1627_100%)] p-5 sm:p-7">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-cyan-400" /><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200">Revenue signal</span></div>
+                    <span className="rounded-full bg-emerald-400/10 px-2 py-1 font-mono text-[10px] font-semibold text-emerald-300">LIVE</span>
+                  </div>
+                  <div className="mt-8 flex items-end justify-between gap-4">
+                    <div><p className="text-xs text-slate-400">Monthly revenue</p><p className="mt-1 text-4xl font-semibold tracking-[-0.06em] text-white">$138k</p></div>
+                    <p className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-bold text-emerald-300">+18.4%</p>
+                  </div>
+                  <div className="mt-8 flex h-40 items-end gap-2" aria-hidden="true">
+                    {[34, 52, 42, 71, 64, 91, 76, 100].map((height, index) => <span key={height} className="flex-1 rounded-t-md bg-gradient-to-t from-blue-600 to-cyan-300" style={{ height: `${height}%`, opacity: 0.55 + index * 0.06 }} />)}
+                  </div>
+                  <div className="mt-3 flex justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-slate-500"><span>Jan</span><span>Apr</span><span>Aug</span></div>
+                  <div className="mt-7 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 font-mono text-[10px] text-slate-400"><span>SSR-ready</span><span className="text-center">Keyboard-first</span><span className="text-right">Reduced motion</span></div>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+            </div>
+          </section>
 
-        {/* Component Table */}
-        <section id="api" className="rounded-xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-          <div className="border-b border-slate-100 pb-4">
-            <span className="font-mono text-[10px] font-bold tracking-wider text-indigo-600 uppercase">
-              Reference
-            </span>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Component Primitives</h2>
-          </div>
+          <section className="border-y border-slate-200 bg-white/70">
+            <div className="mx-auto grid max-w-7xl gap-px px-5 sm:grid-cols-3 sm:px-8">
+              {[
+                ["Animation", "Geometry updates without visual snapping."],
+                ["Accessibility", "Focusable SVG marks with useful semantics."],
+                ["Rendering", "Final server geometry; no blank first paint."]
+              ].map(([title, body]) => <div key={title} className="border-slate-200 py-5 sm:border-r sm:px-7 sm:last:border-r-0"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-blue-700">{title}</p><p className="mt-2 text-sm text-slate-600">{body}</p></div>)}
+            </div>
+          </section>
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 font-mono text-slate-500 bg-slate-50/50">
-                  <th className="py-3 px-4 font-semibold">Primitive</th>
-                  <th className="py-3 px-4 font-semibold">Primary Use Case</th>
-                  <th className="py-3 px-4 font-semibold">Engineered Attributes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {components.map((item) => (
-                  <tr key={item.name} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">{item.name}</td>
-                    <td className="py-3 px-4 text-slate-600">{item.bestFor}</td>
-                    <td className="py-3 px-4 text-slate-500">{item.traits}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+          <section id="playground" className="scroll-mt-24 bg-white px-5 py-20 sm:px-8 sm:py-28">
+            <div className="mx-auto max-w-7xl">
+              <div className="mb-9 max-w-2xl">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">Interactive proof</span>
+                <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl">A showcase built from the exact components you ship.</h2>
+                <p className="mt-4 text-base leading-7 text-slate-600">No decorative stand-ins. Change the controls to exercise responsive measurement, surface-aware themes, live data updates, and every major chart family.</p>
+              </div>
+              <ChartShowcase />
+            </div>
+          </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-8 text-xs text-slate-500 font-mono">
-        <div className="mx-auto max-w-7xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 motion-charts · MIT License</p>
-          <div className="flex items-center gap-4">
-            <span>npm: @motion-charts/core</span>
-            <span>TypeScript 5.9</span>
-            <span>Framer Motion 12</span>
-          </div>
-        </div>
-      </footer>
+          <section className="px-5 py-20 sm:px-8 sm:py-28">
+            <div className="mx-auto max-w-7xl">
+              <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-end">
+                <div><span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">Design contract</span><h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-slate-950">The defaults are doing real work.</h2></div>
+                <p className="max-w-2xl text-base leading-7 text-slate-600">Motion Charts stays deliberately small so its behavior can remain predictable. Every primitive shares a layout, accessibility, and animation contract rather than asking each product team to recreate it.</p>
+              </div>
+              <div className="mt-10 grid gap-4 md:grid-cols-3">
+                {principles.map((principle) => <article key={principle.number} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><span className="font-mono text-xs font-bold text-blue-700">{principle.number}</span><h3 className="mt-8 text-lg font-semibold tracking-[-0.025em]">{principle.title}</h3><p className="mt-3 text-sm leading-6 text-slate-600">{principle.body}</p></article>)}
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white px-5 py-20 sm:px-8 sm:py-28"><div className="mx-auto max-w-7xl"><ThemeGallery /></div></section>
+
+          <section id="components" className="scroll-mt-24 bg-[#09111f] px-5 py-20 text-white sm:px-8 sm:py-28">
+            <div className="mx-auto max-w-7xl">
+              <div className="flex flex-col justify-between gap-6 border-b border-white/10 pb-9 sm:flex-row sm:items-end">
+                <div><span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Reference</span><h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">A compact set of dependable building blocks.</h2></div>
+                <a href="https://github.com/hetkumar5506/motion-charts/tree/main/packages/charts#readme" target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-cyan-200 transition hover:text-white">Read the full API <ArrowIcon /></a>
+              </div>
+              <div className="mt-2 divide-y divide-white/10">
+                {components.map((component) => <div key={component.name} className="grid gap-1 py-5 sm:grid-cols-[0.8fr_1fr_1fr] sm:items-center sm:gap-6"><code className="text-sm font-semibold text-white">{component.name}</code><span className="text-sm text-slate-300">{component.use}</span><span className="font-mono text-[11px] text-slate-500">{component.note}</span></div>)}
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer className="bg-[#09111f] px-5 pb-8 sm:px-8">
+          <div className="mx-auto flex max-w-7xl flex-col gap-5 border-t border-white/10 pt-7 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between"><p>© 2026 Motion Charts · MIT License</p><div className="flex items-center gap-4"><span>React 18 / 19</span><span>Framer Motion 10–12</span><span>TypeScript</span></div></div>
+        </footer>
+      </div>
     </div>
   );
+}
+
+function Metric({ value, label }: { value: string; label: string }) {
+  return <div className="px-3 first:pl-0"><dd className="text-2xl font-semibold tracking-[-0.04em] text-slate-950">{value}</dd><dt className="mt-1 text-[11px] leading-4 text-slate-500">{label}</dt></div>;
+}
+
+function ArrowIcon() {
+  return <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 8h9m-3.5-3.5L12 8l-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function ExternalIcon() {
+  return <svg aria-hidden="true" className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 3h4v4M13 3 7.5 8.5M12 9.5V12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }

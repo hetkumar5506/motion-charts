@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Motion Charts",
-  description: "Animation-first React charts powered by Framer Motion."
+  title: "Motion Charts — Product data in motion",
+  description: "Accessible, animation-first React SVG charts powered by Framer Motion."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
