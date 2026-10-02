@@ -326,6 +326,15 @@ Useful props:
 
 Use this for ecommerce dashboards, SaaS admin panels, and POS analytics where multiple metrics need to move together. Each `series` entry requires a stable `id` and `yKey`; `label`, `color`, `showArea`, and `strokeWidth` are optional per-series overrides. `showLegend` is enabled when you want those labels exposed in the chart. Set `strokeVariant="gradient"` to blend every path into its next palette color and use `areaOpacity` to tune the density of its area fills.
 
+## Larger and complex datasets
+
+The primitives are tested with dense multi-series SVG output, including four related series across 240 intervals, grouped categorical comparisons, and a 16-slice donut. For production dashboards, keep the visible data aligned with the decision a user needs to make:
+
+- Use stable `series.id` values and `animation={{ initial: false }}` for frequently refreshing telemetry.
+- For dense line charts, use `showPoints={false}` and enable `crosshair` only when point-level inspection is useful.
+- Aggregate, window, or sample multi-thousand-point browser datasets before rendering. SVG remains the right choice for accessible, interactive product charts with hundreds of visible marks; it is not a replacement for canvas/WebGL time-series exploration at extreme scale.
+- Prefer `BarChart` for a limited set of meaningful category comparisons and show a legend or table when a donut has many slices.
+
 ## DonutChart
 
 Set `animation={{ entrance: "sweep" }}` to reveal slices clockwise with angle interpolation. Donut data updates use the same safe angle interpolation instead of trying to tween SVG arc command strings.

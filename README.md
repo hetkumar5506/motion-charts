@@ -99,7 +99,23 @@ npm audit --omit=dev
 git diff --check
 ```
 
-The package test suite covers geometry, scales, themes, exports, SSR output, invalid data, responsive layout, accessibility regressions, and animation lifecycle behavior.
+The package test suite covers geometry, scales, themes, exports, SSR output, invalid data, responsive layout, accessibility regressions, animation lifecycle behavior, and larger multi-series rendering.
+
+## Deploy the docs to GitHub Pages
+
+The repository includes a GitHub Actions workflow at [`.github/workflows/deploy-docs.yml`](./.github/workflows/deploy-docs.yml). Once GitHub Pages is configured to use **GitHub Actions** in the repository settings, every push to `main` builds and deploys the static showcase to:
+
+```text
+https://hetkumar5506.github.io/motion-charts/
+```
+
+The docs app uses a static Next.js export and adds the repository base path only in the Pages build. Local development remains available at `/` without a deployment prefix. To verify the Pages artifact locally:
+
+```bash
+GITHUB_PAGES=true GITHUB_REPOSITORY=hetkumar5506/motion-charts npm run build --workspace docs
+```
+
+The deployable artifact is written to `apps/docs/out`.
 
 ## Project conventions
 

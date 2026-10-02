@@ -356,6 +356,14 @@ animation={{ initial: false, preset: "silky" }}
 - Date labels are deterministic by default. ISO date-only/UTC-midnight values use UTC calendar parts; other valid date values use local calendar parts. Supply `dateFormatter` when the app needs a specific timezone or instant policy.
 - Use `referenceLines={[{ y: target, label: "Target" }]}` for targets and thresholds instead of drawing decorative HTML overlays.
 
+## Data-volume guidance
+
+The chart primitives are verified with dense multi-series SSR output: four related series across 240 intervals, 48 grouped categories, and a 16-slice donut. Treat that as a comfortable dashboard-scale reference, not as an invitation to render an unbounded event stream.
+
+- For hundreds of visible time-series marks, keep stable series IDs, use `animation={{ initial: false }}` for live refreshes, and choose `showPoints={false}` unless every point must be visible.
+- For multiple thousands of browser-side samples, aggregate, window, or downsample before passing data to a chart. SVG is intentionally optimized here for accessible, inspectable product charts rather than canvas/WebGL-scale exploration.
+- Limit donut categories to a readable set. Use a BarChart, legend, or adjacent table when users need to compare many segments.
+
 ## Agent workflow for a new chart
 
 1. Read the existing page/card surface and its existing accent colors.

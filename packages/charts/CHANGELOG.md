@@ -7,6 +7,10 @@
 - **Clean donut sheen**: DonutChart glass fills now use a restrained linear sheen in place of high-opacity radial focal points, keeping slices crisp at every size.
 - **Preview default**: The interactive docs control room now opens in the balanced signature finish; the softer glass finish remains available as an explicit comparison.
 
+### Docs deployment and scale confidence
+- **GitHub Pages**: Added a static-export configuration and deployment workflow that publishes the interactive docs after a push to `main`.
+- **Dense visualization coverage**: Added an SSR regression test for 240 intervals across four related series, grouped comparison bars, and a 16-segment donut; documented practical SVG data-volume guidance for application teams and coding agents.
+
 ## 0.2.3
 
 ### Palette intelligence and UI matching
