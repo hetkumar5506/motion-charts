@@ -106,4 +106,9 @@ Common selection:
 - Spring-driven KPI value → `<AnimatedNumber value={8420} format={(v) => ...} />`
 - Measured dashboard layout → `ResponsiveChart`
 
-Bar value labels count up automatically with `showValues`; use `showValues={{ countUp: false }}` to opt out.
+Bar value labels count up automatically with `showValues`; use `showValues={{ countUp: false }}` to opt out. For a compact visible label only, pass `showValues.formatter`, for example `(value) => "$" + Math.round(value / 1000) + "k"`; `valueFormatter` still controls axes, tooltips, and accessible labels.
+
+Theme integrity:
+
+- Built-in palette colors on white are calibrated to at least 2.5:1 contrast. Colors already at or above that threshold stay unchanged.
+- A named theme and its matching palette resolve to the same surface-adjusted colors; for example, `theme="ocean"` uses the calibrated ocean palette.

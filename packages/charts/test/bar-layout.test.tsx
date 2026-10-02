@@ -25,6 +25,21 @@ describe("BarChart layouts", () => {
     expect(html).toContain("transform-origin");
   });
 
+  it("uses showValues.formatter for value labels without changing tooltip or axis formatting", () => {
+    const html = renderToString(
+      <BarChart
+        data={[{ month: "March", revenue: 42000 }]}
+        xKey="month"
+        yKey="revenue"
+        valueFormatter={(value) => `$${value.toLocaleString()}`}
+        showValues={{ formatter: (value) => `$${Math.round(value / 1000)}k` }}
+        animation={{ disabled: true }}
+      />
+    );
+    expect(html).toContain("$42k");
+    expect(html).toContain("$42,000");
+  });
+
   it("computes grouped and stacked series without invalid geometry", () => {
     const data = [
       { month: "March", web: 12, app: 8, store: -3 },

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.2
+
+### Theme integrity
+- **Contrast calibration guard (R-4)**: light-surface palette calibration now leaves every color at or above the 2.5:1 gate unchanged. This restores the established `graphite[5]` token (`#8e959e`) and prevents already-compliant colors from being lightened.
+- **Named theme/palette alignment (N-7)**: named themes now resolve their colors through their matching surface-aware palette. In particular, `theme="ocean"` now uses calibrated `#058ea5`, matching `theme={{ base: "ocean", palette: "ocean" }}` on a light surface.
+- **Permanent integrity gate**: added coverage for the full palette × surface contrast matrix, named-theme/palette consistency, and text/tick contrast tokens.
+
+### Documentation and showcase
+- **Value-label formatter docs**: documented and exported `showValues.formatter`, which formats only BarChart value labels while `valueFormatter` continues to govern axes, tooltips, and accessible labels.
+- **Roadmap and release clarity**: added a focused roadmap and recorded the light-surface palette adjustments for snapshot-sensitive consumers.
+- **Docs redesign**: rebuilt the live docs experience around a more focused control room, clearer motion/theme controls, and a compact theme lab.
+
+### Light-surface visual changes
+- `ocean[2]`: `#06b6d4` → `#058ea5` to meet the light-surface contrast gate.
+- The established calibrated values for `graphite[5]` (`#8e959e`) and `emerald[5]` (`#24946b`) are retained without further adjustment.
+- Dark-surface palette output is unchanged.
+
+## 0.2.1
+
+### Fixed
+- **Donut default entrance (R-3)**: restored the default post-hydration donut entrance without affecting explicit sweep entrances or spring-driven arc updates.
+- **Light-surface palette contrast (N-5)**: calibrated the low-contrast light variants in the `okabe`, `plum`, and `ocean` palettes while preserving dark-surface output.
+
+### Documentation
+- Added the roadmap and documented `fallbackWidth`, `className`, `style`, `children`, `seriesId`, and `seriesLabel`.
+
 ## 0.2.0
 
 ### Themes and palettes

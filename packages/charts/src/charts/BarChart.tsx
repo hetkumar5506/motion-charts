@@ -22,6 +22,13 @@ export type BarSeries<TDatum extends object> = {
   color?: string;
 };
 
+export type ShowValuesOptions = {
+  /** Set false to keep value labels static while bars animate. */
+  countUp?: boolean;
+  /** Formats value labels only; axes and tooltips continue to use valueFormatter. */
+  formatter?: (value: number) => string;
+};
+
 export type BarChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   xKey: Accessor<TDatum, string | number>;
   /** Single-series shorthand. `series` takes precedence when both are supplied. */
@@ -33,7 +40,7 @@ export type BarChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   xAxis?: AxisOptions;
   yAxis?: AxisOptions;
   showGrid?: boolean;
-  showValues?: boolean | { countUp?: boolean };
+  showValues?: boolean | ShowValuesOptions;
   barRadius?: number;
   barPadding?: number;
   barVariant?: "solid" | "gradient";
@@ -221,6 +228,9 @@ export function BarChart<TDatum extends object>({
 
   const tooltipEnabled = tooltip !== false;
   const countUp = typeof showValues === "object" ? showValues.countUp !== false : true;
+  const valueLabelFormatter = typeof showValues === "object" && showValues.formatter
+    ? showValues.formatter
+    : valueFormatter;
 
   function contextFor(segment: BarSegment<TDatum>): TooltipRenderContext<TDatum> {
     return { datum: segment.datum, index: segment.index, label: segment.label, value: segment.value, color: segment.color, seriesId: segment.seriesId, seriesLabel: segment.seriesLabel };
@@ -407,7 +417,7 @@ export function BarChart<TDatum extends object>({
                 >
                   <AnimatedNumberText
                     value={segment.value}
-                    format={valueFormatter}
+                    format={valueLabelFormatter}
                     transition={chartTransition(animation, reducedMotion, index)}
                     initialValue={countUp && isEntering ? 0 : undefined}
                     reducedMotion={reducedMotion}
