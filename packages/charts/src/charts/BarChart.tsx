@@ -43,7 +43,7 @@ export type BarChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   showValues?: boolean | ShowValuesOptions;
   barRadius?: number;
   barPadding?: number;
-  /** `glass` adds a restrained specular highlight over the existing gradient treatment. */
+  /** `glass` adds a subtle linear sheen while preserving readable labels. */
   barVariant?: "solid" | "gradient" | "glass";
   onDatumClick?: (context: TooltipRenderContext<TDatum>) => void;
 };
@@ -293,10 +293,10 @@ export function BarChart<TDatum extends object>({
         <defs>
           {barVariant !== "solid" ? preparedSeries.map((item, seriesIndex) => (
             <linearGradient key={item.id} id={`${gradientBaseId}-${seriesIndex}`} x1="0" y1="0" x2={layout === "horizontal" ? "1" : "0"} y2={layout === "horizontal" ? "0" : "1"}>
-              {barVariant === "glass" ? <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" /> : null}
-              {barVariant === "glass" ? <stop offset="20%" stopColor={item.color} stopOpacity="1" /> : null}
-              <stop offset={barVariant === "glass" ? "46%" : "0%"} stopColor={item.color} stopOpacity="1" />
-              <stop offset="100%" stopColor={item.color} stopOpacity={barVariant === "glass" ? "0.72" : "0.82"} />
+              {barVariant === "glass" ? <stop offset="0%" stopColor="#ffffff" stopOpacity="0.24" /> : null}
+              {barVariant === "glass" ? <stop offset="11%" stopColor={item.color} stopOpacity="0.98" /> : null}
+              <stop offset={barVariant === "glass" ? "36%" : "0%"} stopColor={item.color} stopOpacity="1" />
+              <stop offset="100%" stopColor={item.color} stopOpacity="0.82" />
             </linearGradient>
           )) : null}
         </defs>
@@ -417,7 +417,7 @@ export function BarChart<TDatum extends object>({
                   y={labelY}
                   textAnchor={layout === "horizontal" ? (segment.value >= 0 ? "start" : "end") : "middle"}
                   dominantBaseline={layout === "horizontal" ? "middle" : undefined}
-                  fill={labelInside && layout === "vertical" ? getContrastTextColor(segment.color) : chartTheme.textColor}
+                  fill={labelInside && layout === "vertical" ? (barVariant === "glass" ? "#0f172a" : getContrastTextColor(segment.color)) : chartTheme.textColor}
                   fontFamily={chartTheme.fontFamily}
                   fontSize={11}
                   fontWeight={600}
@@ -425,7 +425,7 @@ export function BarChart<TDatum extends object>({
                   animate={isEntering ? { opacity: [0, 1], scale: [0.96, 1] } : { opacity: 1, scale: 1 }}
                   transition={chartTransition(animation, reducedMotion, index, segments.length)}
                   onAnimationComplete={isEntering && index === segments.length - 1 ? onAnimationComplete : undefined}
-                  style={{ filter: labelInside && layout === "vertical" ? "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" : "none", userSelect: "none", pointerEvents: "none", originX: 0.5, originY: 0.5 }}
+                  style={{ filter: labelInside && layout === "vertical" && barVariant !== "glass" ? "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" : "none", userSelect: "none", pointerEvents: "none", originX: 0.5, originY: 0.5 }}
                 >
                   <AnimatedNumberText
                     value={segment.value}

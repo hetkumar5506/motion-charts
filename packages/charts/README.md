@@ -209,7 +209,7 @@ Useful props:
 
 - `xKey`, `yKey` — object key or accessor function.
 - `theme`, `colors` — named theme or exact product colors.
-- `barVariant` — `"gradient"`, `"glass"`, or `"solid"`. `glass` adds a restrained specular highlight while retaining the palette color.
+- `barVariant` — `"gradient"`, `"glass"`, or `"solid"`. `glass` adds a compact linear sheen while retaining the palette color and readable value labels.
 - `barRadius`, `barPadding` — visual tuning.
 - `showValues`, `showGrid`, `xAxis`, `yAxis`.
 
@@ -355,7 +355,7 @@ Useful props:
 
 - `innerRadiusRatio` — controls donut thickness.
 - `padAngle` — spacing between slices.
-- `sliceVariant` — `"gradient"`, `"glass"`, or `"solid"`. `glass` adds a radial highlight without changing the palette token.
+- `sliceVariant` — `"gradient"`, `"glass"`, or `"solid"`. `glass` adds a compact linear sheen without changing the palette token or creating per-slice focal hotspots.
 - `showLegend`, `showLabels`, `centerLabel`.
 
 Values are normalized into slices; zero and non-positive values do not receive an interactive slice. Use `centerLabel` for a total or short summary rather than repeating the full dataset in the middle of the chart.

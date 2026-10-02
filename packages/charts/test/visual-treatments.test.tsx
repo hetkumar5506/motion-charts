@@ -87,5 +87,9 @@ describe("kinetic visual treatments", () => {
       expect(html).toContain('stop-color="#ffffff"');
       expect(html).not.toMatch(/NaN|Infinity|undefined/);
     }
+    expect(bars).toContain('stop-opacity="0.24"');
+    expect(donut).toContain("linearGradient");
+    expect(donut).not.toContain("radialGradient");
+    expect(donut).toContain('stop-opacity="0.18"');
   });
 });

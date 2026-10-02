@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4
+
+### Visual polish
+- **Refined glass marks**: BarChart glass fills now use a compact top sheen with dark, readable value labels instead of a broad washed-out highlight.
+- **Clean donut sheen**: DonutChart glass fills now use a restrained linear sheen in place of high-opacity radial focal points, keeping slices crisp at every size.
+- **Preview default**: The interactive docs control room now opens in the balanced signature finish; the softer glass finish remains available as an explicit comparison.
+
 ## 0.2.3
 
 ### Palette intelligence and UI matching

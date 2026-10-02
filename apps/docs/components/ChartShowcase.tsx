@@ -116,7 +116,7 @@ export function ChartShowcase() {
   const [preset, setPreset] = useState<AnimationPresetName>("silky");
   const [entrance, setEntrance] = useState<NonNullable<MotionOptions["entrance"]>>("rise");
   const [staggerFrom, setStaggerFrom] = useState<NonNullable<MotionOptions["staggerFrom"]>>("start");
-  const [finish, setFinish] = useState<"signature" | "glass">("glass");
+  const [finish, setFinish] = useState<"signature" | "glass">("signature");
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   const data = revenueDataSets[dataIndex % revenueDataSets.length] ?? revenueDataSets[0]!;
@@ -246,7 +246,7 @@ export function ChartShowcase() {
               className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
             >
               <option value="signature">signature</option>
-              <option value="glass">glass + gradient</option>
+              <option value="glass">soft glass + gradient</option>
             </select>
           </label>
         </div>

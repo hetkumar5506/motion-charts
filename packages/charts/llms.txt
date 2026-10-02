@@ -1,6 +1,6 @@
 # @motion-charts/core — agent implementation guide
 
-Version: 0.2.3
+Version: 0.2.4
 
 This is a React + TypeScript chart library for polished product UI. It renders SVG and uses Framer Motion for data updates and entrances. Use it for dashboards, admin products, SaaS analytics, commerce, operations, developer tooling, reports, and landing-page metrics.
 
@@ -201,7 +201,7 @@ Visual variants are functional published props, not CSS mockups.
 
 - `barVariant="solid"`: default; choose for dense dashboards, tables, and most operational views.
 - `barVariant="gradient"`: choose for a featured comparison card or product landing metric.
-- `barVariant="glass"`: choose for one premium hero/summary card; it adds a restrained highlight.
+- `barVariant="glass"`: choose for one premium hero/summary card; it adds a narrow linear sheen and keeps top-anchored value labels readable.
 - `showValues`: use on small category counts; avoid it when many bars would collide.
 - `showValues={{ formatter }}` controls only visible bar labels. `valueFormatter` controls axes, tooltip, and accessibility labels.
 - `layout="horizontal"`: use for long category names.
@@ -273,7 +273,7 @@ Visual variants are functional published props, not CSS mockups.
 
 - `sliceVariant="solid"`: default and clearest for standard share views.
 - `sliceVariant="gradient"`: a featured share card.
-- `sliceVariant="glass"`: one premium emphasis card, not every dashboard donut.
+- `sliceVariant="glass"`: one premium emphasis card, not every dashboard donut; it uses a narrow linear sheen rather than a large per-slice focal highlight.
 - Use `centerLabel` for the total or a short summary.
 - Use `showLabels` only if slices are large enough; `showLegend` is the safer default for multiple labels.
 

@@ -23,7 +23,7 @@ export type DonutChartProps<TDatum extends object> = CommonChartProps<TDatum> & 
   showLegend?: boolean;
   showLabels?: boolean;
   centerLabel?: string | ((total: number) => string);
-  /** `glass` adds a small radial highlight while preserving the slice color. */
+  /** `glass` adds a subtle linear sheen while preserving the slice color. */
   sliceVariant?: "solid" | "gradient" | "glass";
   onDatumClick?: (context: TooltipRenderContext<TDatum>) => void;
 };
@@ -202,12 +202,12 @@ export function DonutChart<TDatum extends object>({
         <defs>
           {sliceVariant !== "solid"
             ? rows.map((row) => (
-                <radialGradient key={row.index} id={`${gradientBaseId}-${row.index}`} cx="42%" cy="30%" r="72%">
-                  {sliceVariant === "glass" ? <stop offset="0%" stopColor="#ffffff" stopOpacity="0.48" /> : null}
-                  {sliceVariant === "glass" ? <stop offset="24%" stopColor={row.color} stopOpacity="1" /> : null}
-                  <stop offset={sliceVariant === "glass" ? "52%" : "0%"} stopColor={row.color} stopOpacity="1" />
-                  <stop offset="100%" stopColor={row.color} stopOpacity={sliceVariant === "glass" ? "0.74" : "0.84"} />
-                </radialGradient>
+                <linearGradient key={row.index} id={`${gradientBaseId}-${row.index}`} x1="0" y1="0" x2="0" y2="1">
+                  {sliceVariant === "glass" ? <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" /> : null}
+                  {sliceVariant === "glass" ? <stop offset="12%" stopColor={row.color} stopOpacity="0.98" /> : null}
+                  <stop offset={sliceVariant === "glass" ? "38%" : "0%"} stopColor={row.color} stopOpacity="1" />
+                  <stop offset="100%" stopColor={row.color} stopOpacity={sliceVariant === "glass" ? "0.82" : "0.84"} />
+                </linearGradient>
               ))
             : null}
         </defs>
