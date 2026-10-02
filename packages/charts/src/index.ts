@@ -10,4 +10,4 @@ export { AnimatedNumber, type AnimatedNumberProps } from "./components/AnimatedN
 export type { Accessor, AxisOptions, ChartDatum, ChartMargin, CommonChartProps, DateFormatter, MotionOptions, ReferenceLine, TooltipRenderContext, TooltipRenderer } from "./types";
 export { animationPreset, animationPresets, type AnimationPresetName } from "./utils/animationPresets";
 export { defaultColors, getContrastRatio } from "./utils/color";
-export { chartPalettes, chartThemes, paletteColors, resolveChartTheme, useChartTheme, type ChartPaletteName, type ChartTheme, type ChartThemeInput, type ChartThemeName } from "./themes";
+export { chartPalettes, chartThemes, paletteColors, paletteProfiles, recommendPalette, resolveChartTheme, useChartTheme, type ChartPaletteIntent, type ChartPaletteName, type ChartPaletteProfile, type ChartTheme, type ChartThemeInput, type ChartThemeName } from "./themes";

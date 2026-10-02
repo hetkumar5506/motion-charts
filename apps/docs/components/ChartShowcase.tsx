@@ -9,8 +9,12 @@ import {
   ResponsiveChart,
   Sparkline,
   paletteColors,
+  paletteProfiles,
   type AnimationPresetName,
-  type ChartThemeName
+  type ChartPaletteName,
+  type ChartThemeInput,
+  type ChartThemeName,
+  type MotionOptions
 } from "@motion-charts/core";
 
 const revenueDataSets = [
@@ -70,7 +74,10 @@ const themes: { id: ChartThemeName; label: string; accent: string; palette: "aur
   { id: "minimal", label: "Minimal", accent: "#0f172a", palette: "graphite" }
 ];
 
-const presets: AnimationPresetName[] = ["spring", "gentle", "snappy", "bouncy", "calm"];
+const presets: AnimationPresetName[] = ["spring", "gentle", "silky", "lively", "cinematic", "snappy", "bouncy", "calm"];
+const entrances: NonNullable<MotionOptions["entrance"]>[] = ["fade", "rise", "pop", "draw", "sweep"];
+const paletteChoices: ChartPaletteName[] = ["aurora", "lagoon", "orchid", "citrus", "prism", "okabe", "editorial", "terra", "nordic", "plum"];
+const cascadeDirections: NonNullable<MotionOptions["staggerFrom"]>[] = ["start", "center", "end"];
 const tabs = ["overview", "bar", "line", "multiline", "donut"] as const;
 type Tab = (typeof tabs)[number];
 
@@ -105,15 +112,21 @@ const tabCopy: Record<Tab, { title: string; description: string; label: string }
 export function ChartShowcase() {
   const [dataIndex, setDataIndex] = useState(0);
   const [theme, setTheme] = useState<ChartThemeName>("aurora");
-  const [preset, setPreset] = useState<AnimationPresetName>("gentle");
+  const [palette, setPalette] = useState<ChartPaletteName>("aurora");
+  const [preset, setPreset] = useState<AnimationPresetName>("silky");
+  const [entrance, setEntrance] = useState<NonNullable<MotionOptions["entrance"]>>("rise");
+  const [staggerFrom, setStaggerFrom] = useState<NonNullable<MotionOptions["staggerFrom"]>>("start");
+  const [finish, setFinish] = useState<"signature" | "glass">("glass");
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   const data = revenueDataSets[dataIndex % revenueDataSets.length] ?? revenueDataSets[0]!;
   const channels = trafficChannels[dataIndex % trafficChannels.length] ?? trafficChannels[0]!;
   const totalVisitors = useMemo(() => channels.reduce((sum, item) => sum + item.visitors, 0), [channels]);
   const activeTheme = themes.find((item) => item.id === theme) ?? themes[0]!;
+  const activePalette = paletteProfiles[palette];
   const isDark = theme === "midnight";
-  const animation = { preset, stagger: 0.035 } as const;
+  const chartTheme: ChartThemeInput = { base: theme, palette };
+  const animation = { preset, entrance, stagger: 0.035, staggerFrom } as const;
   const chrome = isDark
     ? "border-white/10 bg-[#0b1220] text-slate-100"
     : "border-slate-200 bg-white text-slate-950 shadow-[0_24px_70px_-36px_rgba(15,23,42,0.5)]";
@@ -132,7 +145,7 @@ export function ChartShowcase() {
             <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.18em] ${isDark ? "text-cyan-300" : "text-blue-700"}`}>Live control room</span>
           </div>
           <h2 className="mt-3 text-2xl font-semibold tracking-[-0.035em] sm:text-[1.7rem]">Make a change. Watch the geometry keep up.</h2>
-          <p className={`mt-2 text-sm leading-6 ${muted}`}>Switch data, motion, and surface tokens in a real set of chart primitives. Every demo is keyboard-accessible and rendered from the published API.</p>
+          <p className={`mt-2 text-sm leading-6 ${muted}`}>Switch data, palette, visual finish, and motion in a real set of chart primitives. Every demo is keyboard-accessible and rendered from the published API.</p>
         </div>
 
         <button
@@ -186,6 +199,16 @@ export function ChartShowcase() {
           </fieldset>
 
           <label className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Palette</span>
+            <select
+              value={palette}
+              onChange={(event) => setPalette(event.target.value as ChartPaletteName)}
+              className={`max-w-28 rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+            >
+              {paletteChoices.map((item) => <option key={item} value={item}>{paletteProfiles[item].label}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Motion</span>
             <select
               value={preset}
@@ -193,6 +216,37 @@ export function ChartShowcase() {
               className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
             >
               {presets.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Entrance</span>
+            <select
+              value={entrance}
+              onChange={(event) => setEntrance(event.target.value as NonNullable<MotionOptions["entrance"]>)}
+              className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+            >
+              {entrances.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Cascade</span>
+            <select
+              value={staggerFrom}
+              onChange={(event) => setStaggerFrom(event.target.value as NonNullable<MotionOptions["staggerFrom"]>)}
+              className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+            >
+              {cascadeDirections.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Finish</span>
+            <select
+              value={finish}
+              onChange={(event) => setFinish(event.target.value as "signature" | "glass")}
+              className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+            >
+              <option value="signature">signature</option>
+              <option value="glass">glass + gradient</option>
             </select>
           </label>
         </div>
@@ -206,8 +260,12 @@ export function ChartShowcase() {
 
           <div className={`mt-6 grid gap-2 rounded-2xl border p-3 ${subtle}`}>
             <StatusRow label="Theme" value={activeTheme.label} color={activeTheme.accent} />
+            <StatusRow label="Palette" value={activePalette.label} color={(paletteColors(palette, isDark ? "dark" : "light") ?? [activeTheme.accent])[0]} />
             <StatusRow label="Preset" value={preset} />
-            <StatusRow label="Render" value="SVG + Motion" />
+            <StatusRow label="Entrance" value={entrance} />
+            <StatusRow label="Cascade" value={staggerFrom} />
+            <StatusRow label="Finish" value={finish} />
+            <p className={`border-t pt-2 text-[11px] leading-4 ${muted}`}>{activePalette.mood}. Best for {activePalette.bestFor.slice(0, 2).join(" and ")}.</p>
           </div>
 
           <div className="mt-6 hidden xl:block">
@@ -221,11 +279,11 @@ export function ChartShowcase() {
         </aside>
 
         <div className="min-w-0 p-5 sm:p-7" role="tabpanel">
-          {activeTab === "overview" ? <Overview data={data} channels={channels} totalVisitors={totalVisitors} theme={theme} animation={animation} dark={isDark} /> : null}
-          {activeTab === "bar" ? <BarDemo data={data} theme={theme} animation={animation} dark={isDark} /> : null}
-          {activeTab === "line" ? <LineDemo data={data} theme={theme} animation={animation} dark={isDark} /> : null}
-          {activeTab === "multiline" ? <MultiLineDemo data={data} theme={theme} animation={animation} dark={isDark} /> : null}
-          {activeTab === "donut" ? <DonutDemo channels={channels} totalVisitors={totalVisitors} theme={theme} animation={animation} dark={isDark} /> : null}
+          {activeTab === "overview" ? <Overview data={data} channels={channels} totalVisitors={totalVisitors} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
+          {activeTab === "bar" ? <BarDemo data={data} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
+          {activeTab === "line" ? <LineDemo data={data} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
+          {activeTab === "multiline" ? <MultiLineDemo data={data} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
+          {activeTab === "donut" ? <DonutDemo channels={channels} totalVisitors={totalVisitors} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
         </div>
       </div>
     </div>
@@ -234,9 +292,14 @@ export function ChartShowcase() {
 
 type RevenueDatum = (typeof revenueDataSets)[number][number];
 type ChannelDatum = (typeof trafficChannels)[number][number];
-type DemoProps = { theme: ChartThemeName; animation: { readonly preset: AnimationPresetName; readonly stagger: number }; dark: boolean };
+type DemoProps = {
+  theme: ChartThemeInput;
+  animation: { readonly preset: AnimationPresetName; readonly entrance: NonNullable<MotionOptions["entrance"]>; readonly stagger: number; readonly staggerFrom: NonNullable<MotionOptions["staggerFrom"]> };
+  finish: "signature" | "glass";
+  dark: boolean;
+};
 
-function Overview({ data, channels, totalVisitors, theme, animation, dark }: DemoProps & { data: RevenueDatum[]; channels: ChannelDatum[]; totalVisitors: number }) {
+function Overview({ data, channels, totalVisitors, theme, animation, finish, dark }: DemoProps & { data: RevenueDatum[]; channels: ChannelDatum[]; totalVisitors: number }) {
   const cards = [
     { label: "Revenue", value: `$${data[data.length - 1]?.revenue ?? 0}k`, key: "revenue" as const, delta: "+12.8%", colorIndex: 0 },
     { label: "Customers", value: `${data[data.length - 1]?.users ?? 0}k`, key: "users" as const, delta: "+8.4%", colorIndex: 1 },
@@ -255,7 +318,7 @@ function Overview({ data, channels, totalVisitors, theme, animation, dark }: Dem
             <div className="mt-3 flex items-end justify-between gap-3">
               <strong className="text-2xl font-semibold tracking-[-0.04em]">{card.value}</strong>
               <div className="w-20">
-                <Sparkline data={data.map((item) => ({ month: item.month, value: item[card.key] }))} xKey="month" yKey="value" height={42} padding={3} theme={theme} colorIndex={card.colorIndex} showArea showPoints={false} animation={animation} />
+                <Sparkline data={data.map((item) => ({ month: item.month, value: item[card.key] }))} xKey="month" yKey="value" height={42} padding={3} theme={theme} colorIndex={card.colorIndex} showArea showPoints={false} strokeVariant={finish === "glass" ? "gradient" : "solid"} areaOpacity={finish === "glass" ? 0.24 : 0.16} animation={animation} />
               </div>
             </div>
           </div>
@@ -264,12 +327,12 @@ function Overview({ data, channels, totalVisitors, theme, animation, dark }: Dem
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(240px,0.8fr)]">
         <DemoPanel title="Monthly revenue" detail="BarChart · rounded endpoints" dark={dark}>
           <ResponsiveChart minHeight={260} maxHeight={300}>
-            {({ width, height }) => <BarChart data={data} xKey="month" yKey="revenue" width={width} height={height} theme={theme} showValues={{ formatter: (value) => `$${value}k` }} barRadius={8} animation={animation} ariaLabel="Monthly revenue" />}
+            {({ width, height }) => <BarChart data={data} xKey="month" yKey="revenue" width={width} height={height} theme={theme} showValues={{ formatter: (value) => `$${value}k` }} barVariant={finish === "glass" ? "glass" : "gradient"} barRadius={8} animation={animation} ariaLabel="Monthly revenue" />}
           </ResponsiveChart>
         </DemoPanel>
         <DemoPanel title="Acquisition mix" detail={`${totalVisitors}k visitors · DonutChart`} dark={dark}>
           <ResponsiveChart minHeight={260} maxHeight={300}>
-            {({ width, height }) => <DonutChart data={channels} labelKey="channel" valueKey="visitors" width={width} height={height} theme={theme} centerLabel={`${totalVisitors}k`} showLegend={false} showLabels animation={animation} ariaLabel="Acquisition channel share" />}
+            {({ width, height }) => <DonutChart data={channels} labelKey="channel" valueKey="visitors" width={width} height={height} theme={theme} centerLabel={`${totalVisitors}k`} sliceVariant={finish === "glass" ? "glass" : "gradient"} showLegend={false} showLabels animation={animation} ariaLabel="Acquisition channel share" />}
           </ResponsiveChart>
         </DemoPanel>
       </div>
@@ -277,41 +340,41 @@ function Overview({ data, channels, totalVisitors, theme, animation, dark }: Dem
   );
 }
 
-function BarDemo({ data, theme, animation, dark }: DemoProps & { data: RevenueDatum[] }) {
+function BarDemo({ data, theme, animation, finish, dark }: DemoProps & { data: RevenueDatum[] }) {
   return (
     <DemoPanel title="Monthly revenue" detail="Value labels use their own compact formatter; axes and tooltips retain the full formatter." dark={dark}>
       <ResponsiveChart minHeight={360} maxHeight={440}>
-        {({ width, height }) => <BarChart data={data} xKey="month" yKey="revenue" width={width} height={height} theme={theme} showValues={{ formatter: (value) => `$${value}k` }} valueFormatter={(value) => `$${value.toLocaleString()}k`} barRadius={9} animation={animation} ariaLabel="Monthly revenue" />}
+        {({ width, height }) => <BarChart data={data} xKey="month" yKey="revenue" width={width} height={height} theme={theme} showValues={{ formatter: (value) => `$${value}k` }} valueFormatter={(value) => `$${value.toLocaleString()}k`} barVariant={finish === "glass" ? "glass" : "gradient"} barRadius={9} animation={animation} ariaLabel="Monthly revenue" />}
       </ResponsiveChart>
     </DemoPanel>
   );
 }
 
-function LineDemo({ data, theme, animation, dark }: DemoProps & { data: RevenueDatum[] }) {
+function LineDemo({ data, theme, animation, finish, dark }: DemoProps & { data: RevenueDatum[] }) {
   return (
-    <DemoPanel title="Customer growth" detail="LineChart · smooth curve · area fill · focusable points" dark={dark}>
+    <DemoPanel title="Customer growth" detail="LineChart · palette-blended stroke · halo points · spring crosshair" dark={dark}>
       <ResponsiveChart minHeight={360} maxHeight={440}>
-        {({ width, height }) => <LineChart data={data} xKey="month" yKey="users" width={width} height={height} theme={theme} showArea showPoints crosshair valueFormatter={(value) => `${value}k`} animation={animation} ariaLabel="Monthly customer growth" />}
+        {({ width, height }) => <LineChart data={data} xKey="month" yKey="users" width={width} height={height} theme={theme} showArea showPoints crosshair strokeVariant={finish === "glass" ? "gradient" : "solid"} areaOpacity={finish === "glass" ? 0.26 : 0.16} pointVariant={finish === "glass" ? "halo" : "solid"} valueFormatter={(value) => `${value}k`} animation={animation} ariaLabel="Monthly customer growth" />}
       </ResponsiveChart>
     </DemoPanel>
   );
 }
 
-function MultiLineDemo({ data, theme, animation, dark }: DemoProps & { data: RevenueDatum[] }) {
+function MultiLineDemo({ data, theme, animation, finish, dark }: DemoProps & { data: RevenueDatum[] }) {
   return (
-    <DemoPanel title="Revenue, orders, and customers" detail="MultiLineChart · synchronized legend and point interaction" dark={dark}>
+    <DemoPanel title="Revenue, orders, and customers" detail="MultiLineChart · synchronized legend · gradient path option" dark={dark}>
       <ResponsiveChart minHeight={360} maxHeight={440}>
-        {({ width, height }) => <MultiLineChart data={data} xKey="month" series={[{ id: "revenue", label: "Revenue", yKey: "revenue", showArea: true }, { id: "orders", label: "Orders", yKey: "orders" }, { id: "users", label: "Customers", yKey: "users" }]} width={width} height={height} theme={theme} showLegend crosshair valueFormatter={(value) => `${value}k`} animation={animation} ariaLabel="Revenue, orders, and customers by month" />}
+        {({ width, height }) => <MultiLineChart data={data} xKey="month" series={[{ id: "revenue", label: "Revenue", yKey: "revenue", showArea: true }, { id: "orders", label: "Orders", yKey: "orders" }, { id: "users", label: "Customers", yKey: "users" }]} width={width} height={height} theme={theme} showLegend crosshair strokeVariant={finish === "glass" ? "gradient" : "solid"} areaOpacity={finish === "glass" ? 0.22 : 0.14} valueFormatter={(value) => `${value}k`} animation={animation} ariaLabel="Revenue, orders, and customers by month" />}
       </ResponsiveChart>
     </DemoPanel>
   );
 }
 
-function DonutDemo({ channels, totalVisitors, theme, animation, dark }: DemoProps & { channels: ChannelDatum[]; totalVisitors: number }) {
+function DonutDemo({ channels, totalVisitors, theme, animation, finish, dark }: DemoProps & { channels: ChannelDatum[]; totalVisitors: number }) {
   return (
-    <DemoPanel title="Acquisition channel share" detail="DonutChart · spring updates · optional clockwise sweep entrance" dark={dark}>
+    <DemoPanel title="Acquisition channel share" detail="DonutChart · spring updates · sweep and pop entrances" dark={dark}>
       <ResponsiveChart minHeight={360} maxHeight={440}>
-        {({ width, height }) => <DonutChart data={channels} labelKey="channel" valueKey="visitors" width={width} height={height} theme={theme} centerLabel={`${totalVisitors}k total`} showLegend showLabels valueFormatter={(value) => `${value}k`} animation={animation} ariaLabel="Acquisition channel share" />}
+        {({ width, height }) => <DonutChart data={channels} labelKey="channel" valueKey="visitors" width={width} height={height} theme={theme} centerLabel={`${totalVisitors}k total`} sliceVariant={finish === "glass" ? "glass" : "gradient"} showLegend showLabels valueFormatter={(value) => `${value}k`} animation={animation} ariaLabel="Acquisition channel share" />}
       </ResponsiveChart>
     </DemoPanel>
   );
@@ -356,7 +419,7 @@ export function ThemeGallery() {
         <div className="max-w-2xl">
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">Theme lab</span>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-0.045em] text-slate-950">One token system. Two dependable surfaces.</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">Inspect all six built-in themes on the surface you are shipping. The same palette calibration powers named themes and explicit palette selections.</p>
+          <p className="mt-3 text-sm leading-6 text-slate-600">Inspect all six built-in themes on the surface you are shipping. The same palette calibration powers named themes and explicit palette selections, including the new high-energy <code>prism</code> palette.</p>
         </div>
         <div className="flex w-fit rounded-xl border border-slate-200 bg-white p-1 shadow-sm" aria-label="Theme gallery surface">
           {(["light", "dark"] as const).map((item) => (

@@ -41,10 +41,16 @@ export type MotionOptions = {
   transition?: Transition;
   /** Set to false when server/client hydration must not include entrance animation. */
   initial?: boolean;
-  /** Delay each item by index * stagger. */
+  /** Delay each item by a multiple of this number of seconds. */
   stagger?: number;
-  /** Entrance style for line-family charts. Existing charts keep the fade/morph default. */
-  entrance?: "fade" | "draw" | "sweep";
+  /** Choose whether staggered marks begin at the first, last, or center mark. */
+  staggerFrom?: "start" | "end" | "center";
+  /**
+   * Entrance style. `draw` traces line-family paths, `sweep` reveals donut
+   * slices clockwise, `rise` lifts line-family geometry into place, and `pop`
+   * gives marks a restrained overshoot. Existing charts keep the fade/morph default.
+   */
+  entrance?: "fade" | "draw" | "sweep" | "rise" | "pop";
 };
 
 export type TooltipRenderContext<TDatum> = {

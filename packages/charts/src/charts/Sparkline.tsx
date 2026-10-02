@@ -18,6 +18,11 @@ export type SparklineProps<TDatum extends object> = CommonChartProps<TDatum> & {
   padding?: number;
   strokeWidth?: number;
   colorIndex?: number;
+  /** Blend the path into the next palette color or an explicit endpoint color. */
+  strokeVariant?: "solid" | "gradient";
+  gradientToColor?: string;
+  /** Opacity of the top edge of the optional area fill, clamped to [0, 1]. */
+  areaOpacity?: number;
   curve?: "linear" | "smooth";
   showArea?: boolean;
   showPoints?: boolean;
@@ -46,6 +51,9 @@ export function Sparkline<TDatum extends object>({
   padding = 10,
   strokeWidth = 2.5,
   colorIndex = 0,
+  strokeVariant = "solid",
+  gradientToColor,
+  areaOpacity = 0.16,
   curve = "smooth",
   showArea = true,
   showPoints = false,
@@ -63,8 +71,10 @@ export function Sparkline<TDatum extends object>({
   const { isEntering, onAnimationComplete } = useChartEntrance(animation, reducedMotion);
 
   const color = colorAt(chartTheme.colors, colorIndex);
+  const gradientEndColor = gradientToColor ?? colorAt(chartTheme.colors, colorIndex + 1);
   const safePadding = finiteNonNegative(padding, 10);
   const safeStrokeWidth = finiteNonNegative(strokeWidth, 2.5);
+  const safeAreaOpacity = Math.min(1, finiteNonNegative(areaOpacity, 0.16));
   const bounds = useMemo(
     () => resolveChartBounds(
       width,
@@ -116,6 +126,8 @@ export function Sparkline<TDatum extends object>({
   const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve, true), [baseline, baselinePoints, curve]);
   const tooltipEnabled = tooltip !== false;
   const drawEntrance = animation?.entrance === "draw";
+  const riseEntrance = animation?.entrance === "rise";
+  const popEntrance = animation?.entrance === "pop";
 
   // Renderable items are only rows with non-null values
   const renderableItems = useMemo(
@@ -218,8 +230,12 @@ export function Sparkline<TDatum extends object>({
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.16" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+          <stop offset="0%" stopColor={color} stopOpacity={safeAreaOpacity} />
+          <stop offset="100%" stopColor={gradientEndColor} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={`${gradientId}-stroke`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={color} />
+          <stop offset="100%" stopColor={gradientEndColor} />
         </linearGradient>
       </defs>
       {rows.length === 0 ? <EmptyState x={bounds.width / 2} y={bounds.height / 2} theme={chartTheme}>{emptyState}</EmptyState> : null}
@@ -239,15 +255,22 @@ export function Sparkline<TDatum extends object>({
         <motion.path
           d={path}
           fill="none"
-          stroke={color}
+          stroke={strokeVariant === "gradient" ? `url(#${gradientId}-stroke)` : color}
           strokeWidth={safeStrokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={false}
           animate={isEntering
-            ? { d: [initialPath, path], opacity: [0, 1], pathLength: drawEntrance ? [0, 1] : 1 }
-            : { d: path, opacity: 1 }}
+            ? {
+                d: [initialPath, path],
+                opacity: [0, 1],
+                pathLength: drawEntrance ? [0, 1] : 1,
+                y: riseEntrance ? [10, 0] : 0,
+                scale: popEntrance ? [0.96, 1.015, 1] : 1
+              }
+            : { d: path, opacity: 1, y: 0, scale: 1 }}
           transition={chartTransition(animation, reducedMotion)}
+          style={popEntrance ? { transformBox: "fill-box", transformOrigin: "center" } : undefined}
           onAnimationComplete={isEntering && renderableItems.length === 0 ? onAnimationComplete : undefined}
           pointerEvents="none"
         />
@@ -279,7 +302,7 @@ export function Sparkline<TDatum extends object>({
               strokeWidth={1}
               initial={false}
               animate={isEntering ? { opacity: [0, 1], scale: [0.9, 1] } : { opacity: 1, scale: 1 }}
-              transition={chartTransition(animation, reducedMotion, rows.length)}
+              transition={chartTransition(animation, reducedMotion, Math.max(0, renderableItems.length - 1), renderableItems.length)}
               style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.06))" }}
             />
             <motion.text
@@ -295,7 +318,7 @@ export function Sparkline<TDatum extends object>({
               lengthAdjust={textLength ? "spacingAndGlyphs" : undefined}
               initial={false}
               animate={isEntering ? { opacity: [0, 1] } : { opacity: 1 }}
-              transition={chartTransition(animation, reducedMotion, rows.length)}
+              transition={chartTransition(animation, reducedMotion, Math.max(0, renderableItems.length - 1), renderableItems.length)}
             >
               {showPillText ? text : null}
             </motion.text>
@@ -330,9 +353,9 @@ export function Sparkline<TDatum extends object>({
               stroke={visible ? "white" : "transparent"}
               strokeWidth={visible ? 2 : 0}
               initial={false}
-              animate={isEntering ? { scale: [0, 1], opacity: [0, 1] } : { scale: 1, opacity: 1 }}
+              animate={isEntering ? { scale: popEntrance ? [0, 1.22, 1] : [0, 1], opacity: [0, 1] } : { scale: 1, opacity: 1 }}
               whileHover={{ scale: 1.35 }}
-              transition={chartTransition(animation, reducedMotion, row.index + (drawEntrance ? renderableItems.length : 0))}
+              transition={chartTransition(animation, reducedMotion, itemIndex, renderableItems.length)}
               onAnimationComplete={isEntering && itemIndex === renderableItems.length - 1 ? onAnimationComplete : undefined}
               role="graphics-symbol"
               aria-roledescription="data point"

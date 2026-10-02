@@ -209,7 +209,7 @@ Useful props:
 
 - `xKey`, `yKey` — object key or accessor function.
 - `theme`, `colors` — named theme or exact product colors.
-- `barVariant` — `"gradient"` or `"solid"`.
+- `barVariant` — `"gradient"`, `"glass"`, or `"solid"`. `glass` adds a restrained specular highlight while retaining the palette color.
 - `barRadius`, `barPadding` — visual tuning.
 - `showValues`, `showGrid`, `xAxis`, `yAxis`.
 
@@ -290,7 +290,11 @@ Set `crosshair` when the interaction should snap a spring-smoothed vertical guid
   theme="ocean"
   showArea
   showPoints
-  animation={{ preset: "gentle" }}
+  strokeVariant="gradient"
+  gradientToColor="#7c3aed"
+  areaOpacity={0.22}
+  pointVariant="halo"
+  animation={{ preset: "silky", entrance: "rise" }}
 />
 ```
 
@@ -298,6 +302,9 @@ Useful props:
 
 - `curve` — `"smooth"` (default) or `"linear"`.
 - `showArea`, `showPoints`, `showGrid` — control supporting geometry.
+- `strokeVariant` — `"solid"` (default) or `"gradient"`. Gradients blend into the next palette token or `gradientToColor`.
+- `areaOpacity` — the top opacity of the area fill, clamped to `[0, 1]` (default `0.16`).
+- `pointVariant` — `"solid"`, `"ring"`, or `"halo"` for a higher-visibility point treatment.
 - `connectNulls` — bridge missing values or leave visible gaps.
 - `colorIndex`, `strokeWidth`, `xAxis`, and `yAxis` — tune the visual and scale.
 
@@ -317,7 +324,7 @@ Useful props:
 />
 ```
 
-Use this for ecommerce dashboards, SaaS admin panels, and POS analytics where multiple metrics need to move together. Each `series` entry requires a stable `id` and `yKey`; `label`, `color`, `showArea`, and `strokeWidth` are optional per-series overrides. `showLegend` is enabled when you want those labels exposed in the chart.
+Use this for ecommerce dashboards, SaaS admin panels, and POS analytics where multiple metrics need to move together. Each `series` entry requires a stable `id` and `yKey`; `label`, `color`, `showArea`, and `strokeWidth` are optional per-series overrides. `showLegend` is enabled when you want those labels exposed in the chart. Set `strokeVariant="gradient"` to blend every path into its next palette color and use `areaOpacity` to tune the density of its area fills.
 
 ## DonutChart
 
@@ -348,7 +355,7 @@ Useful props:
 
 - `innerRadiusRatio` — controls donut thickness.
 - `padAngle` — spacing between slices.
-- `sliceVariant` — `"gradient"` or `"solid"`.
+- `sliceVariant` — `"gradient"`, `"glass"`, or `"solid"`. `glass` adds a radial highlight without changing the palette token.
 - `showLegend`, `showLabels`, `centerLabel`.
 
 Values are normalized into slices; zero and non-positive values do not receive an interactive slice. Use `centerLabel` for a total or short summary rather than repeating the full dataset in the middle of the chart.
@@ -375,7 +382,7 @@ Use sparklines inside metric cards:
 - inventory movement
 - signups this week
 
-`Sparkline` keeps the same interaction, tooltip, and reduced-motion behavior as the larger charts. Use `padding` for compact cards, `colorIndex` to select a stable palette entry, and `showEndValue` to display the last finite datum.
+`Sparkline` keeps the same interaction, tooltip, and reduced-motion behavior as the larger charts. Use `padding` for compact cards, `colorIndex` to select a stable palette entry, and `showEndValue` to display the last finite datum. It also supports `strokeVariant="gradient"`, `gradientToColor`, and `areaOpacity` for denser KPI treatments.
 
 ## Y-Axis and Zero Inclusions
 
@@ -411,8 +418,8 @@ Built-in palettes:
 
 ```ts
 "aurora" | "ocean" | "sunset" | "forest" | "candy" | "royal" |
-"fire" | "cyber" | "pastel" | "graphite" | "emerald" | "bloom" |
-"editorial" | "okabe" | "terra" | "nordic" | "plum"
+"fire" | "cyber" | "pastel" | "graphite" | "emerald" | "bloom" | "prism" |
+"lagoon" | "orchid" | "citrus" | "editorial" | "okabe" | "terra" | "nordic" | "plum"
 ```
 
 Choose an explicit light/dark surface variant. `auto` is SSR-safe: it renders the light variant on the server and first client render, then follows live `prefers-color-scheme` changes without hydration drift.
@@ -425,6 +432,38 @@ Choose an explicit light/dark surface variant. `auto` is SSR-safe: it renders th
 Every built-in palette can be selected on either surface with `theme={{ base: "aurora", palette: "okabe", surface: "dark" }}`. Named themes use the same surface-adjusted palette as their matching palette name, so `theme="ocean"` and `theme={{ base: "ocean", palette: "ocean" }}` stay visually aligned. The chart SVG stays transparent; apply `theme.surfaceColor` or your own card background to the containing surface.
 
 On light surfaces, built-in palette colors are calibrated to a minimum 2.5:1 contrast ratio against white. Colors that already meet that threshold are left untouched, which keeps established visual tokens stable.
+
+### Palette selection contract
+
+Use a theme to match the surrounding surface and a palette to communicate the chart’s role; they are intentionally independent. `paletteProfiles` exposes a machine-readable label, mood, recommended contexts, and an `avoidWhen` note for every built-in palette. `recommendPalette` provides a stable shortcut for common product contexts.
+
+```tsx
+import { paletteProfiles, recommendPalette } from "@motion-charts/core";
+
+const palette = recommendPalette("fintech"); // "lagoon"
+const profile = paletteProfiles[palette]; // use profile.mood / profile.bestFor in a theme picker
+
+<LineChart
+  data={balances}
+  xKey="date"
+  yKey="value"
+  theme={{ base: "aurora", palette, surface: "light" }}
+  ariaLabel="Daily account balance"
+/>
+```
+
+| Intent | Recommended palette | Use it when |
+| --- | --- | --- |
+| `default` | `aurora` | a balanced product dashboard needs a dependable default |
+| `commerce` | `sunset` | conversion, sales, or launch metrics need warm energy |
+| `fintech` | `lagoon` | trust, calm, and information density matter |
+| `developer` | `cyber` | dark-native developer tooling, observability, or security is the context |
+| `editorial` | `editorial` | an executive readout or report should feel considered and quiet |
+| `wellness` | `emerald` | progress, sustainability, inventory, or wellbeing is the focus |
+| `accessible` | `okabe` | a multi-series chart needs a colorblind-considered starting point |
+| `creative` | `orchid` | media, campaigns, or creator-facing UI benefits from expressive color |
+
+For visual matching, start with `lagoon` for calm blue/teal product surfaces, `orchid` for expressive violet/magenta UI, `citrus` for warm operational dashboards, `prism` for a premium high-contrast feature moment, and `okabe` when broad multi-series distinction is more important than brand tone. See `llms.txt` for the complete agent-oriented decision guide.
 
 Extend a named theme using `base`:
 
@@ -475,6 +514,9 @@ animation={{ preset: "gentle" }}
 animation={{ preset: "snappy" }}
 animation={{ preset: "bouncy" }}
 animation={{ preset: "calm" }}
+animation={{ preset: "silky" }}
+animation={{ preset: "lively" }}
+animation={{ preset: "cinematic" }}
 animation={{ preset: "dramatic" }}
 animation={{ preset: "linear" }}
 ```
@@ -492,6 +534,7 @@ You can still override exact Framer Motion transition values:
   animation={{
     preset: "gentle",
     stagger: 0.03,
+    staggerFrom: "center",
     transition: { damping: 24 }
   }}
 />
@@ -510,9 +553,11 @@ Reduced-motion users are respected automatically.
 - Charts render final geometry during SSR, then play entrance keyframes after hydration so server HTML is useful and hydration-safe.
 - Data changes animate by default. Bars tween their baseline-safe SVG geometry; paths and points morph to the next dataset.
 - `animation={{ initial: false }}` disables the entrance while preserving data-update transitions.
+- `animation={{ entrance: "draw" }}` traces line-family paths; `"sweep"` reveals donut slices clockwise.
+- `animation={{ entrance: "rise" }}` gives line-family geometry an upward settle; `"pop"` adds a small, staggered overshoot to marks and slices.
 - `animation={{ disabled: true }}` disables entrance and update motion for that chart.
 - `prefers-reduced-motion: reduce` suppresses motion without removing the final chart or its interactions.
-- `stagger` is measured in seconds per item and is clamped to a safe range. `transition` overrides the selected preset when you need exact Framer Motion behavior.
+- `stagger` is measured in seconds per item and is clamped to a safe range. Add `staggerFrom: "start" | "center" | "end"` to make marks cascade in reading order, bloom from the middle, or resolve from the final mark. A transition-level `delay` is a base delay and is added before the per-mark stagger. `transition` overrides the selected preset when you need exact Framer Motion behavior.
 
 | Preset | Character |
 | --- | --- |
@@ -521,6 +566,9 @@ Reduced-motion users are respected automatically.
 | `snappy` | Fast response for compact UI |
 | `bouncy` | Noticeable overshoot for dashboards and demos |
 | `calm` | Slow, restrained movement |
+| `silky` | Premium, long easing curve for smooth dashboard transitions |
+| `lively` | Fast spring with a small, controlled overshoot |
+| `cinematic` | Deliberate longer timing for feature moments and presentations |
 | `dramatic` | Stronger entrance emphasis |
 | `linear` | Constant-duration interpolation |
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.2.3
+
+### Palette intelligence and UI matching
+- Added calibrated `lagoon`, `orchid`, and `citrus` palettes, bringing the built-in total to 21 surface-aware palette options.
+- Added public `paletteProfiles` metadata with labels, moods, recommended contexts, and cautions for every palette, plus deterministic `recommendPalette(intent)` recommendations for common product contexts.
+- Expanded the agent-oriented `llms.txt` into a complete chart, surface, palette, visual-treatment, accessibility, and motion-selection contract.
+
+### Smoother directional motion
+- Added `animation.staggerFrom: "start" | "center" | "end"` for functional forward, center-out, and reverse cascades across chart marks.
+- Transition-level delays now compose with mark stagger rather than replacing it, producing predictable staged entrances and updates.
+- Updated bars, slices, line points, multi-line points, and sparkline marks to pass their rendered mark counts to the motion layer for reliable directional cascades.
+
+### Documentation and interactive preview
+- Expanded palette and motion guidance in the package README, including the programmatic recommendation API.
+- Upgraded the live documentation control room with real palette selection, palette-fit guidance, and a directional cascade control wired to the published chart API.
+
+### Kinetic visuals
+- **Three new motion presets**: `silky` for long, premium easing; `lively` for responsive spring motion; and `cinematic` for deliberate feature-moment transitions.
+- **Two new entrances**: `animation={{ entrance: "rise" }}` lifts line-family geometry into place, while `entrance: "pop"` adds a controlled overshoot to bars, points, and donut slices. Existing `fade`, `draw`, and `sweep` behavior is unchanged.
+- **Gradient trend paths**: LineChart, MultiLineChart, and Sparkline now support `strokeVariant="gradient"`. LineChart and Sparkline can target an explicit `gradientToColor`; gradients otherwise move into the next palette token.
+- **Visual depth controls**: line-family area fills accept `areaOpacity`; LineChart adds `pointVariant="solid" | "ring" | "halo"` for clearer data-point emphasis.
+- **Glass marks**: BarChart `barVariant="glass"` and DonutChart `sliceVariant="glass"` add restrained SVG highlights while keeping the same calibrated palette tokens.
+- **Prism palette**: added a contrast-ready six-color indigo, teal, magenta, coral, forest, and crimson palette for high-energy product telemetry.
+
+### Documentation and preview
+- Expanded the package README and AI guide with motion-selection guidance and visual treatment examples.
+- The interactive docs control room now exposes the new motion presets, entrances, and signature visual treatments.
+
 ## 0.2.2
 
 ### Theme integrity

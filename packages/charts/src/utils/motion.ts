@@ -3,18 +3,29 @@ import type { Transition } from "framer-motion";
 import type { MotionOptions } from "../types";
 import { animationPreset } from "./animationPresets";
 
-export function chartTransition(animation: MotionOptions | undefined, reducedMotion: boolean | null, index = 0): Transition {
+function staggerPosition(index: number, count: number | undefined, from: MotionOptions["staggerFrom"]): number {
+  const safeIndex = Math.max(0, index);
+  if (!count || count < 1 || from === undefined || from === "start") return safeIndex;
+
+  const lastIndex = Math.max(0, count - 1);
+  const clampedIndex = Math.min(safeIndex, lastIndex);
+  if (from === "end") return lastIndex - clampedIndex;
+  return Math.abs(clampedIndex - lastIndex / 2);
+}
+
+/** Build a chart transition with an optional directional cascade across `count` marks. */
+export function chartTransition(animation: MotionOptions | undefined, reducedMotion: boolean | null, index = 0, count?: number): Transition {
   if (animation?.disabled || reducedMotion) return { duration: 0 };
   const userDelay = animation?.transition?.delay;
   const rawStagger = animation?.stagger ?? 0.025;
   const stagger = Number.isFinite(rawStagger)
-    ? Math.min(Math.max(0, rawStagger) * Math.max(0, index), 0.6)
+    ? Math.min(Math.max(0, rawStagger) * staggerPosition(index, count, animation?.staggerFrom), 0.6)
     : 0;
-  const delay = typeof userDelay === "number" && Number.isFinite(userDelay) ? userDelay : stagger;
+  const baseDelay = typeof userDelay === "number" && Number.isFinite(userDelay) ? userDelay : 0;
   return {
     ...animationPreset(animation?.preset),
     ...animation?.transition,
-    delay
+    delay: baseDelay + stagger
   };
 }
 

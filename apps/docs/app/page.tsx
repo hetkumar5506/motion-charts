@@ -37,7 +37,7 @@ export default function Page() {
             <a href="#top" className="flex shrink-0 items-center gap-2.5" aria-label="Motion Charts home">
               <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-950 font-mono text-[10px] font-bold tracking-[-0.1em] text-white shadow-lg shadow-slate-950/15">MC</span>
               <span className="text-sm font-semibold tracking-[-0.03em]">motion-charts</span>
-              <span className="hidden rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-blue-700 sm:inline">v0.2.2</span>
+              <span className="hidden rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-blue-700 sm:inline">v0.2.3</span>
             </a>
             <div className="hidden items-center gap-6 text-xs font-semibold text-slate-600 md:flex">
               <a href="#playground" className="transition hover:text-slate-950">Playground</a>
@@ -78,7 +78,7 @@ export default function Page() {
 
               <dl className="mt-10 grid max-w-xl grid-cols-3 divide-x divide-slate-200">
                 <Metric value="6" label="chart primitives" />
-                <Metric value="17" label="curated palettes" />
+                <Metric value="21" label="curated palettes" />
                 <Metric value="0" label="layout shifts" />
               </dl>
             </div>
@@ -120,7 +120,7 @@ export default function Page() {
               <div className="mb-9 max-w-2xl">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">Interactive proof</span>
                 <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl">A showcase built from the exact components you ship.</h2>
-                <p className="mt-4 text-base leading-7 text-slate-600">No decorative stand-ins. Change the controls to exercise responsive measurement, surface-aware themes, live data updates, and every major chart family.</p>
+                <p className="mt-4 text-base leading-7 text-slate-600">No decorative stand-ins. Change the controls to exercise responsive measurement, surface-aware palette matching, visual finishes, directional cascades, live data updates, and every major chart family.</p>
               </div>
               <ChartShowcase />
             </div>

@@ -1,114 +1,442 @@
-# @motion-charts/core AI usage guide
+# @motion-charts/core — agent implementation guide
 
-Use this package when a React app needs beautiful animated charts for dashboards, ecommerce analytics, SaaS metrics, POS reports, admin panels, landing pages, or product UI.
+Version: 0.2.3
 
-Install:
+This is a React + TypeScript chart library for polished product UI. It renders SVG and uses Framer Motion for data updates and entrances. Use it for dashboards, admin products, SaaS analytics, commerce, operations, developer tooling, reports, and landing-page metrics.
 
+This file is a selection contract for people and coding agents. Follow it when choosing a chart, palette, surface, visual treatment, and motion. Prefer a clear, accessible chart that fits the product UI over a visually busy chart.
+
+## Installation and runtime
+
+```bash
 npm install @motion-charts/core framer-motion
+```
 
-In Next.js App Router, render charts from a client component.
+Peer dependencies: React 18 or 19, React DOM 18 or 19, and Framer Motion 10 through 12.
 
-Best default pattern:
+In Next.js App Router, place interactive charts in a client component:
 
 ```tsx
 "use client";
 
 import { BarChart, ResponsiveChart } from "@motion-charts/core";
+```
 
-export function RevenueChart({ data }) {
-  return (
-    <ResponsiveChart minHeight={280} maxHeight={440}>
-      {({ width, height }) => (
-        <BarChart
-          data={data}
-          width={width}
-          height={height}
-          xKey="month"
-          yKey="revenue"
-          theme="aurora"
-          animation={{ preset: "bouncy", stagger: 0.04 }}
-          valueFormatter={(value) => `$${value.toLocaleString()}`}
-          ariaLabel="Monthly revenue"
-          showValues
-        />
-      )}
-    </ResponsiveChart>
-  );
+Use `ResponsiveChart` in application layouts. It handles measured width, CSS grid/flex shrinkage, SSR fallback sizing, and narrow cards. Always give charts a specific `ariaLabel`.
+
+```tsx
+<ResponsiveChart minHeight={280} maxHeight={440}>
+  {({ width, height }) => (
+    <BarChart
+      data={data}
+      width={width}
+      height={height}
+      xKey="month"
+      yKey="revenue"
+      ariaLabel="Monthly revenue"
+    />
+  )}
+</ResponsiveChart>
+```
+
+If a chart is inside a custom grid/flex item, allow it to shrink: `style={{ minWidth: 0, width: "100%" }}`.
+
+## First decision: choose the chart primitive
+
+- Compare discrete categories, rankings, or positive/negative totals: `BarChart`.
+- Compare long category labels: `BarChart layout="horizontal"`.
+- Compare one continuous series across time/order: `LineChart`.
+- Compare two or more related continuous series: `MultiLineChart` with stable series `id` values.
+- Show parts of a total with a small number of categories: `DonutChart`.
+- Add compact trend context to a KPI card: `Sparkline`.
+- Animate a standalone number: `AnimatedNumber`.
+- Let the parent card determine dimensions: `ResponsiveChart`.
+
+Do not use a donut for many categories, a line chart for unordered categories, or gradient/glass treatments for every chart on a dense page.
+
+## Safe default recipe
+
+This is the default choice for a light SaaS dashboard. It is deliberately restrained.
+
+```tsx
+<ResponsiveChart minHeight={280} maxHeight={420}>
+  {({ width, height }) => (
+    <LineChart
+      data={data}
+      width={width}
+      height={height}
+      xKey="date"
+      yKey="activeUsers"
+      theme={{ base: "aurora", palette: "aurora", surface: "light" }}
+      showArea
+      showPoints
+      areaOpacity={0.16}
+      animation={{ preset: "silky", entrance: "rise", stagger: 0.03, staggerFrom: "start" }}
+      valueFormatter={(value) => value.toLocaleString()}
+      ariaLabel="Daily active users"
+    />
+  )}
+</ResponsiveChart>
+```
+
+## Color, palette, and surface selection
+
+### Important model
+
+A **theme** provides text, axis, grid, tooltip, and surface-aware defaults. A **palette** provides the sequence of data colors. They are intentionally separate:
+
+```tsx
+// Calm financial colors on an otherwise neutral light chart surface.
+theme={{ base: "aurora", palette: "lagoon", surface: "light" }}
+
+// Same palette on a dark surrounding card; SVG itself stays transparent.
+theme={{ base: "midnight", palette: "lagoon", surface: "dark" }}
+```
+
+The chart SVG is transparent. Put an appropriate readable background on the surrounding card. Do not set a dark chart theme inside a white card without considering tick/text contrast.
+
+`theme="auto"` is SSR-safe: it first renders light and follows `prefers-color-scheme` after mount. Use an explicit `{ surface: "light" | "dark" }` when the card surface is known.
+
+Light-surface palette colors are calibrated against white. For exact company colors, pass `colors={[...]}`; that is an explicit brand override and the caller owns contrast validation.
+
+### Programmatic recommendation API
+
+Use these exports when building an app-level theme picker or when an agent needs deterministic choices:
+
+```tsx
+import {
+  paletteColors,
+  paletteProfiles,
+  recommendPalette,
+  type ChartPaletteIntent,
+  type ChartPaletteName
+} from "@motion-charts/core";
+
+const palette: ChartPaletteName = recommendPalette("fintech"); // lagoon
+const profile = paletteProfiles[palette];
+const colors = paletteColors(palette, "dark");
+```
+
+`paletteProfiles[name]` has this stable shape:
+
+```ts
+{
+  label: string;
+  mood: string;
+  bestFor: readonly string[];
+  avoidWhen: string;
 }
 ```
 
-Use cases:
+Valid `ChartPaletteIntent` values and their deterministic recommendations:
 
-- Ecommerce revenue by month: `BarChart`, theme `aurora` or `sunset`, show values.
-- POS hourly sales trend: `Sparkline` in metric cards, theme `ocean`, animation `snappy`.
-- SaaS users vs revenue: `MultiLineChart`, theme `midnight`, show legend and area.
-- Acquisition channels: `DonutChart`, theme `candy`, show labels and center total.
-- Inventory trend: `LineChart`, theme `minimal`, show area.
+| Intent | Result | Use when |
+| --- | --- | --- |
+| `default` | `aurora` | no stronger product/UI signal exists |
+| `commerce` | `sunset` | conversion, sales, growth, launch metrics |
+| `fintech` | `lagoon` | finance, health, trusted platform analytics |
+| `developer` | `cyber` | observability, developer tooling, security |
+| `editorial` | `editorial` | reports, publishing, executive readouts |
+| `wellness` | `emerald` | wellbeing, sustainability, progress, inventory |
+| `accessible` | `okabe` | multi-series distinction and colorblind-considered starting point |
+| `creative` | `orchid` | media, creators, campaign performance |
 
-Theme names:
+An explicit `theme.palette` is always more specific than a recommendation. Do not infer a palette from the chart type alone; infer it from the surrounding product UI and task.
 
-`aurora`, `midnight`, `candy`, `ocean`, `sunset`, `minimal`
+### Full palette menu and visual guidance
 
-Palette names:
+Use `paletteProfiles[name]` for the complete guidance in code. These are the practical defaults:
 
-`aurora`, `ocean`, `sunset`, `forest`, `candy`, `royal`, `fire`, `cyber`, `pastel`, `graphite`, `emerald`, `bloom`, `editorial`, `okabe`, `terra`, `nordic`, `plum`
+| Palette | UI / visual character | Best fit | Avoid when |
+| --- | --- | --- | --- |
+| `aurora` | balanced cobalt/teal product signal | general SaaS, B2B analytics, revenue | the UI already overuses saturated blue |
+| `ocean` | calm aquatic blue | finance, health, retention | a warm editorial brand is primary |
+| `sunset` | warm commercial orange/red | commerce, conversion, growth | passive monitoring needs to stay quiet |
+| `forest` | stable botanical green | climate, wellness, inventory | many very distinct series are required |
+| `candy` | expressive violet/rose | community, campaigns, consumer UI | conservative finance or governance UI |
+| `royal` | composed institutional indigo | enterprise, reporting, governance | a warm human surface is needed |
+| `fire` | urgent red/orange signal | alerts, incidents, sales moments | routine background monitoring |
+| `cyber` | high-energy technical cyan/violet | developer tools, security, dark UI | paper-like editorial UI |
+| `pastel` | low-noise muted color | education, support, admin | critical alerting must dominate |
+| `graphite` | architectural neutral | executive reports, dense tables | users need strong series recognition |
+| `emerald` | positive operational green | sustainability, success, inventory | negative state is the main story |
+| `bloom` | bold human rose/magenta | consumer launch, social, membership | muted B2B UI |
+| `prism` | premium, vibrant, high-contrast | dark dashboards, feature launches | surrounding UI already has competing accents |
+| `lagoon` | polished teal/blue/violet | fintech, health, platform analytics | a warm commercial message is required |
+| `orchid` | expressive magenta/violet | creator tools, media, campaigns | institutional style is expected |
+| `citrus` | warm amber/olive/teal | commerce operations, field teams | the screen is already alert-heavy |
+| `editorial` | ink, brass, slate | reports, publishing, executive readouts | real-time alerting is the main task |
+| `okabe` | scientific, colorblind-considered | research, accessible multi-series charts | strict brand tonality overrides distinction |
+| `terra` | earthy and practical | supply chain, climate, operations | bright consumer energy is desired |
+| `nordic` | quiet cool professional blue | planning, product analytics, consulting | urgency is the primary message |
+| `plum` | rich refined violet/rose | lifestyle, membership, brand reporting | utilitarian monitoring is required |
 
-Surfaces:
+### Matching the frontend/UI
 
-- `theme="auto"` is SSR-safe and follows live `prefers-color-scheme` changes after mount.
-- `theme={{ base: "aurora", palette: "okabe", surface: "dark" }}` selects a curated dark-surface variant. Built-in themes expose `surface` and `surfaceColor`; chart SVGs are transparent so apply the surface to the surrounding card.
+Use the surrounding UI before choosing an effect:
 
-Theme extension:
+1. Identify the card surface: use `surface: "light"` for paper/white cards and `surface: "dark"` for dark cards.
+2. Match the application’s emotional tone with a palette. For example: neutral SaaS -> `aurora`; calm finance -> `lagoon`; dark devtools -> `cyber`; editorial report -> `editorial`; expressive campaign UI -> `orchid`.
+3. Use a visual treatment only when the card is a priority focal point. Dense utility pages should use solid marks more often than gradients.
+4. Reserve urgent `fire` and high-signal `prism` for events that deserve attention. They should not become the default color for every metric.
+5. For a multi-series accessibility-sensitive chart, start at `okabe`; also use labels, legend, tooltips, and visible focus states instead of color alone.
 
-Pass `theme={{ base: "midnight", gridColor: "#334155" }}` to extend any named theme.
+## Visual treatment selection
 
-Zero inclusion / axis tuning:
+Visual variants are functional published props, not CSS mockups.
 
-- `yAxis={{ includeZero: false }}` (default for `LineChart` and `MultiLineChart` to maximize dynamic range)
-- `yAxis={{ includeZero: true }}` (default for `BarChart`)
+### BarChart
 
-Animation presets:
+```tsx
+<BarChart
+  data={revenue}
+  xKey="month"
+  yKey="revenue"
+  barVariant="glass"
+  barRadius={8}
+  showValues={{ formatter: (value) => `$${Math.round(value / 1000)}k` }}
+  ariaLabel="Monthly revenue"
+/>
+```
 
-`spring`, `gentle`, `snappy`, `bouncy`, `calm`, `dramatic`, `linear`
-Exported helper: `animationPreset(presetName)`
+- `barVariant="solid"`: default; choose for dense dashboards, tables, and most operational views.
+- `barVariant="gradient"`: choose for a featured comparison card or product landing metric.
+- `barVariant="glass"`: choose for one premium hero/summary card; it adds a restrained highlight.
+- `showValues`: use on small category counts; avoid it when many bars would collide.
+- `showValues={{ formatter }}` controls only visible bar labels. `valueFormatter` controls axes, tooltip, and accessibility labels.
+- `layout="horizontal"`: use for long category names.
+- `series` with `seriesLayout="grouped" | "stacked"`: use for meaningful related category breakdowns.
 
-Accessibility (WCAG 2.1 Level A):
+### LineChart and Sparkline
 
-Charts feature accessible roving `tabIndex={0}` on the active point/slice and `-1` on the rest, with arrow-key keyboard navigation (`ArrowRight`/`ArrowLeft`/`ArrowUp`/`ArrowDown`/`Home`/`End`), visible high-contrast focus rings, and `aria-describedby` connected to live tooltips.
+```tsx
+<LineChart
+  data={users}
+  xKey="day"
+  yKey="value"
+  showArea
+  showPoints
+  strokeVariant="gradient"
+  gradientToColor="#7c3aed"
+  areaOpacity={0.22}
+  pointVariant="halo"
+  crosshair
+  ariaLabel="Daily active users"
+/>
+```
 
-Prefer `ResponsiveChart` for real app pages. It supports CSS grid/flex layouts, opts into `min-width: 0`, ignores temporary zero-width observations, and clamps narrow-card margins so chart geometry stays inside the SVG viewport. For custom wrappers, add `style={{ minWidth: 0, width: "100%" }}`. Always pass `ariaLabel`. Use `valueFormatter` for money, percentages, compact numbers, and units. Date labels render as deterministic `YYYY-MM-DD` strings: UTC-midnight values such as `new Date("2026-03-01")` use UTC parts, while other Date values use local parts. Pass `dateFormatter` for an explicit timezone or instant policy. Use `colors={[...]}` when matching a brand system exactly.
+- `strokeVariant="solid"`: default for readable dense trend data.
+- `strokeVariant="gradient"`: use when a single trend is a card focal point. The default blend uses a related palette token; `gradientToColor` makes the destination explicit.
+- `showArea` with `areaOpacity` from roughly `0.12` to `0.26`: use for one primary series, not a crowded data wall.
+- `pointVariant="solid"`: compact standard marks.
+- `pointVariant="ring"`: increases separation on light/dark surfaces.
+- `pointVariant="halo"`: use for a featured trend or when points need more visual affordance.
+- `crosshair`: enable when comparing exact point values matters.
+- `Sparkline` supports `strokeVariant`, `gradientToColor`, `areaOpacity`, `showEndValue`, and `colorIndex`. Use it in KPI cards; do not give it axes or an unnecessary legend.
 
-Datum actions:
+### MultiLineChart
 
-- `onDatumClick` works on every chart with interactive marks. `Enter` and `Space` activate a focused datum with the same `{ datum, index, label, value, color }` context as a pointer click; Space prevents page scrolling.
+```tsx
+<MultiLineChart
+  data={metrics}
+  xKey="month"
+  series={[
+    { id: "revenue", label: "Revenue", yKey: "revenue", showArea: true },
+    { id: "orders", label: "Orders", yKey: "orders" }
+  ]}
+  showLegend
+  crosshair
+  strokeVariant="gradient"
+  areaOpacity={0.16}
+  ariaLabel="Revenue and orders by month"
+/>
+```
 
-Motion and rendering guidance:
+- Prefer solid paths for three or more series.
+- Use `strokeVariant="gradient"` and a restrained `areaOpacity` only for 2–3 featured signals.
+- Keep series IDs stable across renders. Add `showLegend` whenever users need to identify multiple series.
+- Use `crosshair` for value comparison. Avoid an area fill behind every series.
 
-- Data updates animate by default; `animation={{ initial: false }}` skips only the entrance and `animation={{ disabled: true }}` opts out of all motion.
-- SSR renders final geometry. Do not add a client-only blank state to work around entrance animation.
-- Reduced-motion users receive final geometry without animated transitions.
-- Supply stable `id` values for `MultiLineChart.series` entries.
-- For accessible charts, use a specific `ariaLabel`, keep a readable surface behind transparent chart SVGs, and test keyboard focus as well as pointer tooltips.
+### DonutChart
 
-Common selection:
+```tsx
+<DonutChart
+  data={channels}
+  labelKey="channel"
+  valueKey="visitors"
+  centerLabel="128k"
+  showLegend
+  sliceVariant="gradient"
+  ariaLabel="Acquisition channel share"
+/>
+```
 
-- Categorical comparison → `BarChart`
-- Horizontal category comparison → `BarChart layout="horizontal"`
-- Grouped or stacked categorical series → `BarChart series={[...]} seriesLayout="stacked" | "grouped"`
-- Single time series → `LineChart`
-- Draw-on line entrance → `LineChart animation={{ entrance: "draw" }}`
-- Snapped trend guide → `LineChart crosshair` or `MultiLineChart crosshair`
-- Target/threshold guide → `LineChart referenceLines={[{ y: 100, label: "Target" }]}`
-- Multiple related time series → `MultiLineChart`
-- Share of a whole → `DonutChart`
-- Sweep donut entrance → `DonutChart animation={{ entrance: "sweep" }}`
-- Compact KPI trend → `Sparkline`
-- Spring-driven KPI value → `<AnimatedNumber value={8420} format={(v) => ...} />`
-- Measured dashboard layout → `ResponsiveChart`
+- `sliceVariant="solid"`: default and clearest for standard share views.
+- `sliceVariant="gradient"`: a featured share card.
+- `sliceVariant="glass"`: one premium emphasis card, not every dashboard donut.
+- Use `centerLabel` for the total or a short summary.
+- Use `showLabels` only if slices are large enough; `showLegend` is the safer default for multiple labels.
 
-Bar value labels count up automatically with `showValues`; use `showValues={{ countUp: false }}` to opt out. For a compact visible label only, pass `showValues.formatter`, for example `(value) => "$" + Math.round(value / 1000) + "k"`; `valueFormatter` still controls axes, tooltips, and accessible labels.
+## Motion selection and smoothness
 
-Theme integrity:
+Every chart respects reduced-motion preferences. SSR renders final geometry first; entrance keyframes begin after hydration. Never add a client-only blank chart to force animation.
 
-- Built-in palette colors on white are calibrated to at least 2.5:1 contrast. Colors already at or above that threshold stay unchanged.
-- A named theme and its matching palette resolve to the same surface-adjusted colors; for example, `theme="ocean"` uses the calibrated ocean palette.
+### Presets
+
+| Preset | Choose it for |
+| --- | --- |
+| `spring` | balanced general-purpose default |
+| `gentle` | soft low-energy control panels |
+| `snappy` | compact responsive UI and small KPI changes |
+| `bouncy` | expressive demos and non-critical dashboard cards |
+| `calm` | restrained, quiet interpolation |
+| `silky` | premium smooth dashboard transitions; best default for polished product UI |
+| `lively` | responsive small controlled overshoot |
+| `cinematic` | deliberate feature moments and presentations |
+| `dramatic` | visibly emphasized entry, sparingly |
+| `linear` | constant timing where a non-spring feel is required |
+
+Use `silky` for most polished app screens. Use `lively` when change should feel responsive but not chaotic. Use `cinematic` only for a high-attention moment. Do not use `bouncy` or `dramatic` for financial, health, compliance, or dense data-monitoring UI unless the product already embraces playful motion.
+
+### Entrances
+
+- `fade`: default; lowest visual emphasis.
+- `rise`: line-family geometry settles upward; good for a primary trend.
+- `pop`: restrained overshoot for bars, slices, paths, and points; good for a single featured card.
+- `draw`: line-family paths trace into view; use for first-load storytelling, not repeated background refreshes.
+- `sweep`: donut slices reveal clockwise; use for a single share-of-total card.
+
+### Directional cascades
+
+`stagger` is seconds per mark. `staggerFrom` changes where the cascade begins:
+
+```tsx
+animation={{
+  preset: "silky",
+  entrance: "pop",
+  stagger: 0.035,
+  staggerFrom: "center"
+}}
+```
+
+- `staggerFrom: "start"`: reading-order cascade; correct default for time series and left-to-right bars.
+- `staggerFrom: "end"`: resolves from the newest/final mark first; use when the final/current value is the focus.
+- `staggerFrom: "center"`: bloom outward; use sparingly for balanced category comparisons or a decorative hero card.
+
+A transition-level `delay` is a base delay and is added before per-mark stagger. Directional cascade behavior applies to rendered marks; a line path itself is a single shape, while its points cascade. The implementation caps per-mark stagger delay for a bounded, responsive feel.
+
+For a static report, print/PDF, test that requires no animations, or an environment where movement distracts, use:
+
+```tsx
+animation={{ disabled: true }}
+```
+
+To skip only the first entrance but retain update animations:
+
+```tsx
+animation={{ initial: false, preset: "silky" }}
+```
+
+## Accessible interaction contract
+
+- Supply `ariaLabel` describing what is charted, not merely the chart type.
+- Add `ariaDescription` for a notable trend, limitation, or comparison when helpful.
+- Charts provide roving keyboard focus, visible SVG focus rings, arrow-key navigation, Home/End navigation, and Enter/Space activation.
+- `onDatumClick` works from pointer and focused keyboard activation.
+- Tooltips are connected to marks with `aria-describedby`; pass `tooltip={false}` only when tooltip content would duplicate a clearer adjacent table/label.
+- Respect reduced motion. Do not disable it with custom CSS.
+- Use readable card backgrounds around transparent SVG output.
+
+## Data and formatting contract
+
+- `data` is a readonly array of objects.
+- `xKey`, `yKey`, `labelKey`, `valueKey`, and series fields may be keys or appropriate accessors where documented.
+- Use `valueFormatter` for currency, percentages, compact values, and units. It does not alter the data domain.
+- Invalid numeric values are protected against; line-family charts omit invalid points from geometry.
+- Date labels are deterministic by default. ISO date-only/UTC-midnight values use UTC calendar parts; other valid date values use local calendar parts. Supply `dateFormatter` when the app needs a specific timezone or instant policy.
+- Use `referenceLines={[{ y: target, label: "Target" }]}` for targets and thresholds instead of drawing decorative HTML overlays.
+
+## Agent workflow for a new chart
+
+1. Read the existing page/card surface and its existing accent colors.
+2. Determine the data relationship and select the smallest appropriate chart primitive.
+3. Choose the theme base for surface and text/axis tokens. Choose a palette using `recommendPalette(intent)` or `paletteProfiles`.
+4. Start with solid treatment and `silky` motion. Add a gradient, glass treatment, halo, draw/sweep, or `pop` only when the card has focal importance.
+5. Use `staggerFrom: "start"` by default. Choose `end` only if current/final data is the story; choose `center` only for intentional symmetric emphasis.
+6. Add `ariaLabel`, formatter, and a responsive wrapper.
+7. Keep visual weight low when multiple charts coexist: no more than one strong glass/gradient card in a local panel unless the design system explicitly calls for it.
+8. Test a narrow width, keyboard focus, dark/light surface, and reduced-motion behavior.
+
+## Copy-ready recipes
+
+### Calm fintech trend
+
+```tsx
+<LineChart
+  data={balances}
+  xKey="date"
+  yKey="balance"
+  theme={{ base: "aurora", palette: "lagoon", surface: "light" }}
+  showArea
+  areaOpacity={0.16}
+  showPoints
+  pointVariant="ring"
+  animation={{ preset: "silky", entrance: "rise", stagger: 0.025, staggerFrom: "end" }}
+  valueFormatter={(value) => `$${value.toLocaleString()}`}
+  ariaLabel="Daily account balance"
+/>
+```
+
+### Commerce category comparison
+
+```tsx
+<BarChart
+  data={revenueByChannel}
+  xKey="channel"
+  yKey="revenue"
+  theme={{ base: "sunset", palette: "citrus", surface: "light" }}
+  barVariant="gradient"
+  barRadius={8}
+  showValues={{ formatter: (value) => `$${Math.round(value / 1000)}k` }}
+  animation={{ preset: "lively", entrance: "pop", stagger: 0.04, staggerFrom: "start" }}
+  ariaLabel="Revenue by acquisition channel"
+/>
+```
+
+### Dark developer-tool telemetry
+
+```tsx
+<MultiLineChart
+  data={telemetry}
+  xKey="minute"
+  series={[
+    { id: "p50", label: "p50", yKey: "p50" },
+    { id: "p95", label: "p95", yKey: "p95" },
+    { id: "p99", label: "p99", yKey: "p99" }
+  ]}
+  theme={{ base: "midnight", palette: "cyber", surface: "dark" }}
+  showLegend
+  crosshair
+  animation={{ preset: "snappy", initial: false }}
+  ariaLabel="Request latency percentiles by minute"
+/>
+```
+
+### Accessible multi-series report
+
+```tsx
+<MultiLineChart
+  data={results}
+  xKey="week"
+  series={series}
+  theme={{ base: "minimal", palette: "okabe", surface: "light" }}
+  showLegend
+  crosshair
+  animation={{ preset: "calm", entrance: "fade", stagger: 0.02, staggerFrom: "start" }}
+  ariaLabel="Weekly outcomes by program"
+/>
+```
+
+## Exports relevant to visual selection
+
+`chartPalettes`, `paletteColors`, `paletteProfiles`, `recommendPalette`, `chartThemes`, `resolveChartTheme`, `useChartTheme`, `animationPresets`, and `animationPreset` are public exports. The public palette types are `ChartPaletteName`, `ChartPaletteProfile`, and `ChartPaletteIntent`.
