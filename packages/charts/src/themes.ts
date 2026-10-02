@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 export const chartPalettes = {
   // Hallmark / Cobalt inspired: Electric cobalt signal with slate, teal, and amber companions
@@ -24,12 +24,21 @@ export const chartPalettes = {
   // Clean emerald / mint
   emerald: ["#059669", "#0d9488", "#10b981", "#047857", "#0f766e", "#34d399"],
   // Vibrant berry & rose
-  bloom: ["#be185d", "#e11d48", "#9d174d", "#c026d3", "#fb7185", "#f43f5e"]
+  bloom: ["#be185d", "#e11d48", "#9d174d", "#c026d3", "#fb7185", "#f43f5e"],
+  // Editorial, scientific, earthy, Nordic, and plum additions
+  editorial: ["#0f172a", "#b45309", "#64748b", "#7c2d12", "#475569", "#92400e"],
+  okabe: ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00"],
+  terra: ["#9a3412", "#4d7c0f", "#a16207", "#166534", "#7c2d12", "#3f6212"],
+  nordic: ["#1e3a5f", "#4a6fa5", "#7899c2", "#2d4a6d", "#94a3b8", "#567db0"],
+  plum: ["#86198f", "#be185d", "#9d174d", "#a21caf", "#d946ef", "#e879f9"]
 } as const;
 
 export type ChartPaletteName = keyof typeof chartPalettes;
 
 export type ChartTheme = {
+  /** Surface the theme is tuned against; chart SVGs remain transparent. */
+  surface: "light" | "dark";
+  surfaceColor: string;
   colors: readonly string[];
   axisColor: string;
   gridColor: string;
@@ -42,6 +51,7 @@ export type ChartTheme = {
 };
 
 export type ChartThemeInput =
+  | "auto"
   | keyof typeof chartThemes
   | (Partial<ChartTheme> & {
       base?: keyof typeof chartThemes;
@@ -60,6 +70,8 @@ export const chartThemes = {
     tooltipStyle: tooltip("#ffffff", "#0f172a", "#e2e8f0")
   }),
   midnight: makeTheme("cyber", {
+    surface: "dark",
+    surfaceColor: "#0f172a",
     axisColor: "rgba(71, 85, 105, 0.45)",
     gridColor: "rgba(51, 65, 85, 0.35)",
     tickColor: "#94a3b8",
@@ -103,18 +115,59 @@ export const chartThemes = {
 
 export type ChartThemeName = keyof typeof chartThemes;
 
+const builtInThemePalettes: Record<ChartThemeName, ChartPaletteName> = {
+  aurora: "aurora",
+  midnight: "cyber",
+  candy: "candy",
+  ocean: "ocean",
+  sunset: "sunset",
+  minimal: "graphite"
+};
+
+/**
+ * Resolve a theme without reading the browser during render. SSR and the first
+ * client render use the light surface; an effect then follows live OS changes.
+ */
+export function useChartTheme(input?: ChartThemeInput, colorsOverride?: readonly string[]): ChartTheme {
+  const [prefersDark, setPrefersDark] = useState(false);
+
+  useEffect(() => {
+    if (input !== "auto" || typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => setPrefersDark(media.matches);
+    update();
+    if (media.addEventListener) media.addEventListener("change", update);
+    else media.addListener?.(update);
+    return () => {
+      if (media.removeEventListener) media.removeEventListener("change", update);
+      else media.removeListener?.(update);
+    };
+  }, [input]);
+
+  return useMemo(
+    () => resolveChartTheme(input === "auto" && prefersDark ? "midnight" : input, colorsOverride),
+    [input, colorsOverride, prefersDark]
+  );
+}
+
 export function resolveChartTheme(input?: ChartThemeInput, colorsOverride?: readonly string[]): ChartTheme {
-  const isString = typeof input === "string";
-  const namedBase = isString ? chartThemes[input] : (typeof input === "object" && input?.base ? chartThemes[input.base] : undefined);
+  const isAuto = input === "auto";
+  const isNamed = typeof input === "string" && !isAuto;
+  const namedBase = isNamed
+    ? chartThemes[input as ChartThemeName]
+    : (typeof input === "object" && input?.base ? chartThemes[input.base] : undefined);
   const base = namedBase ?? chartThemes.aurora;
   const overrides = typeof input === "object" && input ? input : {};
   const palette = "palette" in overrides ? overrides.palette : undefined;
-  // Precedence: explicit colorsOverride -> theme.colors -> theme.palette -> base.colors
+  const builtInPalette = typeof input === "object" && input?.base ? builtInThemePalettes[input.base] : undefined;
+  const effectiveSurface = overrides.surface ?? base.surface;
+  // Precedence: explicit colorsOverride -> theme.colors -> theme.palette -> base.colors.
+  // A built-in palette is also adapted when a caller requests the other surface.
   const colors = colorsOverride?.length
     ? colorsOverride
     : overrides.colors?.length
       ? overrides.colors
-      : paletteColors(palette) ?? base.colors;
+      : paletteColors(palette ?? builtInPalette, effectiveSurface) ?? base.colors;
 
   const { base: _base, palette: _palette, tooltipStyle: overrideTooltipStyle, ...restOverrides } = overrides;
 
@@ -126,16 +179,42 @@ export function resolveChartTheme(input?: ChartThemeInput, colorsOverride?: read
   };
 }
 
-export function paletteColors(palette?: ChartPaletteName | readonly string[]): readonly string[] | undefined {
+export function paletteColors(palette?: ChartPaletteName | readonly string[], surface: "light" | "dark" = "light"): readonly string[] | undefined {
   if (!palette) return undefined;
-  if (typeof palette === "string") {
-    return (chartPalettes as Record<string, readonly string[]>)[palette] ?? chartPalettes.aurora;
-  }
-  return palette;
+  const colors = typeof palette === "string"
+    ? (chartPalettes as Record<string, readonly string[]>)[palette] ?? chartPalettes.aurora
+    : palette;
+  return surface === "dark" ? colors.map(lightenForDarkSurface) : colors.map(darkenForLightSurface);
 }
 
-function makeTheme(palette: ChartPaletteName, overrides: Omit<ChartTheme, "colors" | "fontFamily" | "fontSize">): ChartTheme {
+function lightenForDarkSurface(color: string): string {
+  const match = color.match(/^#([0-9a-f]{6})$/i);
+  if (!match) return color;
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(match[1]!.slice(offset, offset + 2), 16));
+  const lifted = channels.map((channel) => Math.round(channel + (255 - channel) * 0.3));
+  return `#${lifted.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function darkenForLightSurface(color: string): string {
+  const match = color.match(/^#([0-9a-f]{6})$/i);
+  if (!match) return color;
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(match[1]!.slice(offset, offset + 2), 16));
+  const luminance = (candidate: readonly number[]) => {
+    const linear = candidate.map((channel) => {
+      const value = channel / 255;
+      return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+  };
+  if ((1.05) / (luminance(channels) + 0.05) >= 2) return color;
+  const lifted = channels.map((channel) => Math.round(channel * 0.7));
+  return `#${lifted.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function makeTheme(palette: ChartPaletteName, overrides: Omit<ChartTheme, "colors" | "fontFamily" | "fontSize" | "surface" | "surfaceColor"> & Partial<Pick<ChartTheme, "surface" | "surfaceColor">>): ChartTheme {
   return {
+    surface: "light",
+    surfaceColor: "#ffffff",
     colors: chartPalettes[palette],
     fontFamily,
     fontSize: 12,

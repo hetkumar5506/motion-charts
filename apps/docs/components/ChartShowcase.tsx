@@ -97,7 +97,7 @@ export function ChartShowcase() {
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold ${
               isDark ? "bg-slate-800 text-slate-300" : "bg-blue-50 text-blue-700"
             }`}>
-              @motion-charts/core v0.1.13
+              @motion-charts/core v0.2.0
             </span>
           </div>
           <p className={`text-xs mt-1 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
@@ -457,3 +457,59 @@ export function ChartShowcase() {
   );
 }
 
+
+const galleryData = [
+  { month: "Jan", value: 24, secondary: 16 },
+  { month: "Feb", value: 42, secondary: 28 },
+  { month: "Mar", value: 34, secondary: 38 },
+  { month: "Apr", value: 58, secondary: 46 }
+];
+
+/** A compact matrix covering every built-in theme, chart type, and surface. */
+export function ThemeGallery() {
+  return (
+    <section id="theme-gallery" className="space-y-8">
+      <div>
+        <span className="font-mono text-[10px] font-bold tracking-wider text-indigo-600 uppercase">Surface matrix</span>
+        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Every theme on light and dark surfaces</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+          The same five chart primitives are rendered for every built-in theme on both explicit surfaces. Use this matrix to choose tokens for a card, modal, or dashboard shell.
+        </p>
+      </div>
+      {(["light", "dark"] as const).map((surface) => (
+        <div key={surface} className={`rounded-2xl p-5 md:p-6 ${surface === "dark" ? "bg-slate-950" : "bg-slate-100"}`}>
+          <div className={`mb-4 flex items-center justify-between ${surface === "dark" ? "text-slate-100" : "text-slate-900"}`}>
+            <h3 className="text-base font-bold capitalize">{surface} surface</h3>
+            <code className={`text-xs ${surface === "dark" ? "text-slate-400" : "text-slate-500"}`}>surface: "{surface}"</code>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            {themes.map((theme) => {
+              const themeInput = { base: theme.id, surface } as const;
+              return (
+                <div key={`${surface}-${theme.id}`} className={`rounded-xl border p-4 ${surface === "dark" ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"}`}>
+                  <h4 className={`mb-2 text-xs font-bold ${surface === "dark" ? "text-slate-100" : "text-slate-800"}`}>{theme.label}</h4>
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                    <MiniChart title="Bar" theme={themeInput}><BarChart data={galleryData} xKey="month" yKey="value" width={190} height={130} theme={themeInput} animation={{ disabled: true }} /></MiniChart>
+                    <MiniChart title="Line" theme={themeInput}><LineChart data={galleryData} xKey="month" yKey="value" width={190} height={130} theme={themeInput} animation={{ disabled: true }} /></MiniChart>
+                    <MiniChart title="Multi" theme={themeInput}><MultiLineChart data={galleryData} xKey="month" series={[{ id: "value", label: "Value", yKey: "value" }, { id: "secondary", label: "Secondary", yKey: "secondary" }]} width={190} height={130} theme={themeInput} animation={{ disabled: true }} /></MiniChart>
+                    <MiniChart title="Donut" theme={themeInput}><DonutChart data={[{ label: "A", value: 42 }, { label: "B", value: 31 }, { label: "C", value: 27 }]} labelKey="label" valueKey="value" width={190} height={130} theme={themeInput} animation={{ disabled: true }} /></MiniChart>
+                    <MiniChart title="Sparkline" theme={themeInput}><Sparkline data={galleryData} xKey="month" yKey="value" width={190} height={130} theme={themeInput} animation={{ disabled: true }} /></MiniChart>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function MiniChart({ title, theme, children }: { title: string; theme: { surface: "light" | "dark" }; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className={`mb-1 text-[10px] font-semibold ${theme.surface === "dark" ? "text-slate-400" : "text-slate-500"}`}>{title}</div>
+      <div className={`overflow-hidden rounded-lg ${theme.surface === "dark" ? "bg-slate-950" : "bg-white"}`}>{children}</div>
+    </div>
+  );
+}

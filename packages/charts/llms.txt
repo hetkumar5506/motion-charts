@@ -51,7 +51,12 @@ Theme names:
 
 Palette names:
 
-`aurora`, `ocean`, `sunset`, `forest`, `candy`, `royal`, `fire`, `cyber`, `pastel`, `graphite`, `emerald`, `bloom`
+`aurora`, `ocean`, `sunset`, `forest`, `candy`, `royal`, `fire`, `cyber`, `pastel`, `graphite`, `emerald`, `bloom`, `editorial`, `okabe`, `terra`, `nordic`, `plum`
+
+Surfaces:
+
+- `theme="auto"` is SSR-safe and follows live `prefers-color-scheme` changes after mount.
+- `theme={{ base: "aurora", palette: "okabe", surface: "dark" }}` selects a curated dark-surface variant. Built-in themes expose `surface` and `surfaceColor`; chart SVGs are transparent so apply the surface to the surrounding card.
 
 Theme extension:
 
@@ -73,6 +78,10 @@ Charts feature accessible roving `tabIndex={0}` on the active point/slice and `-
 
 Prefer `ResponsiveChart` for real app pages. It supports CSS grid/flex layouts, opts into `min-width: 0`, ignores temporary zero-width observations, and clamps narrow-card margins so chart geometry stays inside the SVG viewport. For custom wrappers, add `style={{ minWidth: 0, width: "100%" }}`. Always pass `ariaLabel`. Use `valueFormatter` for money, percentages, compact numbers, and units. Date labels render as deterministic `YYYY-MM-DD` strings: UTC-midnight values such as `new Date("2026-03-01")` use UTC parts, while other Date values use local parts. Pass `dateFormatter` for an explicit timezone or instant policy. Use `colors={[...]}` when matching a brand system exactly.
 
+Datum actions:
+
+- `onDatumClick` works on every chart with interactive marks. `Enter` and `Space` activate a focused datum with the same `{ datum, index, label, value, color }` context as a pointer click; Space prevents page scrolling.
+
 Motion and rendering guidance:
 
 - Data updates animate by default; `animation={{ initial: false }}` skips only the entrance and `animation={{ disabled: true }}` opts out of all motion.
@@ -84,8 +93,17 @@ Motion and rendering guidance:
 Common selection:
 
 - Categorical comparison → `BarChart`
+- Horizontal category comparison → `BarChart layout="horizontal"`
+- Grouped or stacked categorical series → `BarChart series={[...]} seriesLayout="stacked" | "grouped"`
 - Single time series → `LineChart`
+- Draw-on line entrance → `LineChart animation={{ entrance: "draw" }}`
+- Snapped trend guide → `LineChart crosshair` or `MultiLineChart crosshair`
+- Target/threshold guide → `LineChart referenceLines={[{ y: 100, label: "Target" }]}`
 - Multiple related time series → `MultiLineChart`
 - Share of a whole → `DonutChart`
+- Sweep donut entrance → `DonutChart animation={{ entrance: "sweep" }}`
 - Compact KPI trend → `Sparkline`
+- Spring-driven KPI value → `<AnimatedNumber value={8420} format={(v) => ...} />`
 - Measured dashboard layout → `ResponsiveChart`
+
+Bar value labels count up automatically with `showValues`; use `showValues={{ countUp: false }}` to opt out.

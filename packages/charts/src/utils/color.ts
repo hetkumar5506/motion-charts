@@ -39,6 +39,15 @@ export function parseToRgb(color: string): [number, number, number] | null {
   return result;
 }
 
+export function getContrastRatio(foreground: string, background: string): number {
+  const foregroundRgb = parseToRgb(foreground);
+  const backgroundRgb = parseToRgb(background);
+  if (!foregroundRgb || !backgroundRgb) return 1;
+  const lighter = Math.max(getRelativeLuminance(foregroundRgb), getRelativeLuminance(backgroundRgb));
+  const darker = Math.min(getRelativeLuminance(foregroundRgb), getRelativeLuminance(backgroundRgb));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 export function getRelativeLuminance(rgb: [number, number, number]): number {
   const [rs, gs, bs] = rgb.map((val) => {
     const s = val / 255;

@@ -8,6 +8,14 @@ export type ChartDatum = Record<string, Primitive | Date>;
 export type Accessor<TDatum, TValue> = keyof TDatum | ((datum: TDatum, index: number) => TValue);
 export type DateFormatter = (date: Date) => string;
 
+export type ReferenceLine = {
+  x?: string | number;
+  y?: number;
+  label?: string;
+  color?: string;
+  dash?: string;
+};
+
 export type ChartMargin = {
   top: number;
   right: number;
@@ -35,6 +43,8 @@ export type MotionOptions = {
   initial?: boolean;
   /** Delay each item by index * stagger. */
   stagger?: number;
+  /** Entrance style for line-family charts. Existing charts keep the fade/morph default. */
+  entrance?: "fade" | "draw" | "sweep";
 };
 
 export type TooltipRenderContext<TDatum> = {
@@ -43,6 +53,10 @@ export type TooltipRenderContext<TDatum> = {
   label: string;
   value: number;
   color: string;
+  /** Present for multi-series marks, including stacked/grouped bar segments. */
+  seriesId?: string;
+  /** Present for multi-series marks, including stacked/grouped bar segments. */
+  seriesLabel?: string;
 };
 
 export type TooltipRenderer<TDatum> = false | ((context: TooltipRenderContext<TDatum>) => ReactNode);
@@ -69,6 +83,7 @@ export type CommonChartProps<TDatum> = {
   valueFormatter?: (value: number) => string;
   emptyState?: ReactNode;
   animation?: MotionOptions;
+  referenceLines?: readonly ReferenceLine[];
   tooltip?: TooltipRenderer<TDatum>;
 };
 

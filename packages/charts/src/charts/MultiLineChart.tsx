@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useSpring } from "framer-motion";
 import { AxisBottom, AxisLeft, GridRows } from "../components/Axis";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
@@ -11,7 +11,7 @@ import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
 import { chartTransition, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
-import { resolveChartTheme } from "../themes";
+import { useChartTheme } from "../themes";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
 export type LineSeries<TDatum extends object> = {
@@ -41,6 +41,8 @@ export type MultiLineChartProps<TDatum extends object> = Omit<CommonChartProps<T
   curve?: "linear" | "smooth";
   /** When true (default), bridges missing/null/NaN data points. When false, renders gaps in the lines/areas. */
   connectNulls?: boolean;
+  /** Show a spring-smoothed vertical guide snapped to the nearest hovered point. */
+  crosshair?: boolean;
   onDatumClick?: (context: MultiLineTooltipContext<TDatum>) => void;
 };
 
@@ -63,6 +65,7 @@ export function MultiLineChart<TDatum extends object>({
   valueFormatter = defaultValueFormatter,
   emptyState,
   animation,
+  referenceLines = [],
   tooltip,
   xAxis,
   yAxis,
@@ -72,12 +75,13 @@ export function MultiLineChart<TDatum extends object>({
   showArea = false,
   curve = "smooth",
   connectNulls = true,
+  crosshair = false,
   onDatumClick
 }: MultiLineChartProps<TDatum>) {
   const gradientBaseId = useId().replace(/:/g, "");
   const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
-  const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
+  const chartTheme = useChartTheme(theme, colors);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [activeGlobalIndex, setActiveGlobalIndex] = useState(0);
   const { isEntering, onAnimationComplete } = useChartEntrance(animation, reducedMotion);
@@ -113,13 +117,15 @@ export function MultiLineChart<TDatum extends object>({
   }, [chartTheme.colors, safeSeries]);
   // Exclude null/non-finite values from extent calculation
   const allValidValues = useMemo(
-    () =>
-      preparedSeries.flatMap((item) =>
+    () => [
+      ...preparedSeries.flatMap((item) =>
         safeData
           .map((datum, index) => rawNumberOf(datum, index, item.yKey))
           .filter((v): v is number => v !== null)
       ),
-    [preparedSeries, safeData]
+      ...referenceLines.flatMap((line) => typeof line.y === "number" && Number.isFinite(line.y) ? [line.y] : [])
+    ],
+    [preparedSeries, referenceLines, safeData]
   );
   const xScale = useMemo(
     () => createCategoryScale(labels, [bounds.left, bounds.left + bounds.innerWidth], 0),
@@ -137,6 +143,7 @@ export function MultiLineChart<TDatum extends object>({
     ? bounds.top + bounds.innerHeight
     : yScale.scale(0);
   const tooltipEnabled = tooltip !== false;
+  const drawEntrance = animation?.entrance === "draw";
 
   const renderedSeries = useMemo(
     () =>
@@ -215,12 +222,12 @@ export function MultiLineChart<TDatum extends object>({
   }
 
   function handlePointerMove(event: PointerEvent<SVGCircleElement>, row: (typeof renderedSeries)[number]["rows"][number]) {
-    if (!tooltipEnabled) return;
+    if (!tooltipEnabled && !crosshair) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
     if (!hoveredPoint || hoveredPoint.seriesId !== row.seriesId || hoveredPoint.index !== row.index) {
       setHoveredPoint({ seriesId: row.seriesId, index: row.index });
-      setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
+      if (tooltipEnabled) setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
     }
   }
 
@@ -235,6 +242,21 @@ export function MultiLineChart<TDatum extends object>({
   const totalPoints = renderablePoints.length;
 
   function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, pointIndex: number) {
+    const current = renderablePoints[pointIndex];
+    if ((event.key === "Enter" || event.key === " ") && onDatumClick && current) {
+      event.preventDefault();
+      onDatumClick({
+        datum: current.row.datum,
+        index: current.row.index,
+        label: current.row.label,
+        value: current.row.value,
+        color: current.row.color,
+        seriesId: current.row.seriesId,
+        seriesLabel: current.row.seriesLabel
+      });
+      return;
+    }
+
     if (totalPoints <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
       : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
@@ -261,6 +283,10 @@ export function MultiLineChart<TDatum extends object>({
     hoveredPoint !== null && labels[hoveredPoint.index] !== undefined
       ? xScale.center(labels[hoveredPoint.index]!, hoveredPoint.index)
       : null;
+  const crosshairX = useSpring(hoveredX ?? 0, { stiffness: 520, damping: 34, duration: reducedMotion ? 0 : undefined });
+  useEffect(() => {
+    crosshairX.set(hoveredX ?? 0);
+  }, [crosshairX, hoveredX]);
 
   return (
     <div className={className} style={{ width: "100%", minWidth: 0, ...style }}>
@@ -285,10 +311,10 @@ export function MultiLineChart<TDatum extends object>({
         {showGrid ? <GridRows scale={yScale} x1={bounds.left} x2={bounds.left + bounds.innerWidth} style={chartTheme} /> : null}
 
         {/* Vertical crosshair guide on active point */}
-        {hoveredX !== null ? (
-          <line
-            x1={hoveredX}
-            x2={hoveredX}
+        {crosshair && hoveredX !== null ? (
+          <motion.line
+            x1={crosshairX}
+            x2={crosshairX}
             y1={bounds.top}
             y2={bounds.top + bounds.innerHeight}
             stroke="rgba(148, 163, 184, 0.45)"
@@ -317,6 +343,34 @@ export function MultiLineChart<TDatum extends object>({
           />
         )}
 
+        {referenceLines.map((line, referenceIndex) => {
+          const color = line.color ?? chartTheme.textColor;
+          const yPosition = typeof line.y === "number" && Number.isFinite(line.y) ? yScale.scale(line.y) : null;
+          const xLabel = line.x === undefined ? null : String(line.x);
+          const xIndex = xLabel === null ? -1 : labels.indexOf(xLabel);
+          const xPosition = xIndex >= 0 ? xScale.center(xLabel!, xIndex) : null;
+          if (yPosition === null && xPosition === null) return null;
+          const vertical = xPosition !== null && yPosition === null;
+          return (
+            <g key={`reference-${referenceIndex}`} aria-label={line.label}>
+              <motion.line
+                x1={vertical ? xPosition : bounds.left}
+                x2={vertical ? xPosition : bounds.left + bounds.innerWidth}
+                y1={vertical ? bounds.top : (yPosition ?? bounds.top)}
+                y2={vertical ? bounds.top + bounds.innerHeight : (yPosition ?? bounds.top)}
+                stroke={color}
+                strokeWidth={1.5}
+                strokeDasharray={line.dash ?? "5 4"}
+                initial={false}
+                animate={isEntering ? { opacity: [0, 1], pathLength: [0, 1] } : { opacity: 1, pathLength: 1 }}
+                transition={chartTransition(animation, reducedMotion, renderedSeries.length + referenceIndex)}
+                pointerEvents="none"
+              />
+              {line.label ? <text x={vertical ? xPosition! + 4 : bounds.left + 4} y={vertical ? bounds.top + 14 : yPosition! - 6} fill={color} fontFamily={chartTheme.fontFamily} fontSize={11} fontWeight={600}>{line.label}</text> : null}
+            </g>
+          );
+        })}
+
         {renderedSeries.map((item, seriesIndex) => (
           <g key={item.id}>
             {(showArea || item.showArea) && item.fillPath ? (
@@ -327,7 +381,7 @@ export function MultiLineChart<TDatum extends object>({
                 animate={isEntering
                   ? { opacity: [0, 1], d: [item.initialFillPath, item.fillPath] }
                   : { opacity: 1, d: item.fillPath }}
-                transition={chartTransition(animation, reducedMotion, seriesIndex)}
+                transition={chartTransition(animation, reducedMotion, seriesIndex + (drawEntrance ? seriesIndex : 0))}
                 pointerEvents="none"
               />
             ) : null}
@@ -341,9 +395,9 @@ export function MultiLineChart<TDatum extends object>({
                 strokeLinejoin="round"
                 initial={false}
                 animate={isEntering
-                  ? { d: [item.initialPath, item.path], opacity: [0, 1] }
+                  ? { d: [item.initialPath, item.path], opacity: [0, 1], pathLength: drawEntrance ? [0, 1] : 1 }
                   : { d: item.path, opacity: 1 }}
-                transition={chartTransition(animation, reducedMotion, seriesIndex)}
+                transition={chartTransition(animation, reducedMotion, seriesIndex + (drawEntrance ? seriesIndex : 0))}
                 onAnimationComplete={isEntering && renderablePoints.length === 0 && seriesIndex === renderedSeries.length - 1 ? onAnimationComplete : undefined}
                 pointerEvents="none"
               />
@@ -390,7 +444,7 @@ export function MultiLineChart<TDatum extends object>({
                   ? { r: [0, isHovered ? 6 : (showPoints ? 4 : 7)], opacity: [0, 1] }
                   : { r: isHovered ? 6 : (showPoints ? 4 : 7), opacity: 1 }}
                 whileHover={{ r: 7.5, strokeWidth: 3 }}
-                transition={chartTransition(animation, reducedMotion, row.index + seriesIdx)}
+                transition={chartTransition(animation, reducedMotion, row.index + seriesIdx + (drawEntrance ? renderedSeries.length : 0))}
                 onAnimationComplete={isEntering && ptIndex === renderablePoints.length - 1 ? onAnimationComplete : undefined}
                 role="graphics-symbol"
                 aria-roledescription="data point"
@@ -399,11 +453,18 @@ export function MultiLineChart<TDatum extends object>({
                 tabIndex={ptIndex === activeGlobalIndex ? 0 : -1}
                 style={{
                   cursor: onDatumClick ? "pointer" : "default",
+                  touchAction: crosshair ? "none" : "auto",
                   filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
                   outline: "none"
                 }}
                 onPointerEnter={(event) => handlePointerMove(event, row)}
                 onPointerMove={(event) => handlePointerMove(event, row)}
+                onPointerDown={(event) => {
+                  if (event.pointerType === "touch") {
+                    event.currentTarget.setPointerCapture?.(event.pointerId);
+                    handlePointerMove(event, row);
+                  }
+                }}
                 onPointerLeave={hideTooltip}
                 onFocus={(event) => {
                   setActiveGlobalIndex(ptIndex);

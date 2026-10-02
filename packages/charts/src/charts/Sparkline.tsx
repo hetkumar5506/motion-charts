@@ -9,7 +9,7 @@ import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
 import { chartTransition, useChartEntrance } from "../utils/motion";
 import { createLinearScale, extent } from "../utils/scales";
-import { resolveChartTheme } from "../themes";
+import { useChartTheme } from "../themes";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
 export type SparklineProps<TDatum extends object> = CommonChartProps<TDatum> & {
@@ -55,7 +55,7 @@ export function Sparkline<TDatum extends object>({
   const gradientId = useId().replace(/:/g, "");
   const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
-  const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
+  const chartTheme = useChartTheme(theme, colors);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
@@ -115,6 +115,7 @@ export function Sparkline<TDatum extends object>({
   const fillPath = useMemo(() => areaPath(points, baseline, curve, true), [baseline, curve, points]);
   const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve, true), [baseline, baselinePoints, curve]);
   const tooltipEnabled = tooltip !== false;
+  const drawEntrance = animation?.entrance === "draw";
 
   // Renderable items are only rows with non-null values
   const renderableItems = useMemo(
@@ -169,6 +170,19 @@ export function Sparkline<TDatum extends object>({
   }
 
   function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, itemIndex: number) {
+    const current = renderableItems[itemIndex];
+    if ((event.key === "Enter" || event.key === " ") && onDatumClick && current) {
+      event.preventDefault();
+      onDatumClick({
+        datum: current.row.datum,
+        index: current.row.index,
+        label: current.row.label,
+        value: current.row.value,
+        color: current.row.color
+      });
+      return;
+    }
+
     const count = renderableItems.length;
     if (count <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
@@ -214,7 +228,9 @@ export function Sparkline<TDatum extends object>({
           d={fillPath}
           fill={`url(#${gradientId})`}
           initial={false}
-          animate={isEntering ? { opacity: [0, 1], d: [initialFillPath, fillPath] } : { opacity: 1, d: fillPath }}
+          animate={isEntering
+            ? { opacity: [0, 1], d: [initialFillPath, fillPath] }
+            : { opacity: 1, d: fillPath }}
           transition={chartTransition(animation, reducedMotion)}
           pointerEvents="none"
         />
@@ -228,7 +244,9 @@ export function Sparkline<TDatum extends object>({
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={false}
-          animate={isEntering ? { d: [initialPath, path], opacity: [0, 1] } : { d: path, opacity: 1 }}
+          animate={isEntering
+            ? { d: [initialPath, path], opacity: [0, 1], pathLength: drawEntrance ? [0, 1] : 1 }
+            : { d: path, opacity: 1 }}
           transition={chartTransition(animation, reducedMotion)}
           onAnimationComplete={isEntering && renderableItems.length === 0 ? onAnimationComplete : undefined}
           pointerEvents="none"
@@ -314,7 +332,7 @@ export function Sparkline<TDatum extends object>({
               initial={false}
               animate={isEntering ? { scale: [0, 1], opacity: [0, 1] } : { scale: 1, opacity: 1 }}
               whileHover={{ scale: 1.35 }}
-              transition={chartTransition(animation, reducedMotion, row.index)}
+              transition={chartTransition(animation, reducedMotion, row.index + (drawEntrance ? renderableItems.length : 0))}
               onAnimationComplete={isEntering && itemIndex === renderableItems.length - 1 ? onAnimationComplete : undefined}
               role="graphics-symbol"
               aria-roledescription="data point"

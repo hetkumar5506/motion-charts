@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.2.0
+
+### Themes and palettes
+- **Surface-aware themes**: built-in themes now expose explicit `surface` and `surfaceColor` metadata, all curated palettes support light/dark variants, five palettes were added (`editorial`, `okabe`, `terra`, `nordic`, `plum`), and `theme="auto"` follows live `prefers-color-scheme` changes without SSR hydration drift.
+
+### F9 — Reference lines
+- **Reference lines**: BarChart, LineChart, and MultiLineChart accept `referenceLines` with x/y positions, labels, colors, dash styles, scale-domain inclusion, and reduced-motion-safe entrances.
+
+### F8 — Line-chart crosshair
+- **Snapped crosshair**: LineChart and MultiLineChart accept `crosshair` to show a spring-smoothed vertical guide at the active point without changing the default per-point interaction when disabled.
+
+### F7 — Donut sweep and update interpolation
+- **Sweep entrance and arc updates**: `DonutChart animation={{ entrance: "sweep" }}` and subsequent data changes now interpolate slice angles through motion values rather than raw SVG arc strings. Center labels, zero-slice filtering, and keyboard navigation remain intact.
+
+### F2/F6 — Count-up values
+- **Bar count-up labels**: `showValues` now rolls formatted values with the bar spring. Use `showValues={{ countUp: false }}` to opt out while keeping the final label.
+- **AnimatedNumber**: Exported a standalone `<AnimatedNumber />` KPI primitive with preset/custom transitions, finite rounded formatter inputs, SSR final values, and reduced-motion support.
+
+### F1 — Line draw-on entrance
+- **Draw entrance**: LineChart, MultiLineChart, and Sparkline accept `animation={{ entrance: "draw" }}` with `pathLength` keyframes, delayed points, series staggering, SSR final geometry, and reduced-motion support.
+
+### F3/F4 — Bar layouts and series
+- **Horizontal bars**: `BarChart layout="horizontal"` renders category labels on the y-axis, value geometry on the x-axis, zero-line support, negative values, and keyboard navigation.
+- **Grouped and stacked bars**: `BarChart series={[...]}` supports grouped sub-bars and diverging positive/negative stacks with an automatic legend. Existing single-`yKey` usage remains unchanged.
+
+### Accessibility
+- **Keyboard datum activation (F5)**: `onDatumClick` now fires from `Enter` and `Space` on focused marks across BarChart, DonutChart, LineChart, MultiLineChart, and Sparkline. Space prevents page scrolling and uses the same context as pointer clicks.
+
 ## 0.1.14
 
 ### Fixed & Enhanced
