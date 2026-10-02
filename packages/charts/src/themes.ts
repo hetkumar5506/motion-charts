@@ -206,8 +206,8 @@ function darkenForLightSurface(color: string): string {
     });
     return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
   };
-  if ((1.05) / (luminance(channels) + 0.05) >= 2) return color;
-  const lifted = channels.map((channel) => Math.round(channel * 0.7));
+  if ((1.05) / (luminance(channels) + 0.05) >= 2.5) return color;
+  const lifted = channels.map((channel) => Math.round(channel * 0.78));
   return `#${lifted.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
 }
 

@@ -570,6 +570,10 @@ Reference lines draw after the main entrance, render statically in SSR, and beco
 - `connectNulls` (boolean, default `true`): In `LineChart` and `MultiLineChart`, controls whether `null`/`NaN` data points are bridged or rendered with distinct visual gaps in line and area paths.
 - `zeroLine` (boolean, default `false`): In `BarChart`, set `xAxis={{ zeroLine: true }}` or `yAxis={{ zeroLine: true }}` to anchor the horizontal axis baseline line at `y=0` when displaying negative data.
 - `colorIndex` (number, default `0`): Available on both `LineChart` and `Sparkline` to select an exact palette color index without custom array overrides.
+- `fallbackWidth` (number, default `720`): Sizing prop on `ResponsiveChart` to establish predictable initial dimensions during SSR or before initial ResizeObserver measurement.
+- `className` & `style`: Supported across all chart containers and `ResponsiveChart` for seamless CSS layout, flex, and grid integration.
+- `children`: `ResponsiveChart` accepts a function `({ width, height }) => ReactNode` to inject measured dimensions into chart components; `ChartSurface` accepts standard child nodes.
+- `seriesId` & `seriesLabel`: Provided in the `TooltipRenderContext` for multi-series marks (e.g. stacked/grouped bars and multi-line series) to distinguish series in custom tooltip renderers.
 - `barPadding` is clamped to `[0, 0.8]` (default `0.22`).
 - `innerRadiusRatio` in `DonutChart` is clamped to `[0, 0.9]` (default `0.62`).
 - `Date` objects passed to `xKey` or `labelKey` format deterministically as `YYYY-MM-DD`: UTC-midnight values use UTC parts (stable for ISO date-only strings), while other values use local parts. Use `dateFormatter` for an explicit timezone or instant policy; invalid dates are handled safely.
@@ -629,10 +633,10 @@ The package includes `llms.txt` with chart-selection guidance for agents. Short 
 - Product teams can match charts to brand colors quickly.
 - Accessibility is built in with roving keyboard navigation, SVG graphics semantics, titles, descriptions, and reduced-motion support.
 
-## Non-goals for v0.1
+## Roadmap
 
-- D3-scale parity.
-- Every possible chart type.
-- A huge plugin architecture.
-
-Those can be added after real usage proves the need.
+- Area chart component with stacked area modes and curved interpolation.
+- Scatter and bubble plots with continuous spatial scales and collision-aware labels.
+- Interactive brush and zoom controls for large timeline datasets.
+- Radial bar and radar charts for multivariate comparative scoring.
+- Export utilities for SVG download and canvas rasterization.

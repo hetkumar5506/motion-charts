@@ -415,7 +415,9 @@ function AnimatedDonutSlice({
       strokeWidth={strokeWidth}
       strokeLinejoin="round"
       initial={false}
-      animate={{ opacity: 1, scale: transformScale }}
+      animate={isEntering && !sweep
+        ? { opacity: [0, 1], scale: [0.86, transformScale] }
+        : { opacity: 1, scale: transformScale }}
       whileHover={{ scale: hoverScale, opacity: 0.95 }}
       transition={transition}
       onAnimationComplete={onAnimationComplete}

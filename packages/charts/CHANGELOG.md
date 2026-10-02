@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed & Enhanced
+- **DonutChart Default Entrance Restored (R-3)**: Restored the default scale (`[0.86, 1]`) and opacity (`[0, 1]`) entrance animation on `DonutChart` for default, `fade`, and preset animation modes while keeping the spring-interpolated `sweep` entrance and live arc updates intact.
+- **Surface Contrast Gate Alignment (N-5)**: Calibrated `darkenForLightSurface` luminance threshold to ≥2.5:1, ensuring all palette colors against light surfaces meet accessibility contrast gates while retaining scientific hue distinctness.
+- **Documentation & Roadmap (N-6)**: Added Roadmap section to README, documented previously unspecified props (`fallbackWidth`, `className`, `style`, `children`, and tooltip `seriesId`/`seriesLabel`), and updated developer guides.
+
 ## 0.2.0
 
 ### Themes and palettes

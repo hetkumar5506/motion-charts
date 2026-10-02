@@ -26,4 +26,17 @@ describe("Donut angle motion", () => {
     expect(second).toContain('d="M');
     expect(second).not.toMatch(/NaN|Infinity/);
   });
+
+  it("renders non-sweep default entrance slices cleanly", () => {
+    const html = renderToString(
+      <DonutChart
+        data={[{ label: "Web", value: 40 }, { label: "App", value: 60 }]}
+        labelKey="label"
+        valueKey="value"
+      />
+    );
+    expect(html).toContain('role="graphics-symbol"');
+    expect(html).toContain('aria-roledescription="slice"');
+    expect(html).not.toMatch(/NaN|undefined/);
+  });
 });
