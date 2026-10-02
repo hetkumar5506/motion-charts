@@ -85,6 +85,21 @@ export function RevenueChart() {
 | `DonutChart` | acquisition channels, payment methods, category share |
 | `Sparkline` | KPI cards, tiny POS widgets, compact admin metrics |
 | `ResponsiveChart` | measuring parent width with `ResizeObserver` |
+| `AnimatedNumber` | spring-driven KPI values and count-up metrics |
+
+## AnimatedNumber
+
+Use `AnimatedNumber` for KPI cards outside a chart. It renders the final formatted value during SSR, springs on the client, and respects reduced motion.
+
+```tsx
+<AnimatedNumber
+  value={8420}
+  format={(value) => `$${value.toLocaleString("en-US")}`}
+  transition="snappy"
+/>
+```
+
+`transition` accepts an animation preset name or a Framer Motion transition object. Formatters receive finite values rounded to two decimal places during the spring.
 
 ## Data, accessors, and dates
 
@@ -165,6 +180,7 @@ All chart components accept these common options:
 | `dateFormatter` | Controls Date-valued category labels; see [Date labels](#date-labels). |
 | `animation` | Entrance/update motion, preset, stagger, transition overrides, and opt-out. |
 | `tooltip` | Custom renderer or `false` to disable tooltips. |
+| `onDatumClick` | Called with the datum context from pointer click or keyboard `Enter`/`Space` activation. |
 | `emptyState` | Content shown when `data` is empty. |
 
 ## BarChart
@@ -189,7 +205,64 @@ Useful props:
 - `barRadius`, `barPadding` — visual tuning.
 - `showValues`, `showGrid`, `xAxis`, `yAxis`.
 
+`showValues` can be a boolean or `{ countUp?: boolean }`. Count-up labels are enabled by default and use the same spring timing as the bars; use `showValues={{ countUp: false }}` to keep labels static.
+
+### Horizontal bars
+
+Set `layout="horizontal"` when categories should run down the y-axis and values should run left-to-right. Positive bars grow from the zero baseline toward the right; negative bars grow toward the left.
+
+```tsx
+<BarChart
+  data={data}
+  xKey="month"
+  yKey="revenue"
+  layout="horizontal"
+  showValues
+  yAxis={{ zeroLine: true }}
+/>
+```
+
+### Stacked and grouped series
+
+Use `series` for multiple numeric fields. `seriesLayout="grouped"` is the default; use `"stacked"` for cumulative columns. A supplied `series` takes precedence over the single-series `yKey` shorthand.
+
+```tsx
+<BarChart
+  data={monthly}
+  xKey="month"
+  series={[
+    { id: "web", yKey: "web", label: "Web" },
+    { id: "app", yKey: "app", label: "App" }
+  ]}
+  seriesLayout="stacked"
+  showValues
+/>
+```
+
+Each segment is individually labelled and focusable. When `series` is present, a legend is shown automatically; pass `legend={false}` to hide it. Missing numeric segments follow the library's normal non-finite-value handling and render as zero rather than invalid SVG geometry.
+
 ## LineChart
+
+### Draw-on entrance
+
+Line-family charts keep the existing fade/morph entrance by default. Opt into a left-to-right stroke draw with `animation={{ entrance: "draw" }}`. The final SVG path is still rendered during SSR, and reduced-motion users receive the final pose immediately.
+
+```tsx
+<LineChart
+  data={traffic}
+  xKey="day"
+  yKey="visitors"
+  animation={{ entrance: "draw", stagger: 0.08 }}
+/>
+```
+
+`MultiLineChart` staggers series paths, and `Sparkline` uses the same option for compact KPI cards. Data-update morphing remains enabled after the entrance.
+
+Set `crosshair` when the interaction should snap a spring-smoothed vertical guide to the nearest point:
+
+```tsx
+<LineChart data={traffic} xKey="day" yKey="visitors" crosshair />
+```
 
 ```tsx
 <LineChart
@@ -229,6 +302,18 @@ Useful props:
 Use this for ecommerce dashboards, SaaS admin panels, and POS analytics where multiple metrics need to move together. Each `series` entry requires a stable `id` and `yKey`; `label`, `color`, `showArea`, and `strokeWidth` are optional per-series overrides. `showLegend` is enabled when you want those labels exposed in the chart.
 
 ## DonutChart
+
+Set `animation={{ entrance: "sweep" }}` to reveal slices clockwise with angle interpolation. Donut data updates use the same safe angle interpolation instead of trying to tween SVG arc command strings.
+
+```tsx
+<DonutChart
+  data={channels}
+  labelKey="channel"
+  valueKey="users"
+  animation={{ entrance: "sweep" }}
+  centerLabel="128k"
+/>
+```
 
 ```tsx
 <DonutChart
@@ -308,8 +393,18 @@ Built-in palettes:
 
 ```ts
 "aurora" | "ocean" | "sunset" | "forest" | "candy" | "royal" |
-"fire" | "cyber" | "pastel" | "graphite" | "emerald" | "bloom"
+"fire" | "cyber" | "pastel" | "graphite" | "emerald" | "bloom" |
+"editorial" | "okabe" | "terra" | "nordic" | "plum"
 ```
+
+Choose an explicit light/dark surface variant. `auto` is SSR-safe: it renders the light variant on the server and first client render, then follows live `prefers-color-scheme` changes without hydration drift.
+
+```tsx
+<LineChart data={data} xKey="month" yKey="revenue" theme="auto" />
+<LineChart data={data} xKey="month" yKey="revenue" theme={{ base: "aurora", surface: "dark" }} />
+```
+
+Every built-in palette can be selected on either surface with `theme={{ base: "aurora", palette: "okabe", surface: "dark" }}`. The chart SVG stays transparent; apply `theme.surfaceColor` or your own card background to the containing surface.
 
 Extend a named theme using `base`:
 
@@ -422,6 +517,23 @@ All chart components support a `tooltip` render prop or `tooltip={false}`. Toolt
 />
 ```
 
+## Datum actions
+
+`onDatumClick` is supported by every chart with interactive data marks. It receives the same context for pointer and keyboard activation:
+
+```tsx
+<BarChart
+  data={data}
+  xKey="month"
+  yKey="revenue"
+  onDatumClick={({ datum, index, label, value, color }) => {
+    console.log({ datum, index, label, value, color });
+  }}
+/>
+```
+
+When a datum has focus, `Enter` and `Space` invoke the callback. `Space` prevents page scrolling. Supplying the callback also exposes a pointer cursor on the datum.
+
 ## Accessibility
 
 The library provides a useful baseline for WCAG-oriented interfaces, while the surrounding page remains responsible for meaningful names, sufficient surface contrast, and keyboard-flow decisions.
@@ -435,6 +547,23 @@ The library provides a useful baseline for WCAG-oriented interfaces, while the s
 - **SSR and hydration**: Server-rendered markup contains final geometry rather than an empty animated state, and the post-hydration entrance does not change the semantic structure.
 
 For best results, pass a specific `ariaLabel` such as `Monthly revenue`, keep chart text on a suitable surface, and provide a visible heading when the chart is part of a larger report.
+
+## Reference lines
+
+Add target or threshold guides with `referenceLines`. A `y` line expands the value domain so it remains visible; a category `x` line snaps to an existing category label.
+
+```tsx
+<LineChart
+  data={data}
+  xKey="month"
+  yKey="revenue"
+  referenceLines={[
+    { y: 100, label: "Target", color: "#b45309", dash: "6 4" }
+  ]}
+/>
+```
+
+Reference lines draw after the main entrance, render statically in SSR, and become immediate when reduced motion is enabled.
 
 ## Tuning & defaults
 

@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useSpring } from "framer-motion";
 import { AxisBottom, AxisLeft, GridRows } from "../components/Axis";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
@@ -7,7 +7,7 @@ import type { Accessor, AxisOptions, CommonChartProps, TooltipRenderContext } fr
 import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
-import { resolveChartTheme } from "../themes";
+import { useChartTheme } from "../themes";
 import { areaPath, linePath, type Point } from "../utils/geometry";
 import { chartTransition, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
@@ -26,6 +26,8 @@ export type LineChartProps<TDatum extends object> = CommonChartProps<TDatum> & {
   colorIndex?: number;
   /** When true (default), bridges missing/null/NaN data points. When false, renders gaps in the line/area. */
   connectNulls?: boolean;
+  /** Show a spring-smoothed vertical guide snapped to the nearest hovered point. */
+  crosshair?: boolean;
   onDatumClick?: (context: TooltipRenderContext<TDatum>) => void;
 };
 
@@ -48,6 +50,7 @@ export function LineChart<TDatum extends object>({
   valueFormatter = defaultValueFormatter,
   emptyState,
   animation,
+  referenceLines = [],
   tooltip,
   xAxis,
   yAxis,
@@ -58,12 +61,13 @@ export function LineChart<TDatum extends object>({
   strokeWidth = 3,
   colorIndex = 0,
   connectNulls = true,
+  crosshair = false,
   onDatumClick
 }: LineChartProps<TDatum>) {
   const gradientId = useId().replace(/:/g, "");
   const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
-  const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
+  const chartTheme = useChartTheme(theme, colors);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const { isEntering, onAnimationComplete } = useChartEntrance(animation, reducedMotion);
@@ -95,7 +99,10 @@ export function LineChart<TDatum extends object>({
   );
 
   // Exclude null/missing values from extent calculation so missing points do not pollute y-scale
-  const validValues = useMemo(() => rows.filter((r) => !r.isNull).map((r) => r.value), [rows]);
+  const validValues = useMemo(() => [
+    ...rows.filter((r) => !r.isNull).map((r) => r.value),
+    ...referenceLines.flatMap((line) => typeof line.y === "number" && Number.isFinite(line.y) ? [line.y] : [])
+  ], [referenceLines, rows]);
   const includeZero = yAxis?.includeZero ?? false;
   const yScale = useMemo(
     () => createLinearScale(extent(validValues, includeZero), [bounds.top + bounds.innerHeight, bounds.top], yAxis?.tickCount ?? 5),
@@ -143,6 +150,7 @@ export function LineChart<TDatum extends object>({
   const fillPath = useMemo(() => areaPath(points, baseline, curve, connectNulls), [baseline, connectNulls, curve, points]);
   const initialFillPath = useMemo(() => areaPath(baselinePoints, baseline, curve, connectNulls), [baseline, baselinePoints, connectNulls, curve]);
   const tooltipEnabled = tooltip !== false;
+  const drawEntrance = animation?.entrance === "draw";
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -164,12 +172,12 @@ export function LineChart<TDatum extends object>({
   }
 
   function handlePointerMove(event: PointerEvent<SVGCircleElement>, row: (typeof rows)[number]) {
-    if (!tooltipEnabled) return;
+    if (!tooltipEnabled && !crosshair) return;
     const clientX = Math.round(event.clientX);
     const clientY = Math.round(event.clientY);
     if (hoveredIndex !== row.index) {
       setHoveredIndex(row.index);
-      setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
+      if (tooltipEnabled) setTooltipState({ x: clientX, y: clientY, content: tooltipContent(row), id: tooltipId });
     }
   }
 
@@ -181,6 +189,19 @@ export function LineChart<TDatum extends object>({
 
   // Roving keyboard navigation over renderable items only
   function handleKeyDown(event: KeyboardEvent<SVGCircleElement>, itemIndex: number) {
+    const current = renderableItems[itemIndex];
+    if ((event.key === "Enter" || event.key === " ") && onDatumClick && current) {
+      event.preventDefault();
+      onDatumClick({
+        datum: current.row.datum,
+        index: current.row.index,
+        label: current.row.label,
+        value: current.row.value,
+        color: current.row.color
+      });
+      return;
+    }
+
     const count = renderableItems.length;
     if (count <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
@@ -206,6 +227,10 @@ export function LineChart<TDatum extends object>({
     hoveredIndex !== null && labels[hoveredIndex] !== undefined
       ? xScale.center(labels[hoveredIndex]!, hoveredIndex)
       : null;
+  const crosshairX = useSpring(hoveredX ?? 0, { stiffness: 520, damping: 34, duration: reducedMotion ? 0 : undefined });
+  useEffect(() => {
+    crosshairX.set(hoveredX ?? 0);
+  }, [crosshairX, hoveredX]);
 
   return (
     <ChartSurface
@@ -229,10 +254,10 @@ export function LineChart<TDatum extends object>({
       {showGrid ? <GridRows scale={yScale} x1={bounds.left} x2={bounds.left + bounds.innerWidth} style={chartTheme} /> : null}
 
       {/* Vertical crosshair guide on active point */}
-      {hoveredX !== null ? (
-        <line
-          x1={hoveredX}
-          x2={hoveredX}
+      {crosshair && hoveredX !== null ? (
+        <motion.line
+          x1={crosshairX}
+          x2={crosshairX}
           y1={bounds.top}
           y2={bounds.top + bounds.innerHeight}
           stroke="rgba(148, 163, 184, 0.45)"
@@ -261,12 +286,42 @@ export function LineChart<TDatum extends object>({
         />
       )}
 
+      {referenceLines.map((line, referenceIndex) => {
+        const color = line.color ?? chartTheme.textColor;
+        const yPosition = typeof line.y === "number" && Number.isFinite(line.y) ? yScale.scale(line.y) : null;
+        const xLabel = line.x === undefined ? null : String(line.x);
+        const xIndex = xLabel === null ? -1 : labels.indexOf(xLabel);
+        const xPosition = xIndex >= 0 ? xScale.center(xLabel!, xIndex) : null;
+        if (yPosition === null && xPosition === null) return null;
+        const vertical = xPosition !== null && yPosition === null;
+        return (
+          <g key={`reference-${referenceIndex}`} aria-label={line.label}>
+            <motion.line
+              x1={vertical ? xPosition : bounds.left}
+              x2={vertical ? xPosition : bounds.left + bounds.innerWidth}
+              y1={vertical ? bounds.top : (yPosition ?? bounds.top)}
+              y2={vertical ? bounds.top + bounds.innerHeight : (yPosition ?? bounds.top)}
+              stroke={color}
+              strokeWidth={1.5}
+              strokeDasharray={line.dash ?? "5 4"}
+              initial={false}
+              animate={isEntering ? { opacity: [0, 1], pathLength: [0, 1] } : { opacity: 1, pathLength: 1 }}
+              transition={chartTransition(animation, reducedMotion, renderableItems.length + referenceIndex)}
+              pointerEvents="none"
+            />
+            {line.label ? <text x={vertical ? xPosition! + 4 : bounds.left + 4} y={vertical ? bounds.top + 14 : yPosition! - 6} fill={color} fontFamily={chartTheme.fontFamily} fontSize={11} fontWeight={600}>{line.label}</text> : null}
+          </g>
+        );
+      })}
+
       {showArea && fillPath ? (
         <motion.path
           d={fillPath}
           fill={`url(#${gradientId})`}
           initial={false}
-          animate={isEntering ? { opacity: [0, 1], d: [initialFillPath, fillPath] } : { opacity: 1, d: fillPath }}
+          animate={isEntering
+            ? { opacity: [0, 1], d: [initialFillPath, fillPath] }
+            : { opacity: 1, d: fillPath }}
           transition={chartTransition(animation, reducedMotion)}
           pointerEvents="none"
         />
@@ -280,7 +335,9 @@ export function LineChart<TDatum extends object>({
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={false}
-          animate={isEntering ? { d: [initialPath, path], opacity: [0, 1] } : { d: path, opacity: 1 }}
+          animate={isEntering
+            ? { d: [initialPath, path], opacity: [0, 1], pathLength: drawEntrance ? [0, 1] : 1 }
+            : { d: path, opacity: 1 }}
           transition={chartTransition(animation, reducedMotion)}
           onAnimationComplete={isEntering && renderableItems.length === 0 ? onAnimationComplete : undefined}
           pointerEvents="none"
@@ -317,21 +374,28 @@ export function LineChart<TDatum extends object>({
                 ? { r: [0, isHovered ? 6.5 : (showPoints ? 4.5 : 7.5)], opacity: [0, 1] }
                 : { r: isHovered ? 6.5 : (showPoints ? 4.5 : 7.5), opacity: 1 }}
               whileHover={{ r: 7.5, strokeWidth: 3 }}
-              transition={chartTransition(animation, reducedMotion, row.index)}
+              transition={chartTransition(animation, reducedMotion, row.index + (drawEntrance ? renderableItems.length : 0))}
               onAnimationComplete={isEntering && itemIndex === renderableItems.length - 1 ? onAnimationComplete : undefined}
               role="graphics-symbol"
               aria-roledescription="data point"
               aria-label={aria}
               aria-describedby={tooltipState && (isHovered || isFocused) ? tooltipId : undefined}
               tabIndex={itemIndex === activeItemIndex ? 0 : -1}
+              onPointerEnter={(event) => handlePointerMove(event, row)}
+              onPointerMove={(event) => handlePointerMove(event, row)}
+              onPointerDown={(event) => {
+                if (event.pointerType === "touch") {
+                  event.currentTarget.setPointerCapture?.(event.pointerId);
+                  handlePointerMove(event, row);
+                }
+              }}
+              onPointerLeave={hideTooltip}
               style={{
                 cursor: onDatumClick ? "pointer" : "default",
+                touchAction: crosshair ? "none" : "auto",
                 filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.12))",
                 outline: "none"
               }}
-              onPointerEnter={(event) => handlePointerMove(event, row)}
-              onPointerMove={(event) => handlePointerMove(event, row)}
-              onPointerLeave={hideTooltip}
               onFocus={(event) => {
                 setActiveItemIndex(itemIndex);
                 setIsKeyboardFocused(true);

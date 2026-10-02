@@ -1,15 +1,65 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
+
+### Themes and palettes
+- **Surface-aware themes**: built-in themes now expose explicit `surface` and `surfaceColor` metadata, all curated palettes support light/dark variants, five palettes were added (`editorial`, `okabe`, `terra`, `nordic`, `plum`), and `theme="auto"` follows live `prefers-color-scheme` changes without SSR hydration drift.
+
+### F9 — Reference lines
+- **Reference lines**: BarChart, LineChart, and MultiLineChart accept `referenceLines` with x/y positions, labels, colors, dash styles, scale-domain inclusion, and reduced-motion-safe entrances.
+
+### F8 — Line-chart crosshair
+- **Snapped crosshair**: LineChart and MultiLineChart accept `crosshair` to show a spring-smoothed vertical guide at the active point without changing the default per-point interaction when disabled.
+
+### F7 — Donut sweep and update interpolation
+- **Sweep entrance and arc updates**: `DonutChart animation={{ entrance: "sweep" }}` and subsequent data changes now interpolate slice angles through motion values rather than raw SVG arc strings. Center labels, zero-slice filtering, and keyboard navigation remain intact.
+
+### F2/F6 — Count-up values
+- **Bar count-up labels**: `showValues` now rolls formatted values with the bar spring. Use `showValues={{ countUp: false }}` to opt out while keeping the final label.
+- **AnimatedNumber**: Exported a standalone `<AnimatedNumber />` KPI primitive with preset/custom transitions, finite rounded formatter inputs, SSR final values, and reduced-motion support.
+
+### F1 — Line draw-on entrance
+- **Draw entrance**: LineChart, MultiLineChart, and Sparkline accept `animation={{ entrance: "draw" }}` with `pathLength` keyframes, delayed points, series staggering, SSR final geometry, and reduced-motion support.
+
+### F3/F4 — Bar layouts and series
+- **Horizontal bars**: `BarChart layout="horizontal"` renders category labels on the y-axis, value geometry on the x-axis, zero-line support, negative values, and keyboard navigation.
+- **Grouped and stacked bars**: `BarChart series={[...]}` supports grouped sub-bars and diverging positive/negative stacks with an automatic legend. Existing single-`yKey` usage remains unchanged.
+
+### Accessibility
+- **Keyboard datum activation (F5)**: `onDatumClick` now fires from `Enter` and `Space` on focused marks across BarChart, DonutChart, LineChart, MultiLineChart, and Sparkline. Space prevents page scrolling and uses the same context as pointer clicks.
+
+## 0.1.14
 
 ### Fixed & Enhanced
-- **Bar data-update springs**: BarChart now animates `attrY` and `height` on live data changes instead of snapping to new values, while keeping entrance transforms separate from SVG geometry.
-- **Baseline transform origins**: BarChart entrance scales use Framer Motion's SVG `originX`/`originY` controls, so positive bars grow from the baseline and negative bars grow from zero in the correct direction.
-- **Responsive overflow guards**: `ResponsiveChart` and all chart surfaces now opt into `min-width: 0`, sanitize invalid dimensions, clamp margins for narrow cards, and keep donut geometry inside its viewBox.
-- **Invalid SVG attribute protection**: Direct chart usage with `NaN`, `Infinity`, zero, negative, or invalid sizing/styling values no longer produces invalid SVG attributes.
-- **Timezone-stable date labels**: Date-only ISO values such as `new Date("2026-03-01")` now use UTC calendar parts, while local constructors and local timestamps use local parts. This prevents off-by-one labels in both western and eastern timezones. The `dateFormatter` prop remains available for an explicit timezone or instant policy.
-- **Focus ring containment**: BarChart SVG focus rings are clamped to the chart viewport at the edges.
-- **Documentation**: Added responsive grid/flex guidance and narrow-card examples.
+- **Timezone-Stable Date Labels**: Date-only ISO values such as `new Date("2026-03-01")` now reliably use UTC calendar parts, while local constructors and timestamps use local parts. This eliminates off-by-one date shifts across both eastern and western timezones while preserving the `dateFormatter` prop for custom policies.
+- **Enhanced Documentation**: Expanded documentation, README, and llms.txt with responsive grid/flex layout guidance and date formatting best practices.
+
+## 0.1.13
+
+### Fixed & Enhanced
+- **Bar Entrance Animation Restoration (R-2)**: Preserved `attrY` and `height` (and `attrY` on value labels) across both `isEntering` and resting `animate` targets in `BarChart`. This prevents Framer Motion from treating omitted geometry keys as instantaneous completion signals, allowing bar entrance animations (`scaleY: [0, 1]`) to run their full duration alongside live data spring updates.
+
+## 0.1.12
+
+### Fixed & Enhanced
+- **Bar Data-Update Springs**: `BarChart` now animates `attrY` and `height` smoothly on live data updates via Framer Motion springs instead of snapping to new coordinates.
+- **Baseline Transform Origins**: `BarChart` entrance scales now set SVG `originX`/`originY` relative to baseline coordinates, ensuring positive bars expand upwards from baseline and negative bars expand downwards.
+
+## 0.1.11
+
+### Fixed & Enhanced
+- **Post-Hydration Chart Animations**: Restored post-hydration enter animations across all chart components (`BarChart`, `DonutChart`, `LineChart`, `MultiLineChart`, `Sparkline`) using client-side animation mounting to keep SSR output static while animating smoothly on hydration.
+- **Baseline-Anchored Animated Bars**: Ensured animated bars anchor strictly to their bottom/baseline without jumping or shifting origin during height transitions.
+- **Local Date Labels & `dateFormatter` Prop**: Preserved local calendar-day dates (`YYYY-MM-DD`) by default without backward timezone shifts, and added the optional `dateFormatter` prop to chart props for custom UTC or locale-specific date formatting.
+
+## 0.1.10
+
+### Fixed & Enhanced
+- **Responsive Overflow & Layout Hardening**: `ResponsiveChart` and all chart surfaces now incorporate `min-width: 0`, dimension sanitization, clamped responsive margins for narrow cards, and bounds containment for donut geometry and sparklines.
+- **Narrow & Extreme Data State Hardening**: Sanitized scales and geometry calculations against zero/negative ranges, identical data bounds, single data points, and extreme values across `BarChart`, `DonutChart`, `LineChart`, `MultiLineChart`, and `Sparkline`.
+- **Invalid SVG Attribute Protection**: Direct chart usage with `NaN`, `Infinity`, zero, negative, or invalid sizing/styling values no longer produces invalid SVG attributes or layout crashes.
+- **BarChart Focus Ring Viewport Containment**: Focus rings on edge bars are clamped to the chart viewport to avoid clipping.
+- **Responsive Grid/Flex Documentation**: Added documentation and examples for CSS grid and flex container integration.
 
 ## 0.1.9
 

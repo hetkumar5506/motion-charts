@@ -1,6 +1,6 @@
 {
   "name": "@motion-charts/core",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Animation-first React SVG charts powered by Framer Motion.",
   "homepage": "https://github.com/hetkumar5506/motion-charts#readme",
   "repository": {
@@ -55,9 +55,11 @@
     "react-dom": ">=18 <20"
   },
   "devDependencies": {
+    "@types/react-test-renderer": "^19.3.0",
     "framer-motion": "^12.23.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-test-renderer": "^19.3.0"
   },
   "keywords": [
     "react",

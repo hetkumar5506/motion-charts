@@ -1,4 +1,4 @@
-import { ChartShowcase } from "../components/ChartShowcase";
+import { ChartShowcase, ThemeGallery } from "../components/ChartShowcase";
 
 const features = [
   {
@@ -7,7 +7,7 @@ const features = [
     body: "Built directly on Framer Motion primitives. When data updates or time periods shift, geometry interpolates smoothly instead of snapping."
   },
   {
-    title: "12 Curated Palettes",
+    title: "17 Curated Palettes",
     category: "DESIGN TOKENS",
     body: "Designed for SaaS analytics, fintech telemetry, and inventory displays. Tuned hues with high contrast and zero neon noise."
   },
@@ -19,6 +19,11 @@ const features = [
 ];
 
 const palettes = {
+  editorial: ["#0f172a", "#b45309", "#64748b", "#7c2d12", "#475569", "#92400e"],
+  okabe: ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00"],
+  terra: ["#9a3412", "#4d7c0f", "#a16207", "#166534", "#7c2d12", "#3f6212"],
+  nordic: ["#1e3a5f", "#4a6fa5", "#7899c2", "#2d4a6d", "#94a3b8", "#567db0"],
+  plum: ["#86198f", "#be185d", "#9d174d", "#a21caf", "#d946ef", "#e879f9"],
   aurora: ["#2563eb", "#0284c7", "#0d9488", "#d97706", "#7c3aed", "#e11d48"],
   ocean: ["#0284c7", "#2563eb", "#06b6d4", "#0369a1", "#0891b2", "#1d4ed8"],
   sunset: ["#ea580c", "#d97706", "#c2410c", "#e11d48", "#9a3412", "#b91c1c"],
@@ -54,7 +59,7 @@ export default function Page() {
             </span>
             <span className="font-bold tracking-tight text-slate-900 text-sm">motion-charts</span>
             <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700 font-semibold">
-              v0.1.13
+              v0.2.0
             </span>
           </div>
 
@@ -103,7 +108,7 @@ export default function Page() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                npm v0.1.13 Live
+                npm v0.2.0 Live
               </a>
               <a
                 href="#playground"
@@ -152,6 +157,8 @@ export function MonthlyRevenue({ data }) {
         <section id="playground">
           <ChartShowcase />
         </section>
+
+        <ThemeGallery />
 
         {/* Core Principles */}
         <section className="grid gap-4 md:grid-cols-3">

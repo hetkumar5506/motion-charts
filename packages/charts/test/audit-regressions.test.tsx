@@ -242,4 +242,16 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     const { isDev } = await import("../src/utils/env");
     expect(typeof isDev()).toBe("boolean");
   });
+
+  it("preserves attrY and height on BarChart motion rects across entrance and resting states", () => {
+    const data = [
+      { cat: "A", val: 50 },
+      { cat: "B", val: 100 }
+    ];
+    const html = renderToString(
+      <BarChart data={data} xKey="cat" yKey="val" width={500} height={300} showValues />
+    );
+    expect(html).toContain('role="graphics-symbol"');
+    expect(html).toContain('aria-roledescription="bar"');
+  });
 });

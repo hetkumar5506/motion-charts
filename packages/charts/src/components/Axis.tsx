@@ -65,6 +65,91 @@ export function AxisLeft({
   );
 }
 
+export function AxisLeftCategory({
+  scale,
+  x,
+  textX,
+  formatter,
+  style
+}: {
+  scale: CategoryScale;
+  x: number;
+  textX: number;
+  formatter?: (value: string) => string;
+  style?: AxisStyle;
+}) {
+  const merged = { ...defaults, ...style };
+  return (
+    <g aria-hidden="true">
+      <line x1={x} x2={x} y1={scale.range[0]} y2={scale.range[1]} stroke={merged.axisColor} />
+      {scale.labels.map((label, index) => (
+        <g key={`${label}-${index}`} transform={`translate(${x} ${scale.center(label, index)})`}>
+          <line x1={x - 4} x2={x} y1={0} y2={0} stroke={merged.axisColor} />
+          <text
+            x={textX - x}
+            y={0}
+            dy="0.32em"
+            textAnchor="end"
+            fill={merged.tickColor}
+            fontFamily={merged.fontFamily}
+            fontSize={merged.fontSize}
+            fontWeight={500}
+          >
+            {formatter ? formatter(label) : label}
+          </text>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+export function AxisBottomLinear({
+  scale,
+  y,
+  formatter,
+  style
+}: {
+  scale: LinearScale;
+  y: number;
+  formatter?: (value: number) => string;
+  style?: AxisStyle;
+}) {
+  const merged = { ...defaults, ...style };
+  return (
+    <g aria-hidden="true">
+      <line x1={scale.range[0]} x2={scale.range[1]} y1={y} y2={y} stroke={merged.axisColor} />
+      {scale.ticks.map((tick) => (
+        <g key={tick} transform={`translate(${scale.scale(tick)} ${y})`}>
+          <line x1={0} x2={0} y1={0} y2={4} stroke={merged.axisColor} />
+          <text
+            x={0}
+            y={12}
+            dy="0.72em"
+            textAnchor="middle"
+            fill={merged.tickColor}
+            fontFamily={merged.fontFamily}
+            fontSize={merged.fontSize}
+            fontWeight={500}
+          >
+            {formatter ? formatter(tick) : tick}
+          </text>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+export function GridColumns({ scale, y1, y2, style }: { scale: LinearScale; y1: number; y2: number; style?: AxisStyle }) {
+  const merged = { ...defaults, ...style };
+  return (
+    <g aria-hidden="true">
+      {scale.ticks.map((tick) => (
+        <line key={tick} x1={scale.scale(tick)} x2={scale.scale(tick)} y1={y1} y2={y2} stroke={merged.gridColor} strokeDasharray="3 4" strokeWidth={1} />
+      ))}
+    </g>
+  );
+}
+
 export function AxisBottom({
   scale,
   y,

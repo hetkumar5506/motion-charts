@@ -1,5 +1,5 @@
-import { useEffect, useId, useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useId, useMemo, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { motion, useMotionValueEvent, useReducedMotion, useSpring, type Transition } from "framer-motion";
 import { ChartSurface, type TooltipState } from "../components/ChartSurface";
 import { EmptyState } from "../components/EmptyState";
 import { InlineLegend } from "../components/Legend";
@@ -7,7 +7,7 @@ import type { Accessor, CommonChartProps, TooltipRenderContext } from "../types"
 import { labelOf, numberOf } from "../utils/accessors";
 import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
-import { resolveChartTheme } from "../themes";
+import { useChartTheme } from "../themes";
 import { arcPath, pieSlices, polar } from "../utils/geometry";
 import { chartTransition, useChartEntrance } from "../utils/motion";
 import { isDev } from "../utils/env";
@@ -56,7 +56,7 @@ export function DonutChart<TDatum extends object>({
   const gradientBaseId = useId().replace(/:/g, "");
   const tooltipId = useId().replace(/:/g, "");
   const reducedMotion = useReducedMotion();
-  const chartTheme = useMemo(() => resolveChartTheme(theme, colors), [colors, theme]);
+  const chartTheme = useChartTheme(theme, colors);
   const [tooltipState, setTooltipState] = useState<TooltipState>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeSliceIndex, setActiveSliceIndex] = useState(0);
@@ -151,6 +151,19 @@ export function DonutChart<TDatum extends object>({
   }
 
   function handleKeyDown(event: KeyboardEvent<SVGPathElement>, itemIndex: number) {
+    const current = renderableSlices[itemIndex];
+    if ((event.key === "Enter" || event.key === " ") && onDatumClick && current) {
+      event.preventDefault();
+      onDatumClick({
+        datum: current.row.datum,
+        index: current.row.index,
+        label: current.row.label,
+        value: current.row.value,
+        color: current.row.color
+      });
+      return;
+    }
+
     const count = renderableSlices.length;
     if (count <= 1) return;
     const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
@@ -208,18 +221,24 @@ export function DonutChart<TDatum extends object>({
 
           return (
             <g key={`${row.label}-${row.index}`}>
-              <motion.path
-                d={path}
+              <AnimatedDonutSlice
+                cx={cx}
+                cy={cy}
+                innerRadius={innerRadius}
+                outerRadius={outerRadius}
+                startAngle={slice.startAngle}
+                endAngle={slice.endAngle}
                 fill={sliceVariant === "gradient" ? `url(#${gradientBaseId}-${row.index})` : row.color}
                 stroke={isFocused ? chartTheme.textColor : "transparent"}
                 strokeWidth={isFocused ? 2.5 : 0}
-                strokeLinejoin="round"
-                initial={false}
-                animate={isEntering
-                  ? { opacity: [0, 1], scale: [0.86, isFocused ? 1.04 : 1] }
-                  : { opacity: 1, scale: isFocused ? 1.04 : 1 }}
-                whileHover={{ scale: 1.035, opacity: 0.95 }}
+                transformScale={isFocused ? 1.04 : 1}
+                hoverScale={1.035}
                 transition={chartTransition(animation, reducedMotion, originalIndex)}
+                sweep={animation?.entrance === "sweep"}
+                isEntering={isEntering}
+                reducedMotion={reducedMotion}
+                sweepIndex={itemIndex}
+                sweepCount={renderableSlices.length}
                 onAnimationComplete={isEntering && itemIndex === renderableSlices.length - 1 && !hasLabel ? onAnimationComplete : undefined}
                 role="graphics-symbol"
                 aria-roledescription="slice"
@@ -247,7 +266,7 @@ export function DonutChart<TDatum extends object>({
                 }}
               >
                 <title>{aria}</title>
-              </motion.path>
+              </AnimatedDonutSlice>
               {hasLabel ? (
                 <motion.text
                   x={labelPoint.x}
@@ -287,5 +306,134 @@ export function DonutChart<TDatum extends object>({
       </ChartSurface>
       {showLegend ? <InlineLegend items={legendItems} theme={chartTheme} /> : null}
     </div>
+  );
+}
+
+type AnimatedDonutSliceProps = {
+  cx: number;
+  cy: number;
+  innerRadius: number;
+  outerRadius: number;
+  startAngle: number;
+  endAngle: number;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  transformScale: number;
+  hoverScale: number;
+  transition: Transition;
+  sweep: boolean;
+  isEntering: boolean;
+  reducedMotion: boolean | null;
+  sweepIndex: number;
+  sweepCount: number;
+  onAnimationComplete?: () => void;
+  role: string;
+  "aria-roledescription": string;
+  "aria-label": string;
+  "aria-describedby"?: string;
+  tabIndex: number;
+  onPointerEnter: (event: PointerEvent<SVGPathElement>) => void;
+  onPointerMove: (event: PointerEvent<SVGPathElement>) => void;
+  onPointerLeave: () => void;
+  onFocus: (event: FocusEvent<SVGPathElement>) => void;
+  onBlur: () => void;
+  onKeyDown: (event: KeyboardEvent<SVGPathElement>) => void;
+  onClick: () => void;
+  style: CSSProperties;
+  children: ReactNode;
+};
+
+function AnimatedDonutSlice({
+  cx,
+  cy,
+  innerRadius,
+  outerRadius,
+  startAngle,
+  endAngle,
+  fill,
+  stroke,
+  strokeWidth,
+  transformScale,
+  hoverScale,
+  transition,
+  sweep,
+  isEntering,
+  reducedMotion,
+  sweepIndex,
+  onAnimationComplete,
+  role,
+  "aria-roledescription": ariaRoleDescription,
+  "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
+  tabIndex,
+  onPointerEnter,
+  onPointerMove,
+  onPointerLeave,
+  onFocus,
+  onBlur,
+  onKeyDown,
+  onClick,
+  style,
+  children
+}: AnimatedDonutSliceProps) {
+  const targetStart = Number.isFinite(startAngle) ? startAngle : 0;
+  const targetEnd = Number.isFinite(endAngle) ? endAngle : 0;
+  const startMotion = useSpring(sweep && isEntering ? 0 : targetStart, transition as never);
+  const endMotion = useSpring(sweep && isEntering ? 0 : targetEnd, transition as never);
+  const [angles, setAngles] = useState({ start: sweep && isEntering ? 0 : targetStart, end: sweep && isEntering ? 0 : targetEnd });
+
+  useMotionValueEvent(startMotion, "change", (value) => setAngles((current) => ({ ...current, start: value })));
+  useMotionValueEvent(endMotion, "change", (value) => setAngles((current) => ({ ...current, end: value })));
+
+  useEffect(() => {
+    if (reducedMotion) {
+      startMotion.jump(targetStart);
+      endMotion.jump(targetEnd);
+      return;
+    }
+    if (sweep && isEntering) {
+      startMotion.jump(0);
+      endMotion.jump(0);
+      const delay = Math.min(0.6, sweepIndex * 0.12) * 1000;
+      const timer = window.setTimeout(() => {
+        startMotion.set(targetStart);
+        endMotion.set(targetEnd);
+      }, delay);
+      return () => window.clearTimeout(timer);
+    }
+    startMotion.set(targetStart);
+    endMotion.set(targetEnd);
+  }, [endMotion, isEntering, reducedMotion, startMotion, sweep, sweepIndex, targetEnd, targetStart]);
+
+  const path = arcPath(cx, cy, innerRadius, outerRadius, angles.start, angles.end);
+  return (
+    <motion.path
+      d={path}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinejoin="round"
+      initial={false}
+      animate={{ opacity: 1, scale: transformScale }}
+      whileHover={{ scale: hoverScale, opacity: 0.95 }}
+      transition={transition}
+      onAnimationComplete={onAnimationComplete}
+      role={role}
+      aria-roledescription={ariaRoleDescription}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      tabIndex={tabIndex}
+      onPointerEnter={onPointerEnter}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
+      onClick={onClick}
+      style={style}
+    >
+      {children}
+    </motion.path>
   );
 }
