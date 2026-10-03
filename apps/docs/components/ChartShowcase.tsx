@@ -151,7 +151,7 @@ export function ChartShowcase() {
         <button
           type="button"
           onClick={() => setDataIndex((value) => value + 1)}
-          className="inline-flex w-fit items-center gap-2 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          className="inline-flex w-full items-center justify-between gap-2 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:w-fit sm:justify-start"
         >
           <RefreshIcon />
           Run new scenario
@@ -160,7 +160,7 @@ export function ChartShowcase() {
       </div>
 
       <div className={`flex flex-col gap-4 border-b px-5 py-4 sm:px-7 xl:flex-row xl:items-center xl:justify-between ${isDark ? "border-white/10 bg-black/10" : "border-slate-200 bg-slate-50/80"}`}>
-        <div className="flex flex-wrap gap-1 rounded-xl bg-black/[0.045] p-1 dark:bg-white/[0.06]" role="tablist" aria-label="Chart demo">
+        <div className="flex gap-1 overflow-x-auto rounded-xl bg-black/[0.045] p-1 [scrollbar-width:none] dark:bg-white/[0.06] sm:flex-wrap sm:overflow-visible" role="tablist" aria-label="Chart demo">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -168,7 +168,7 @@ export function ChartShowcase() {
               role="tab"
               aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
                 activeTab === tab
                   ? isDark ? "bg-white/10 text-white shadow-sm" : "bg-white text-slate-950 shadow-sm"
                   : isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900"
@@ -179,8 +179,8 @@ export function ChartShowcase() {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <fieldset className="flex items-center gap-1.5">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-3">
+          <fieldset className="col-span-2 flex items-center gap-1.5 sm:col-auto">
             <legend className="sr-only">Theme</legend>
             <span className={`mr-1 text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Theme</span>
             {themes.map((item) => (
@@ -198,52 +198,52 @@ export function ChartShowcase() {
             ))}
           </fieldset>
 
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Palette</span>
             <select
               value={palette}
               onChange={(event) => setPalette(event.target.value as ChartPaletteName)}
-              className={`max-w-28 rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+              className={`w-full max-w-none rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition sm:w-auto sm:max-w-28 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
             >
               {paletteChoices.map((item) => <option key={item} value={item}>{paletteProfiles[item].label}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Motion</span>
             <select
               value={preset}
               onChange={(event) => setPreset(event.target.value as AnimationPresetName)}
-              className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+              className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition sm:w-auto focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
             >
               {presets.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Entrance</span>
             <select
               value={entrance}
               onChange={(event) => setEntrance(event.target.value as NonNullable<MotionOptions["entrance"]>)}
-              className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+              className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition sm:w-auto focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
             >
               {entrances.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Cascade</span>
             <select
               value={staggerFrom}
               onChange={(event) => setStaggerFrom(event.target.value as NonNullable<MotionOptions["staggerFrom"]>)}
-              className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+              className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition sm:w-auto focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
             >
               {cascadeDirections.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-auto sm:flex-row sm:items-center sm:gap-2">
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${muted}`}>Finish</span>
             <select
               value={finish}
               onChange={(event) => setFinish(event.target.value as "signature" | "glass")}
-              className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
+              className={`w-full rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none transition sm:w-auto focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${isDark ? "border-white/10 bg-white/[0.06] text-slate-100" : "border-slate-200 bg-white text-slate-800"}`}
             >
               <option value="signature">signature</option>
               <option value="glass">soft glass + gradient</option>
@@ -253,19 +253,19 @@ export function ChartShowcase() {
       </div>
 
       <div className="grid gap-0 xl:grid-cols-[255px_minmax(0,1fr)]">
-        <aside className={`border-b px-5 py-6 xl:border-b-0 xl:border-r xl:px-7 ${isDark ? "border-white/10 bg-black/10" : "border-slate-200 bg-slate-50/45"}`}>
+        <aside className={`border-b px-5 py-5 sm:py-6 xl:border-b-0 xl:border-r xl:px-7 ${isDark ? "border-white/10 bg-black/10" : "border-slate-200 bg-slate-50/45"}`}>
           <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.16em] ${isDark ? "text-cyan-300" : "text-blue-700"}`}>Selected module</span>
           <h3 className="mt-2 text-lg font-semibold tracking-[-0.025em]">{tabCopy[activeTab].title}</h3>
           <p className={`mt-2 text-xs leading-5 ${muted}`}>{tabCopy[activeTab].description}</p>
 
-          <div className={`mt-6 grid gap-2 rounded-2xl border p-3 ${subtle}`}>
+          <div className={`mt-5 grid grid-cols-2 gap-x-3 gap-y-2 rounded-2xl border p-3 sm:mt-6 sm:grid-cols-1 ${subtle}`}>
             <StatusRow label="Theme" value={activeTheme.label} color={activeTheme.accent} />
             <StatusRow label="Palette" value={activePalette.label} color={(paletteColors(palette, isDark ? "dark" : "light") ?? [activeTheme.accent])[0]} />
             <StatusRow label="Preset" value={preset} />
             <StatusRow label="Entrance" value={entrance} />
             <StatusRow label="Cascade" value={staggerFrom} />
             <StatusRow label="Finish" value={finish} />
-            <p className={`border-t pt-2 text-[11px] leading-4 ${muted}`}>{activePalette.mood}. Best for {activePalette.bestFor.slice(0, 2).join(" and ")}.</p>
+            <p className={`col-span-2 border-t pt-2 text-[11px] leading-4 sm:col-span-1 ${muted}`}>{activePalette.mood}. Best for {activePalette.bestFor.slice(0, 2).join(" and ")}.</p>
           </div>
 
           <div className="mt-6 hidden xl:block">
@@ -278,7 +278,7 @@ export function ChartShowcase() {
           </div>
         </aside>
 
-        <div className="min-w-0 p-5 sm:p-7" role="tabpanel">
+        <div className="min-w-0 p-4 sm:p-7" role="tabpanel">
           {activeTab === "overview" ? <Overview data={data} channels={channels} totalVisitors={totalVisitors} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
           {activeTab === "bar" ? <BarDemo data={data} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
           {activeTab === "line" ? <LineDemo data={data} theme={chartTheme} animation={animation} finish={finish} dark={isDark} /> : null}
@@ -394,9 +394,9 @@ function DemoPanel({ title, detail, dark, children }: { title: string; detail: s
 
 function StatusRow({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-xs">
+    <div className="flex min-w-0 flex-col gap-0.5 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3">
       <span className="text-slate-500">{label}</span>
-      <span className="flex items-center gap-1.5 font-mono font-medium text-inherit">{color ? <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} /> : null}{value}</span>
+      <span className="flex min-w-0 items-center gap-1.5 font-mono font-medium text-inherit">{color ? <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} /> : null}{value}</span>
     </div>
   );
 }
