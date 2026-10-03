@@ -48,7 +48,7 @@ export type MotionOptions = {
   /**
    * Entrance style. `draw` traces line-family paths, `sweep` reveals donut
    * slices clockwise, `rise` lifts line-family geometry into place, and `pop`
-   * gives marks a restrained overshoot. Existing charts keep the fade/morph default.
+   * uses a controlled two-keyframe spring overshoot. Existing charts keep the fade/morph default.
    */
   entrance?: "fade" | "draw" | "sweep" | "rise" | "pop";
 };

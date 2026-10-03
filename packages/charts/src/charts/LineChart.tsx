@@ -9,7 +9,7 @@ import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { useChartTheme } from "../themes";
 import { areaPath, linePath, type Point } from "../utils/geometry";
-import { chartTransition, useChartEntrance } from "../utils/motion";
+import { chartHoverTransition, chartTransition, popKeyframes, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
@@ -360,7 +360,7 @@ export function LineChart<TDatum extends object>({
                 opacity: [0, 1],
                 pathLength: drawEntrance ? [0, 1] : 1,
                 y: riseEntrance ? [14, 0] : 0,
-                scale: popEntrance ? [0.96, 1.015, 1] : 1
+                scale: popEntrance ? popKeyframes(0.96, 1) : 1
               }
             : { d: path, opacity: 1, y: 0, scale: 1 }}
           transition={chartTransition(animation, reducedMotion)}
@@ -411,9 +411,9 @@ export function LineChart<TDatum extends object>({
               strokeWidth={pointVisible ? (pointVariant === "ring" ? 2.75 : 2.5) : 0}
               initial={false}
               animate={isEntering
-                ? { r: popEntrance ? [0, pointRadius * 1.3, pointRadius] : [0, pointRadius], opacity: [0, 1] }
+                ? { r: popEntrance ? popKeyframes(0, pointRadius) : [0, pointRadius], opacity: [0, 1] }
                 : { r: pointRadius, opacity: 1 }}
-              whileHover={{ r: 7.5, strokeWidth: 3 }}
+              whileHover={{ r: 7.5, strokeWidth: 3, transition: chartHoverTransition }}
               transition={chartTransition(animation, reducedMotion, itemIndex, renderableItems.length)}
               onAnimationComplete={isEntering && itemIndex === renderableItems.length - 1 ? onAnimationComplete : undefined}
               role="graphics-symbol"

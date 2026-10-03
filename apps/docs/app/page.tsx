@@ -37,7 +37,7 @@ export default function Page() {
             <a href="#top" className="flex shrink-0 items-center gap-2.5" aria-label="Motion Charts home">
               <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-950 font-mono text-[10px] font-bold tracking-[-0.1em] text-white shadow-lg shadow-slate-950/15">MC</span>
               <span className="text-sm font-semibold tracking-[-0.03em]">motion-charts</span>
-              <span className="hidden rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-blue-700 sm:inline">v0.2.4</span>
+              <span className="hidden rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-blue-700 sm:inline">v0.2.5</span>
             </a>
             <div className="hidden items-center gap-6 text-xs font-semibold text-slate-600 md:flex">
               <a href="#playground" className="transition hover:text-slate-950">Playground</a>

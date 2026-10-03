@@ -10,7 +10,7 @@ import { labelOf, numberOf } from "../utils/accessors";
 import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { useChartTheme } from "../themes";
-import { chartTransition, useChartEntrance } from "../utils/motion";
+import { chartHoverTransition, chartTransition, popKeyframes, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent, type CategoryScale, type LinearScale } from "../utils/scales";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 import { isDev } from "../utils/env";
@@ -381,12 +381,12 @@ export function BarChart<TDatum extends object>({
                       attrY: segment.y,
                       width: segment.width,
                       height: segment.height,
-                      scaleX: layout === "horizontal" ? (popEntrance ? [0, 1.045, 1] : [0, 1]) : 1,
-                      scaleY: layout === "vertical" ? (popEntrance ? [0, 1.045, 1] : [0, 1]) : 1,
+                      scaleX: layout === "horizontal" ? (popEntrance ? popKeyframes(0, 1) : [0, 1]) : 1,
+                      scaleY: layout === "vertical" ? (popEntrance ? popKeyframes(0, 1) : [0, 1]) : 1,
                       opacity: [0, isHovered ? 0.92 : 1]
                     }
                   : { attrX: segment.x, attrY: segment.y, width: segment.width, height: segment.height, scaleX: 1, scaleY: 1, opacity: isHovered ? 0.92 : 1 }}
-                whileHover={{ opacity: 0.85 }}
+                whileHover={{ opacity: 0.85, transition: chartHoverTransition }}
                 transition={chartTransition(animation, reducedMotion, index, segments.length)}
                 onAnimationComplete={isEntering && index === segments.length - 1 && !showValueLabels ? onAnimationComplete : undefined}
                 role="graphics-symbol"

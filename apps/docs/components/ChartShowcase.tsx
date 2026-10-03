@@ -342,7 +342,7 @@ function Overview({ data, channels, totalVisitors, theme, animation, finish, dar
 
 function BarDemo({ data, theme, animation, finish, dark }: DemoProps & { data: RevenueDatum[] }) {
   return (
-    <DemoPanel title="Monthly revenue" detail="Value labels use their own compact formatter; axes and tooltips retain the full formatter." dark={dark}>
+    <DemoPanel title="Monthly revenue" detail="Compact labels and responsive hover feedback keep fast inspection clear." dark={dark}>
       <ResponsiveChart minHeight={360} maxHeight={440}>
         {({ width, height }) => <BarChart data={data} xKey="month" yKey="revenue" width={width} height={height} theme={theme} showValues={{ formatter: (value) => `$${value}k` }} valueFormatter={(value) => `$${value.toLocaleString()}k`} barVariant={finish === "glass" ? "glass" : "gradient"} barRadius={9} animation={animation} ariaLabel="Monthly revenue" />}
       </ResponsiveChart>
@@ -372,7 +372,7 @@ function MultiLineDemo({ data, theme, animation, finish, dark }: DemoProps & { d
 
 function DonutDemo({ channels, totalVisitors, theme, animation, finish, dark }: DemoProps & { channels: ChannelDatum[]; totalVisitors: number }) {
   return (
-    <DemoPanel title="Acquisition channel share" detail="DonutChart · spring updates · sweep and pop entrances" dark={dark}>
+    <DemoPanel title="Acquisition channel share" detail="DonutChart · responsive hover · safe sweep and pop entrances" dark={dark}>
       <ResponsiveChart minHeight={360} maxHeight={440}>
         {({ width, height }) => <DonutChart data={channels} labelKey="channel" valueKey="visitors" width={width} height={height} theme={theme} centerLabel={`${totalVisitors}k total`} sliceVariant={finish === "glass" ? "glass" : "gradient"} showLegend showLabels valueFormatter={(value) => `${value}k`} animation={animation} ariaLabel="Acquisition channel share" />}
       </ResponsiveChart>

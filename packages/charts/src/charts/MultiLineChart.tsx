@@ -9,7 +9,7 @@ import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
-import { chartTransition, useChartEntrance } from "../utils/motion";
+import { chartHoverTransition, chartTransition, popKeyframes, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent } from "../utils/scales";
 import { useChartTheme } from "../themes";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
@@ -415,7 +415,7 @@ export function MultiLineChart<TDatum extends object>({
                       opacity: [0, 1],
                       pathLength: drawEntrance ? [0, 1] : 1,
                       y: riseEntrance ? [14, 0] : 0,
-                      scale: popEntrance ? [0.96, 1.015, 1] : 1
+                      scale: popEntrance ? popKeyframes(0.96, 1) : 1
                     }
                   : { d: item.path, opacity: 1, y: 0, scale: 1 }}
                 transition={chartTransition(animation, reducedMotion, seriesIndex, renderedSeries.length)}
@@ -463,9 +463,9 @@ export function MultiLineChart<TDatum extends object>({
                 strokeWidth={showPoints || isHovered ? 2.5 : 0}
                 initial={false}
                 animate={isEntering
-                  ? { r: popEntrance ? [0, (isHovered ? 6 : (showPoints ? 4 : 7)) * 1.3, isHovered ? 6 : (showPoints ? 4 : 7)] : [0, isHovered ? 6 : (showPoints ? 4 : 7)], opacity: [0, 1] }
+                  ? { r: popEntrance ? popKeyframes(0, isHovered ? 6 : (showPoints ? 4 : 7)) : [0, isHovered ? 6 : (showPoints ? 4 : 7)], opacity: [0, 1] }
                   : { r: isHovered ? 6 : (showPoints ? 4 : 7), opacity: 1 }}
-                whileHover={{ r: 7.5, strokeWidth: 3 }}
+                whileHover={{ r: 7.5, strokeWidth: 3, transition: chartHoverTransition }}
                 transition={chartTransition(animation, reducedMotion, ptIndex, renderablePoints.length)}
                 onAnimationComplete={isEntering && ptIndex === renderablePoints.length - 1 ? onAnimationComplete : undefined}
                 role="graphics-symbol"

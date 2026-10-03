@@ -7,7 +7,7 @@ import { labelOf, numberOf, rawNumberOf } from "../utils/accessors";
 import { colorAt } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { areaPath, linePath, type Point } from "../utils/geometry";
-import { chartTransition, useChartEntrance } from "../utils/motion";
+import { chartHoverTransition, chartTransition, popKeyframes, useChartEntrance } from "../utils/motion";
 import { createLinearScale, extent } from "../utils/scales";
 import { useChartTheme } from "../themes";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
@@ -266,7 +266,7 @@ export function Sparkline<TDatum extends object>({
                 opacity: [0, 1],
                 pathLength: drawEntrance ? [0, 1] : 1,
                 y: riseEntrance ? [10, 0] : 0,
-                scale: popEntrance ? [0.96, 1.015, 1] : 1
+                scale: popEntrance ? popKeyframes(0.96, 1) : 1
               }
             : { d: path, opacity: 1, y: 0, scale: 1 }}
           transition={chartTransition(animation, reducedMotion)}
@@ -353,8 +353,8 @@ export function Sparkline<TDatum extends object>({
               stroke={visible ? "white" : "transparent"}
               strokeWidth={visible ? 2 : 0}
               initial={false}
-              animate={isEntering ? { scale: popEntrance ? [0, 1.22, 1] : [0, 1], opacity: [0, 1] } : { scale: 1, opacity: 1 }}
-              whileHover={{ scale: 1.35 }}
+              animate={isEntering ? { scale: popEntrance ? popKeyframes(0, 1) : [0, 1], opacity: [0, 1] } : { scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.35, transition: chartHoverTransition }}
               transition={chartTransition(animation, reducedMotion, itemIndex, renderableItems.length)}
               onAnimationComplete={isEntering && itemIndex === renderableItems.length - 1 ? onAnimationComplete : undefined}
               role="graphics-symbol"

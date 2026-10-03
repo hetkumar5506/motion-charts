@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.5
+
+### Motion reliability
+- **Safe pop entrances**: Replaced unsupported three-keyframe spring targets with a two-keyframe `lively` spring default, preventing `entrance: "pop"` from interrupting Framer Motion’s shared animation loop.
+- **Responsive mark hover**: Bars, slices, points, and sparklines now use a short dedicated hover transition rather than inheriting long chart-update presets.
+- **Palette fallback**: `recommendPalette` now returns the `aurora` recommendation for an unrecognized runtime string instead of returning `undefined`.
+
+### Documentation preview
+- Updated the live BarChart and DonutChart preview copy to describe the responsive hover behavior and safe pop entrance.
+
 ## 0.2.4
 
 ### Visual polish
