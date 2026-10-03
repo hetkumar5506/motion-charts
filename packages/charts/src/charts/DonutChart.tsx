@@ -9,7 +9,7 @@ import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { useChartTheme } from "../themes";
 import { arcPath, pieSlices, polar } from "../utils/geometry";
-import { chartTransition, useChartEntrance } from "../utils/motion";
+import { chartHoverTransition, chartTransition, popKeyframes, useChartEntrance } from "../utils/motion";
 import { isDev } from "../utils/env";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
 
@@ -422,9 +422,9 @@ function AnimatedDonutSlice({
       strokeLinejoin="round"
       initial={false}
       animate={isEntering
-        ? { opacity: [0, 1], scale: pop ? [0.72, 1.06, transformScale] : [0.86, transformScale] }
+        ? { opacity: [0, 1], scale: pop ? popKeyframes(0.72, transformScale) : [0.86, transformScale] }
         : { opacity: 1, scale: transformScale }}
-      whileHover={{ scale: hoverScale, opacity: 0.95 }}
+      whileHover={{ scale: hoverScale, opacity: 0.95, transition: chartHoverTransition }}
       transition={transition}
       onAnimationComplete={onAnimationComplete}
       role={role}

@@ -1,6 +1,6 @@
 # @motion-charts/core — agent implementation guide
 
-Version: 0.2.4
+Version: 0.2.5
 
 This is a React + TypeScript chart library for polished product UI. It renders SVG and uses Framer Motion for data updates and entrances. Use it for dashboards, admin products, SaaS analytics, commerce, operations, developer tooling, reports, and landing-page metrics.
 
@@ -141,7 +141,7 @@ Valid `ChartPaletteIntent` values and their deterministic recommendations:
 | `accessible` | `okabe` | multi-series distinction and colorblind-considered starting point |
 | `creative` | `orchid` | media, creators, campaign performance |
 
-An explicit `theme.palette` is always more specific than a recommendation. Do not infer a palette from the chart type alone; infer it from the surrounding product UI and task.
+An explicit `theme.palette` is always more specific than a recommendation. Unknown runtime strings passed to `recommendPalette` safely fall back to `aurora`. Do not infer a palette from the chart type alone; infer it from the surrounding product UI and task.
 
 ### Full palette menu and visual guidance
 
@@ -302,7 +302,7 @@ Use `silky` for most polished app screens. Use `lively` when change should feel 
 
 - `fade`: default; lowest visual emphasis.
 - `rise`: line-family geometry settles upward; good for a primary trend.
-- `pop`: restrained overshoot for bars, slices, paths, and points; good for a single featured card.
+- `pop`: a safe two-keyframe spring overshoot for bars, slices, paths, and points; good for a single featured card. It uses the `lively` spring when no preset is specified, so it remains safe alongside other Framer Motion charts on the page.
 - `draw`: line-family paths trace into view; use for first-load storytelling, not repeated background refreshes.
 - `sweep`: donut slices reveal clockwise; use for a single share-of-total card.
 

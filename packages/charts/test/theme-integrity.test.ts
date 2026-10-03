@@ -36,6 +36,8 @@ describe("theme integrity", () => {
     expect(recommendPalette("fintech")).toBe("lagoon");
     expect(recommendPalette("accessible")).toBe("okabe");
     expect(recommendPalette("creative")).toBe("orchid");
+    expect(recommendPalette("finance dashboard")).toBe("aurora");
+    expect(recommendPalette("toString")).toBe("aurora");
   });
 
   it("never recalibrates a light-surface color that already clears the gate", () => {

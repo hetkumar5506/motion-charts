@@ -444,7 +444,7 @@ On light surfaces, built-in palette colors are calibrated to a minimum 2.5:1 con
 
 ### Palette selection contract
 
-Use a theme to match the surrounding surface and a palette to communicate the chart’s role; they are intentionally independent. `paletteProfiles` exposes a machine-readable label, mood, recommended contexts, and an `avoidWhen` note for every built-in palette. `recommendPalette` provides a stable shortcut for common product contexts.
+Use a theme to match the surrounding surface and a palette to communicate the chart’s role; they are intentionally independent. `paletteProfiles` exposes a machine-readable label, mood, recommended contexts, and an `avoidWhen` note for every built-in palette. `recommendPalette` provides a stable shortcut for common product contexts and falls back to `aurora` for an unrecognized runtime string.
 
 ```tsx
 import { paletteProfiles, recommendPalette } from "@motion-charts/core";
@@ -563,7 +563,7 @@ Reduced-motion users are respected automatically.
 - Data changes animate by default. Bars tween their baseline-safe SVG geometry; paths and points morph to the next dataset.
 - `animation={{ initial: false }}` disables the entrance while preserving data-update transitions.
 - `animation={{ entrance: "draw" }}` traces line-family paths; `"sweep"` reveals donut slices clockwise.
-- `animation={{ entrance: "rise" }}` gives line-family geometry an upward settle; `"pop"` adds a small, staggered overshoot to marks and slices.
+- `animation={{ entrance: "rise" }}` gives line-family geometry an upward settle; `"pop"` uses a safe two-keyframe spring with a controlled overshoot for marks and slices. When no preset is supplied, `pop` selects `lively`.
 - `animation={{ disabled: true }}` disables entrance and update motion for that chart.
 - `prefers-reduced-motion: reduce` suppresses motion without removing the final chart or its interactions.
 - `stagger` is measured in seconds per item and is clamped to a safe range. Add `staggerFrom: "start" | "center" | "end"` to make marks cascade in reading order, bloom from the middle, or resolve from the final mark. A transition-level `delay` is a base delay and is added before the per-mark stagger. `transition` overrides the selected preset when you need exact Framer Motion behavior.

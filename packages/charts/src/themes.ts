@@ -93,8 +93,9 @@ const recommendedPalettes = {
 } as const satisfies Record<ChartPaletteIntent, ChartPaletteName>;
 
 /** A deterministic shortcut for common product contexts; explicit palette names still win. */
-export function recommendPalette(intent: ChartPaletteIntent = "default"): ChartPaletteName {
-  return recommendedPalettes[intent];
+export function recommendPalette(intent: ChartPaletteIntent | string = "default"): ChartPaletteName {
+  const palette = recommendedPalettes[intent as ChartPaletteIntent];
+  return typeof palette === "string" ? palette : recommendedPalettes.default;
 }
 
 export type ChartTheme = {
