@@ -10,6 +10,7 @@
 ### Docs deployment and scale confidence
 - **GitHub Pages**: Added a static-export configuration and deployment workflow that publishes the interactive docs after a push to `main`.
 - **Dense visualization coverage**: Added an SSR regression test for 240 intervals across four related series, grouped comparison bars, and a 16-segment donut; documented practical SVG data-volume guidance for application teams and coding agents.
+- **Mobile control room**: Reflowed the docs preview into touch-friendly tab scrolling, a compact two-column control grid, and a concise selected-state summary below the phone breakpoint, without changing tablet or desktop composition.
 
 ## 0.2.3
 
