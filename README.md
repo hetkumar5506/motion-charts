@@ -11,6 +11,17 @@ The repository contains the published package and a small interactive showcase:
 - [`apps/docs`](./apps/docs) — the Next.js showcase with live controls for data, themes, and motion presets.
 - [`packages/charts/llms.txt`](./packages/charts/llms.txt) — a compact guide for AI coding agents.
 
+## Contents
+
+- [What is included](#what-is-included)
+- [Install the package](#install-the-package)
+- [Quick start](#quick-start)
+- [Develop the repository](#develop-the-repository)
+- [Deploy the docs to GitHub Pages](#deploy-the-docs-to-github-pages)
+- [Project conventions](#project-conventions)
+- [Release notes](#release-notes)
+- [License](#license)
+
 ## What is included
 
 - `BarChart` for categorical comparisons and baseline-anchored bar motion.
@@ -96,8 +107,11 @@ npm run typecheck
 npm test
 npm run build
 npm audit --omit=dev
+npm run audit:ponytail
 git diff --check
 ```
+
+`audit:ponytail` is a lightweight internal lint that flags unnecessary abstractions and dependencies that could be replaced with platform APIs.
 
 The package test suite covers geometry, scales, themes, exports, SSR output, invalid data, responsive layout, accessibility regressions, animation lifecycle behavior, and larger multi-series rendering.
 

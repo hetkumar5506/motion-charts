@@ -176,7 +176,7 @@ Use `paletteProfiles[name]` for the complete guidance in code. These are the pra
 Use the surrounding UI before choosing an effect:
 
 1. Identify the card surface: use `surface: "light"` for paper/white cards and `surface: "dark"` for dark cards.
-2. Match the application’s emotional tone with a palette. For example: neutral SaaS -> `aurora`; calm finance -> `lagoon`; dark devtools -> `cyber`; editorial report -> `editorial`; expressive campaign UI -> `orchid`.
+2. Match the application's emotional tone with a palette. For example: neutral SaaS -> `aurora`; calm finance -> `lagoon`; dark devtools -> `cyber`; editorial report -> `editorial`; expressive campaign UI -> `orchid`.
 3. Use a visual treatment only when the card is a priority focal point. Dense utility pages should use solid marks more often than gradients.
 4. Reserve urgent `fire` and high-signal `prism` for events that deserve attention. They should not become the default color for every metric.
 5. For a multi-series accessibility-sensitive chart, start at `okabe`; also use labels, legend, tooltips, and visible focus states instead of color alone.

@@ -17,7 +17,7 @@ Animation-first React charts powered by SVG and Framer Motion.
 - [Tooltips and interactions](#tooltips)
 - [Accessibility and SSR](#accessibility)
 - [Themes and palettes](#themes-and-palettes)
-- [Tuning and defaults](#tuning--defaults)
+- [Tuning and defaults](#tuning-and-defaults)
 - [Roadmap](#roadmap)
 
 ## Requirements
@@ -36,8 +36,6 @@ npm install @motion-charts/core framer-motion
 ```
 
 Live on npm: **[npmjs.com/package/@motion-charts/core](https://www.npmjs.com/package/@motion-charts/core)**
-
-`react`, `react-dom`, and `framer-motion` are peer dependencies so your app owns the runtime.
 
 > Next.js App Router: render charts from a client component. The distributed entry includes a `"use client"` directive, but your chart wrapper should still be a client component when using dynamic data or interactions.
 
@@ -393,7 +391,7 @@ Use sparklines inside metric cards:
 
 `Sparkline` keeps the same interaction, tooltip, and reduced-motion behavior as the larger charts. Use `padding` for compact cards, `colorIndex` to select a stable palette entry, and `showEndValue` to display the last finite datum. It also supports `strokeVariant="gradient"`, `gradientToColor`, and `areaOpacity` for denser KPI treatments.
 
-## Y-Axis and Zero Inclusions
+## Y-axis zero inclusion
 
 Control whether axes strictly include zero or dynamically fit the data range:
 
@@ -444,7 +442,7 @@ On light surfaces, built-in palette colors are calibrated to a minimum 2.5:1 con
 
 ### Palette selection contract
 
-Use a theme to match the surrounding surface and a palette to communicate the chart’s role; they are intentionally independent. `paletteProfiles` exposes a machine-readable label, mood, recommended contexts, and an `avoidWhen` note for every built-in palette. `recommendPalette` provides a stable shortcut for common product contexts and falls back to `aurora` for an unrecognized runtime string.
+Use a theme to match the surrounding surface and a palette to communicate the chart's role; they are intentionally independent. `paletteProfiles` exposes a machine-readable label, mood, recommended contexts, and an `avoidWhen` note for every built-in palette. `recommendPalette` provides a stable shortcut for common product contexts and falls back to `aurora` for an unrecognized runtime string.
 
 ```tsx
 import { paletteProfiles, recommendPalette } from "@motion-charts/core";
@@ -644,7 +642,7 @@ Add target or threshold guides with `referenceLines`. A `y` line expands the val
 
 Reference lines draw after the main entrance, render statically in SSR, and become immediate when reduced motion is enabled.
 
-## Tuning & defaults
+## Tuning and defaults
 
 - `connectNulls` (boolean, default `true`): In `LineChart` and `MultiLineChart`, controls whether `null`/`NaN` data points are bridged or rendered with distinct visual gaps in line and area paths.
 - `zeroLine` (boolean, default `false`): In `BarChart`, set `xAxis={{ zeroLine: true }}` or `yAxis={{ zeroLine: true }}` to anchor the horizontal axis baseline line at `y=0` when displaying negative data.
@@ -693,14 +691,6 @@ Make sure `tooltip` is not `false`, the mark is interactive, and the chart is re
 
 Chart SVGs are transparent. Put them on a suitable surface, choose a contrasting theme/text color, or provide explicit `colors`. `valueFormatter` changes text only; it does not alter numeric geometry.
 
-## Roadmap
-
-The library is intentionally focused on production-ready SVG primitives rather than a large plugin surface. Next areas of exploration are guided by real product use:
-
-- richer annotation and threshold-guide ergonomics;
-- improved tooltip density controls for touch and compact dashboards;
-- additional chart families only when they can match the existing accessibility, SSR, and motion guarantees.
-
 ## AI coding agents
 
 The package includes `llms.txt` with chart-selection guidance for agents. Short version:
@@ -722,8 +712,14 @@ The package includes `llms.txt` with chart-selection guidance for agents. Short 
 
 ## Roadmap
 
-- Area chart component with stacked area modes and curved interpolation.
+The library is intentionally focused on production-ready SVG primitives rather than a large plugin surface. Work is prioritized by real product use, in roughly this order:
+
+- Richer annotation and threshold-guide ergonomics.
+- Improved tooltip density controls for touch and compact dashboards.
+- An area chart component with stacked area modes and curved interpolation.
 - Scatter and bubble plots with continuous spatial scales and collision-aware labels.
 - Interactive brush and zoom controls for large timeline datasets.
 - Radial bar and radar charts for multivariate comparative scoring.
 - Export utilities for SVG download and canvas rasterization.
+
+New chart families ship only once they can match the existing accessibility, SSR, and motion guarantees.
