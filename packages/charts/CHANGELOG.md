@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.6
 
 ### Maintenance and release assurance
 - Consolidated keyboard roving-focus behavior across every interactive chart and removed dead or duplicated helpers.
