@@ -9,6 +9,7 @@
 - Hardened the Pages workflow with immutable action revisions, job timeouts, dependency auditing, full typecheck/test gates, and deployment-only write permissions.
 - Upgraded the docs pipeline to Tailwind CSS 4 and its native PostCSS integration, removing the vulnerable legacy glob/watch dependency chain and redundant Autoprefixer configuration.
 - Limited preview-host development origins to explicit `ARENA_PREVIEW=true` sessions.
+- Updated the documentation landing page with the shared interaction, rendering-safety, regression, package-verification, and dependency-audit status from this release pass.
 
 ## 0.2.5
 

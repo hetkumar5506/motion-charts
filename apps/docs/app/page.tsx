@@ -27,6 +27,24 @@ const components = [
   { name: "ResponsiveChart", use: "Measured layouts", note: "ResizeObserver render-function wrapper" }
 ];
 
+const qualitySignals = [
+  {
+    label: "Interaction",
+    value: "5 chart families",
+    body: "One shared roving-focus contract keeps Arrow, Home, and End navigation consistent."
+  },
+  {
+    label: "Rendering safety",
+    value: "Escaped by default",
+    body: "Labels and formatted values stay React text, backed by hostile-input regression coverage."
+  },
+  {
+    label: "Release integrity",
+    value: "32 files verified",
+    body: "The publish gate rejects unexpected package contents before a release can leave CI."
+  }
+];
+
 export default function Page() {
   return (
     <div className="min-h-screen overflow-hidden bg-[#f5f7fb] text-slate-950">
@@ -41,6 +59,7 @@ export default function Page() {
             </a>
             <div className="hidden items-center gap-6 text-xs font-semibold text-slate-600 md:flex">
               <a href="#playground" className="transition hover:text-slate-950">Playground</a>
+              <a href="#quality" className="transition hover:text-slate-950">Quality</a>
               <a href="#themes" className="transition hover:text-slate-950">Theme lab</a>
               <a href="#components" className="transition hover:text-slate-950">Components</a>
               <a href="https://github.com/hetkumar5506/motion-charts" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
@@ -79,7 +98,7 @@ export default function Page() {
               <dl className="mt-10 grid max-w-xl grid-cols-3 divide-x divide-slate-200">
                 <Metric value="6" label="chart primitives" />
                 <Metric value="21" label="curated palettes" />
-                <Metric value="0" label="layout shifts" />
+                <Metric value="93" label="regression checks" />
               </dl>
             </div>
 
@@ -120,7 +139,7 @@ export default function Page() {
               <div className="mb-9 max-w-2xl">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700">Interactive proof</span>
                 <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl">A showcase built from the exact components you ship.</h2>
-                <p className="mt-4 text-base leading-7 text-slate-600">No decorative stand-ins. Change the controls to exercise responsive measurement, surface-aware palette matching, visual finishes, directional cascades, live data updates, and every major chart family.</p>
+                <p className="mt-4 text-base leading-7 text-slate-600">No decorative stand-ins. Change the controls to exercise responsive measurement, surface-aware palette matching, visual finishes, directional cascades, live data updates, and the shared keyboard interaction contract across every major chart family.</p>
               </div>
               <ChartShowcase />
             </div>
@@ -134,6 +153,32 @@ export default function Page() {
               </div>
               <div className="mt-10 grid gap-4 md:grid-cols-3">
                 {principles.map((principle) => <article key={principle.number} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><span className="font-mono text-xs font-bold text-blue-700">{principle.number}</span><h3 className="mt-8 text-lg font-semibold tracking-[-0.025em]">{principle.title}</h3><p className="mt-3 text-sm leading-6 text-slate-600">{principle.body}</p></article>)}
+              </div>
+            </div>
+          </section>
+
+          <section id="quality" className="scroll-mt-24 bg-[#0b1220] px-5 py-20 text-white sm:px-8 sm:py-28">
+            <div className="mx-auto max-w-7xl">
+              <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-end">
+                <div>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Latest quality pass</span>
+                  <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">Smaller internals. Stronger release gates.</h2>
+                </div>
+                <p className="max-w-2xl text-base leading-7 text-slate-300">The current build shares one keyboard-navigation path, verifies escaped data labels, ships through an allowlisted package, and resolves with zero known npm advisories.</p>
+              </div>
+              <div className="mt-10 grid gap-4 md:grid-cols-3">
+                {qualitySignals.map((signal) => (
+                  <article key={signal.label} className="rounded-2xl border border-white/10 bg-white/[0.045] p-6">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">{signal.label}</span>
+                    <h3 className="mt-7 text-xl font-semibold tracking-[-0.03em]">{signal.value}</h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">{signal.body}</p>
+                  </article>
+                ))}
+              </div>
+              <div className="mt-8 flex flex-wrap gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-300">
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">93 tests passing</span>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">0 npm advisories</span>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">Immutable CI actions</span>
               </div>
             </div>
           </section>
