@@ -16,14 +16,6 @@ function staggerPosition(index: number, count: number | undefined, from: MotionO
 /** Keep pointer feedback short so rapid hover changes never inherit a long chart preset. */
 export const chartHoverTransition: Transition = { type: "tween", duration: 0.14, ease: [0.2, 0.8, 0.2, 1] };
 
-/**
- * Spring and inertia transitions support two keyframes only. The default lively
- * preset supplies the controlled overshoot for pop entrances without a third keyframe.
- */
-export function popKeyframes(from: number, to: number): [number, number] {
-  return [from, to];
-}
-
 /** Build a chart transition with an optional directional cascade across `count` marks. */
 export function chartTransition(animation: MotionOptions | undefined, reducedMotion: boolean | null, index = 0, count?: number): Transition {
   if (animation?.disabled || reducedMotion) return { duration: 0 };

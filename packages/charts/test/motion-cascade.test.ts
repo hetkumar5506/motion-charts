@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chartHoverTransition, chartTransition, popKeyframes } from "../src/utils/motion";
+import { chartHoverTransition, chartTransition } from "../src/utils/motion";
 
 describe("directional chart cascades", () => {
   it("cascades marks from the configured edge or center", () => {
@@ -25,8 +25,6 @@ describe("directional chart cascades", () => {
   });
 
   it("keeps pop entrances spring-safe and hover feedback compact", () => {
-    expect(popKeyframes(0, 1)).toEqual([0, 1]);
-    expect(popKeyframes(0.72, 1.04)).toHaveLength(2);
     expect(chartTransition({ entrance: "pop" }, false)).toMatchObject({
       type: "spring",
       stiffness: 460,

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
-const ignore = new Set(["node_modules", "dist", ".next", "coverage", ".agents"]);
+const ignore = new Set(["node_modules", "dist", "build", ".next", "out", "coverage", ".agents"]);
 const hits = [];
 
 function walk(dir) {

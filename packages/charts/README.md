@@ -691,6 +691,12 @@ Make sure `tooltip` is not `false`, the mark is interactive, and the chart is re
 
 Chart SVGs are transparent. Put them on a suitable surface, choose a contrasting theme/text color, or provide explicit `colors`. `valueFormatter` changes text only; it does not alter numeric geometry.
 
+## Security and release integrity
+
+Chart labels and formatted values render as escaped React text; the package does not use raw HTML, runtime network requests, dynamic code evaluation, or install hooks. Treat accessor, formatter, tooltip, click-handler, `ReactNode`, and `CSSProperties` props as application code or trusted configuration because they execute with the embedding application's existing authority.
+
+Before publishing, run the repository validation matrix, including `npm run verify:package`. The package check performs an ignore-scripts dry run and rejects files outside `dist`, `README.md`, `CHANGELOG.md`, `LICENSE`, `llms.txt`, and npm's required `package.json`.
+
 ## AI coding agents
 
 The package includes `llms.txt` with chart-selection guidance for agents. Short version:

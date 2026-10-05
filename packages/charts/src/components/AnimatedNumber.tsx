@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { motion, useMotionValueEvent, useReducedMotion, useSpring } from "framer-motion";
 import type { Transition } from "framer-motion";
 import { animationPreset, type AnimationPresetName } from "../utils/animationPresets";
@@ -49,14 +49,12 @@ export function useAnimatedNumberText(
   }, [transition]);
   const motionValue = useSpring(safeInitial, springOptions as never);
   const [display, setDisplay] = useState(() => formatRounded(safeInitial, format));
-  const hasMounted = useRef(false);
 
   useMotionValueEvent(motionValue, "change", (latest) => {
     setDisplay(formatRounded(latest, format));
   });
 
   useEffect(() => {
-    if (!hasMounted.current) hasMounted.current = true;
     if (reducedMotion) {
       motionValue.jump(safeValue);
       setDisplay(formatRounded(safeValue, format));

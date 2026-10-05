@@ -45,8 +45,9 @@
   },
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly && node scripts/postbuild.mjs",
-    "prepublishOnly": "npm run typecheck && npm run test && npm run build",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build && npm run verify:package",
     "test": "vitest run",
+    "verify:package": "node scripts/verify-package.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {

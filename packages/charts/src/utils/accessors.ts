@@ -7,7 +7,7 @@ export function valueOf<TDatum, TValue>(datum: TDatum, index: number, accessor: 
   return datum[accessor] as TValue;
 }
 
-function warnDev(message: string, value: unknown, index: number): void {
+function warnDev(message: string, value: unknown): void {
   if (isDev()) {
     console.warn(message, value, "Coercing to 0.");
   }
@@ -20,8 +20,7 @@ export function rawNumberOf<TDatum>(datum: TDatum, index: number, accessor: Acce
   if (value == null) {
     warnDev(
       `[@motion-charts/core] Received non-finite numerical value at index ${index}:`,
-      value,
-      index
+      value
     );
     return null;
   }
@@ -34,8 +33,7 @@ export function rawNumberOf<TDatum>(datum: TDatum, index: number, accessor: Acce
     } catch {
       warnDev(
         `[@motion-charts/core] Received non-finite numerical value at index ${index}:`,
-        value,
-        index
+        value
       );
       return null;
     }
@@ -44,8 +42,7 @@ export function rawNumberOf<TDatum>(datum: TDatum, index: number, accessor: Acce
   if (!Number.isFinite(numericValue)) {
     warnDev(
       `[@motion-charts/core] Received non-finite numerical value at index ${index}:`,
-      value,
-      index
+      value
     );
     return null;
   }

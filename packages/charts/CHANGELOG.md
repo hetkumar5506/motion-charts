@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Maintenance and release assurance
+- Consolidated keyboard roving-focus behavior across every interactive chart and removed dead or duplicated helpers.
+- Added hostile-label escaping and shared-navigation regression coverage.
+- Added a dry-run npm package-content allowlist check and made it part of the publish validation path.
+- Hardened the Pages workflow with immutable action revisions, job timeouts, dependency auditing, full typecheck/test gates, and deployment-only write permissions.
+- Upgraded the docs pipeline to Tailwind CSS 4 and its native PostCSS integration, removing the vulnerable legacy glob/watch dependency chain and redundant Autoprefixer configuration.
+- Limited preview-host development origins to explicit `ARENA_PREVIEW=true` sessions.
+
 ## 0.2.5
 
 ### Motion reliability

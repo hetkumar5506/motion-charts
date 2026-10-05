@@ -9,7 +9,7 @@ const nextConfig = {
   basePath,
   images: { unoptimized: true },
   transpilePackages: ["@motion-charts/core"],
-  allowedDevOrigins: ["*.e2b.app", "3000-ijk1osxr64w7cj88px8jq.e2b.app"],
+  allowedDevOrigins: process.env.ARENA_PREVIEW === "true" ? ["*.e2b.app"] : [],
   experimental: {
     optimizePackageImports: ["@motion-charts/core"]
   }

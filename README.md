@@ -106,7 +106,8 @@ Useful checks before opening a pull request:
 npm run typecheck
 npm test
 npm run build
-npm audit --omit=dev
+npm run verify:package
+npm audit --audit-level=high
 npm run audit:ponytail
 git diff --check
 ```

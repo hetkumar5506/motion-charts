@@ -9,9 +9,10 @@ import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { useChartTheme } from "../themes";
 import { arcPath, pieSlices, polar } from "../utils/geometry";
-import { chartHoverTransition, chartTransition, popKeyframes, useChartEntrance } from "../utils/motion";
+import { chartHoverTransition, chartTransition, useChartEntrance } from "../utils/motion";
 import { isDev } from "../utils/env";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
+import { moveRovingFocus } from "../utils/interaction";
 
 const defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
 
@@ -165,25 +166,12 @@ export function DonutChart<TDatum extends object>({
       return;
     }
 
-    const count = renderableSlices.length;
-    if (count <= 1) return;
-    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
-      : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
-      : event.key === "Home" ? -itemIndex
-      : event.key === "End" ? count - 1 - itemIndex : 0;
-
-    if (!delta) return;
-    event.preventDefault();
-    const nextItemIndex = Math.min(count - 1, Math.max(0, itemIndex + delta));
+    const nextItemIndex = moveRovingFocus(event, itemIndex, renderableSlices.length);
+    if (nextItemIndex === null) return;
     setActiveSliceIndex(nextItemIndex);
     setIsKeyboardFocused(true);
     const nextSliceItem = renderableSlices[nextItemIndex];
-    if (nextSliceItem) {
-      setHoveredIndex(nextSliceItem.row.index);
-    }
-    const svg = event.currentTarget.closest("svg");
-    const targets = svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']");
-    targets?.[nextItemIndex]?.focus();
+    if (nextSliceItem) setHoveredIndex(nextSliceItem.row.index);
   }
 
   const legendItems = useMemo(() => rows.map((row) => ({ label: row.label, color: row.color })), [rows]);
@@ -422,7 +410,7 @@ function AnimatedDonutSlice({
       strokeLinejoin="round"
       initial={false}
       animate={isEntering
-        ? { opacity: [0, 1], scale: pop ? popKeyframes(0.72, transformScale) : [0.86, transformScale] }
+        ? { opacity: [0, 1], scale: pop ? [0.72, transformScale] : [0.86, transformScale] }
         : { opacity: 1, scale: transformScale }}
       whileHover={{ scale: hoverScale, opacity: 0.95, transition: chartHoverTransition }}
       transition={transition}

@@ -10,9 +10,10 @@ import { labelOf, numberOf } from "../utils/accessors";
 import { colorAt, getContrastTextColor } from "../utils/color";
 import { defaultValueFormatter, joinLabels } from "../utils/format";
 import { useChartTheme } from "../themes";
-import { chartHoverTransition, chartTransition, popKeyframes, useChartEntrance } from "../utils/motion";
+import { chartHoverTransition, chartTransition, useChartEntrance } from "../utils/motion";
 import { createCategoryScale, createLinearScale, extent, type CategoryScale, type LinearScale } from "../utils/scales";
 import { finiteNonNegative, resolveChartBounds } from "../utils/layout";
+import { moveRovingFocus } from "../utils/interaction";
 import { isDev } from "../utils/env";
 
 export type BarSeries<TDatum extends object> = {
@@ -228,7 +229,6 @@ export function BarChart<TDatum extends object>({
   }, [segments.length]);
 
   const tooltipEnabled = tooltip !== false;
-  const popEntrance = animation?.entrance === "pop";
   const countUp = typeof showValues === "object" ? showValues.countUp !== false : true;
   const valueLabelFormatter = typeof showValues === "object" && showValues.formatter
     ? showValues.formatter
@@ -271,17 +271,10 @@ export function BarChart<TDatum extends object>({
       onDatumClick(contextFor(segment));
       return;
     }
-    const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1
-      : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1
-      : event.key === "Home" ? -index
-      : event.key === "End" ? segments.length - 1 - index : 0;
-    if (!delta || segments.length <= 1) return;
-    event.preventDefault();
-    const next = Math.min(segments.length - 1, Math.max(0, index + delta));
+    const next = moveRovingFocus(event, index, segments.length);
+    if (next === null) return;
     setActiveIndex(next);
     setIsKeyboardFocused(true);
-    const svg = event.currentTarget.closest("svg");
-    svg?.querySelectorAll<SVGElement>("[role='graphics-symbol']")[next]?.focus();
   }
 
   const axisValueFormatter = (value: number) => yAxis?.formatter?.(value) ?? valueFormatter(value);
@@ -381,8 +374,8 @@ export function BarChart<TDatum extends object>({
                       attrY: segment.y,
                       width: segment.width,
                       height: segment.height,
-                      scaleX: layout === "horizontal" ? (popEntrance ? popKeyframes(0, 1) : [0, 1]) : 1,
-                      scaleY: layout === "vertical" ? (popEntrance ? popKeyframes(0, 1) : [0, 1]) : 1,
+                      scaleX: layout === "horizontal" ? [0, 1] : 1,
+                      scaleY: layout === "vertical" ? [0, 1] : 1,
                       opacity: [0, isHovered ? 0.92 : 1]
                     }
                   : { attrX: segment.x, attrY: segment.y, width: segment.width, height: segment.height, scaleX: 1, scaleY: 1, opacity: isHovered ? 0.92 : 1 }}

@@ -10,6 +10,14 @@ describe("audit v0.1.3 regression and compliance suite", () => {
     expect(defaultValueFormatter(1234.567)).toBe("1,234.57");
   });
 
+  it("keeps hostile labels as escaped React text", () => {
+    const label = '</text><script data-audit="true">alert(1)</script>';
+    const html = renderToString(<BarChart data={[{ label, value: 12 }]} xKey="label" yKey="value" />);
+
+    expect(html).toContain("&lt;script");
+    expect(html).not.toContain("<script");
+  });
+
   it("warns in dev mode on null input and coerces to 0", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const val = numberOf({ v: null }, 0, "v");

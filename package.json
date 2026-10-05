@@ -12,6 +12,7 @@
     "dev": "npm run dev --workspace docs",
     "test": "npm run test --workspace @motion-charts/core",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "verify:package": "npm run verify:package --workspace @motion-charts/core",
     "audit:ponytail": "node ./scripts/ponytail-audit.mjs"
   },
   "devDependencies": {

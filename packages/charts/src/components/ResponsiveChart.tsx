@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { isDev } from "../utils/env";
+import { finiteNonNegative, finitePositive } from "../utils/layout";
 
 export type ResponsiveChartSize = {
   width: number;
@@ -68,12 +69,4 @@ export function ResponsiveChart({
       {children({ width, height })}
     </div>
   );
-}
-
-function finitePositive(value: number, fallback: number): number {
-  return Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-function finiteNonNegative(value: number, fallback: number): number {
-  return Number.isFinite(value) && value >= 0 ? value : fallback;
 }
